@@ -4,21 +4,28 @@ import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "reac
 import {
   Archetype,
   CareerState,
+  CountryId,
+  COUNTRIES,
   Difficulty,
+  DivisionLevel,
   Fixture,
   Foot,
-  LEAGUE_TEAMS,
   MatchMoment,
   MatchPlan,
   MatchTarget,
-  PLAYER_TEAM,
+  ORIGINS,
+  OriginType,
   Position,
+  TEAMS,
   WORLD_TEAMS,
   buildCareerNews,
   createFixture,
   generateMatchPlan,
   generateStandings,
+  getLeagueDefinition,
   getOverall,
+  getSalary,
+  getStartingClub,
   hashText,
   migrateCareer,
 } from "./game-engine";
@@ -109,7 +116,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>CARREIRA 0.2</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>CARREIRA 0.3.1</small></div></div>;
 }
 
 function Lobby({
@@ -146,7 +153,7 @@ function Lobby({
         <div className="lobby-world-card">
           <span className="radar-ring ring-one" /><span className="radar-ring ring-two" />
           <div className="world-ball">◉</div>
-          <div className="world-stat"><small>MUNDO ATIVO</small><strong>{LEAGUE_TEAMS.length} clubes</strong><span>{totalMatches} partidas registradas</span></div>
+          <div className="world-stat"><small>MUNDO ATIVO</small><strong>{TEAMS.length} clubes</strong><span>{COUNTRIES.length} países · {totalMatches} partidas</span></div>
         </div>
       </section>
 
@@ -164,7 +171,7 @@ function Lobby({
             <div className="slot-info">
               <div className="slot-club"><TeamCrest short={career.clubShort} color={career.clubColor} small /><span>{career.clubName}</span></div>
               <h2>{career.name}</h2>
-              <p>{career.position} · {career.archetype} · {career.age} anos</p>
+              <p>{career.countryName} · {career.leagueName} · {career.position}</p>
             </div>
             <div className="slot-progress">
               <div><span>Temporada</span><strong>{career.season}</strong></div>
@@ -178,16 +185,16 @@ function Lobby({
             <div className="slot-top"><span>SLOT 0{index + 1}</span><small>VAZIO</small></div>
             <div className="empty-pitch"><span className="pitch-cross">+</span><i /><i /></div>
             <h2>Um novo começo</h2>
-            <p>Crie um jogador, escolha seu estilo e comece na Liga Nacional B.</p>
+            <p>Escolha país, divisão, origem e o clube onde sua história começa.</p>
             <button className="slot-create" onClick={() => onCreate(index)}><span>＋</span> CRIAR NOVA CARREIRA</button>
           </article>
         ))}
       </section>
 
       <footer className="lobby-footer">
-        <span>LEGADO ENGINE <b>2.0</b></span>
-        <p>Histórias, tabelas e partidas geradas para cada save.</p>
-        <span>BRASIL · TEMPORADA 2026</span>
+        <span>LEGADO ENGINE <b>3.1</b></span>
+        <p>Oito ligas conectadas por acesso e rebaixamento.</p>
+        <span>4 PAÍSES · 96 CLUBES</span>
       </footer>
     </main>
   );
@@ -208,8 +215,10 @@ function CareerCreator({
 }) {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("Meia");
-  const [origin, setOrigin] = useState("Clube de bairro");
+  const [origin, setOrigin] = useState<OriginType>("Clube de bairro");
   const [nationality, setNationality] = useState("Brasil");
+  const [countryId, setCountryId] = useState<CountryId>("BR");
+  const [division, setDivision] = useState<DivisionLevel>(2);
   const [foot, setFoot] = useState<Foot>("Direito");
   const [archetype, setArchetype] = useState<Archetype>("Maestro");
   const [difficulty, setDifficulty] = useState<Difficulty>("Profissional");
@@ -218,11 +227,25 @@ function CareerCreator({
   const [skinTone, setSkinTone] = useState("#b97850");
   const [hairStyle, setHairStyle] = useState("Curto");
 
+  const selectedCountry = useMemo(() => COUNTRIES.find((country) => country.id === countryId) ?? COUNTRIES[0], [countryId]);
+  const selectedLeague = useMemo(() => getLeagueDefinition(countryId, division), [countryId, division]);
+  const selectedClub = useMemo(() => getStartingClub(countryId, division, origin), [countryId, division, origin]);
   const preview = useMemo(() => migrateCareer({
     name: name.trim() || "Novo Talento",
     position,
     origin,
     nationality,
+    countryId,
+    countryName: selectedCountry.name,
+    division,
+    leagueId: selectedLeague.id,
+    leagueName: selectedLeague.name,
+    clubId: selectedClub.id,
+    clubName: selectedClub.name,
+    clubShort: selectedClub.short,
+    clubColor: selectedClub.color,
+    clubStrength: selectedClub.strength,
+    salary: getSalary(countryId, division),
     foot,
     archetype,
     difficulty,
@@ -230,7 +253,7 @@ function CareerCreator({
     shirtNumber,
     skinTone,
     hairStyle,
-  }), [name, position, origin, nationality, foot, archetype, difficulty, age, shirtNumber, skinTone, hairStyle]);
+  }), [name, position, origin, nationality, countryId, selectedCountry.name, division, selectedLeague.id, selectedLeague.name, selectedClub, foot, archetype, difficulty, age, shirtNumber, skinTone, hairStyle]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -258,9 +281,9 @@ function CareerCreator({
           <div className="preview-name">
             <small>{position.toUpperCase()} · {foot.toUpperCase()}</small>
             <h2>{name.trim() || "NOVO TALENTO"}</h2>
-            <span>{archetype} · OVR {getOverall(preview)}</span>
+            <span>{selectedCountry.flag} {selectedLeague.name} · OVR {getOverall(preview)}</span>
           </div>
-          <div className="preview-club"><TeamCrest short={PLAYER_TEAM.short} color={PLAYER_TEAM.color} /><div><small>CLUBE INICIAL</small><strong>{PLAYER_TEAM.name}</strong></div></div>
+          <div className="preview-club"><TeamCrest short={selectedClub.short} color={selectedClub.color} /><div><small>CLUBE INICIAL · FORÇA {selectedClub.strength}</small><strong>{selectedClub.name}</strong></div></div>
         </aside>
 
         <div className="creator-form-pane">
@@ -273,17 +296,37 @@ function CareerCreator({
               <label className="field-label">Nome do jogador<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex Silva" maxLength={24} autoFocus /></label>
               <div className="field-grid three">
                 <label className="field-label">Idade<input type="number" min="16" max="23" value={age} onChange={(event) => setAge(Number(event.target.value))} /></label>
-                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}><option>Brasil</option><option>Argentina</option><option>Portugal</option><option>Espanha</option><option>Colômbia</option><option>Uruguai</option></select></label>
+                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}><option>Brasil</option><option>Argentina</option><option>Portugal</option><option>Inglaterra</option><option>Espanha</option><option>Colômbia</option><option>Uruguai</option></select></label>
                 <label className="field-label">Número<input type="number" min="1" max="99" value={shirtNumber} onChange={(event) => setShirtNumber(Number(event.target.value))} /></label>
               </div>
             </div>
 
             <div className="creator-section">
-              <div className="creator-section-title"><span>02</span><div><strong>Perfil de jogo</strong><small>Define atributos e tipos de lance</small></div></div>
-              <div className="field-grid">
-                <label className="field-label">Posição<select value={position} onChange={(event) => setPosition(event.target.value as Position)}><option>Atacante</option><option>Ponta</option><option>Meia</option><option>Lateral</option><option>Zagueiro</option></select></label>
-                <label className="field-label">Origem<select value={origin} onChange={(event) => setOrigin(event.target.value)}><option>Clube de bairro</option><option>Academia regional</option><option>Futebol escolar</option><option>Sem clube</option></select></label>
+              <div className="creator-section-title"><span>02</span><div><strong>Onde tudo começa</strong><small>País, divisão e história de origem</small></div></div>
+              <div className="country-choice-grid">
+                {COUNTRIES.map((country) => (
+                  <button type="button" className={`country-choice ${countryId === country.id ? "is-active" : ""}`} onClick={() => setCountryId(country.id)} key={country.id}>
+                    <span>{country.flag}</span><div><strong>{country.name}</strong><small>{country.style}</small></div>
+                  </button>
+                ))}
               </div>
+              <div className="division-choice">
+                <button type="button" className={division === 2 ? "is-active" : ""} onClick={() => setDivision(2)}><span>CAMINHO DA ASCENSÃO</span><strong>{selectedCountry.leagues[1].name}</strong><small>Suba construindo seu nome desde baixo</small></button>
+                <button type="button" className={division === 1 ? "is-active" : ""} onClick={() => setDivision(1)}><span>DESAFIO DA ELITE</span><strong>{selectedCountry.leagues[0].name}</strong><small>Mais salário, pressão e risco de queda</small></button>
+              </div>
+              <div className="origin-choice-grid">
+                {ORIGINS.map((item) => (
+                  <button type="button" className={origin === item.id ? "is-active" : ""} onClick={() => setOrigin(item.id)} key={item.id}>
+                    <strong>{item.id}</strong><small>{item.description}</small>
+                  </button>
+                ))}
+              </div>
+              <div className="starting-contract"><TeamCrest short={selectedClub.short} color={selectedClub.color} small /><div><small>CONTRATO INICIAL</small><strong>{selectedClub.name}</strong><span>{money(getSalary(countryId, division))}/mês · {selectedLeague.name}</span></div></div>
+            </div>
+
+            <div className="creator-section">
+              <div className="creator-section-title"><span>03</span><div><strong>Perfil de jogo</strong><small>Define atributos e tipos de lance</small></div></div>
+              <label className="field-label">Posição<select value={position} onChange={(event) => setPosition(event.target.value as Position)}><option>Atacante</option><option>Ponta</option><option>Meia</option><option>Lateral</option><option>Zagueiro</option></select></label>
               <div className="choice-row" aria-label="Pé dominante">
                 <span>PÉ DOMINANTE</span>
                 <div><OptionPill active={foot === "Direito"} onClick={() => setFoot("Direito")}>Direito</OptionPill><OptionPill active={foot === "Esquerdo"} onClick={() => setFoot("Esquerdo")}>Esquerdo</OptionPill></div>
@@ -299,7 +342,7 @@ function CareerCreator({
             </div>
 
             <div className="creator-section appearance-section">
-              <div className="creator-section-title"><span>03</span><div><strong>Aparência e desafio</strong><small>Visual do avatar e ritmo da carreira</small></div></div>
+              <div className="creator-section-title"><span>04</span><div><strong>Aparência e desafio</strong><small>Visual do avatar e ritmo da carreira</small></div></div>
               <div className="appearance-row">
                 <label>PELE<div className="swatches">{["#f2c5a0", "#d89a70", "#b97850", "#75442f", "#4a2a22"].map((tone) => <button type="button" aria-label={`Tom de pele ${tone}`} className={skinTone === tone ? "is-active" : ""} style={{ background: tone }} onClick={() => setSkinTone(tone)} key={tone} />)}</div></label>
                 <label>CABELO<select value={hairStyle} onChange={(event) => setHairStyle(event.target.value)}><option>Curto</option><option>Raspado</option><option>Cacheado</option><option>Tranças</option></select></label>
@@ -309,7 +352,7 @@ function CareerCreator({
               </div>
             </div>
 
-            <button className="create-career-button" type="submit"><span>INICIAR CARREIRA</span><b>Entrar na Liga Nacional B →</b></button>
+            <button className="create-career-button" type="submit"><span>INICIAR CARREIRA</span><b>Entrar na {selectedLeague.name} →</b></button>
           </form>
         </div>
       </section>
@@ -332,7 +375,7 @@ function AppSidebar({ career, view, onNavigate, onLobby }: { career: CareerState
       <nav aria-label="Navegação da carreira">
         {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view}><span>{item.icon}</span><b>{item.label}</b></button>)}
       </nav>
-      <div className="sidebar-season"><small>TEMPORADA</small><strong>{career.season}</strong><span>Rodada {career.seasonRound} de 22</span><div><i style={{ width: `${career.seasonRound / 22 * 100}%` }} /></div></div>
+      <div className="sidebar-season"><small>{career.countryName.toUpperCase()} · DIVISÃO {career.division}</small><strong>{career.season}</strong><span>Rodada {career.seasonRound} de 22</span><div><i style={{ width: `${career.seasonRound / 22 * 100}%` }} /></div></div>
       <button className="exit-career" onClick={onLobby}>← <span>Trocar carreira</span></button>
     </aside>
   );
@@ -342,7 +385,7 @@ function AppTopbar({ career, onLobby }: { career: CareerState; onLobby: () => vo
   return (
     <header className="app-topbar">
       <button className="mobile-brand" onClick={onLobby}><span>L</span></button>
-      <div className="topbar-context"><small>LIGA NACIONAL B · TEMPORADA {career.season}</small><strong>Central de carreira</strong></div>
+      <div className="topbar-context"><small>{career.leagueName.toUpperCase()} · {career.countryName.toUpperCase()}</small><strong>Central de carreira</strong></div>
       <div className="topbar-stats">
         <div><small>VALOR</small><strong>{money(career.marketValue)}</strong></div>
         <div><small>FÃS</small><strong>{compactNumber(career.fans)}</strong></div>
@@ -476,7 +519,7 @@ function Dashboard({
         </article>
 
         <article className="hud-card table-card">
-          <div className="card-heading"><div><span className="overline">LIGA NACIONAL B</span><h3>Classificação</h3></div><div className="position-badge"><small>POSIÇÃO</small><strong>{position}º</strong></div></div>
+          <div className="card-heading"><div><span className="overline">{career.leagueName.toUpperCase()}</span><h3>Classificação</h3></div><div className="position-badge"><small>POSIÇÃO</small><strong>{position}º</strong></div></div>
           <MiniTable career={career} />
           <button className="text-link" onClick={() => onNavigate("season")}>VER TABELA COMPLETA →</button>
         </article>
@@ -492,8 +535,8 @@ function Dashboard({
       <section className="season-ribbon">
         <div><span className="overline">FORMA RECENTE</span><div className="form-dots">{(career.recentResults.length ? career.recentResults : ["E", "V", "D", "V", "E"]).slice(0, 5).map((result, index) => <span className={resultClass(result)} key={`${result}-${index}`}>{result[0]}</span>)}</div></div>
         <div><span>CONTRATO</span><strong>{career.contractMatches} jogos restantes</strong></div>
-        <div><span>VALOR DE MERCADO</span><strong>{money(career.marketValue)}</strong></div>
-        <div><span>SEED DO MUNDO</span><strong>#{career.careerSeed.toString(36).toUpperCase()}</strong></div>
+        <div><span>SALÁRIO MENSAL</span><strong>{money(career.salary)}</strong></div>
+        <div><span>PAÍS · DIVISÃO</span><strong>{career.countryName} · D{career.division}</strong></div>
       </section>
     </main>
   );
@@ -501,15 +544,17 @@ function Dashboard({
 
 function SeasonView({ career }: { career: CareerState }) {
   const rows = useMemo(() => generateStandings(career), [career]);
+  const playerPosition = rows.find((row) => row.isPlayerTeam)?.position ?? 1;
+  const titleRace = career.division === 1;
   return (
     <main className="career-content inner-view">
-      <section className="view-heading"><div><span className="overline">TEMPORADA {career.season}</span><h1>A corrida pelo acesso.</h1><p>Uma liga de 12 clubes, 22 rodadas e quatro vagas que mudam o futuro de cada elenco.</p></div><div className="season-progress-ring"><strong>{career.seasonRound}</strong><span>DE 22<br />RODADAS</span></div></section>
+      <section className="view-heading"><div><span className="overline">{career.countryName.toUpperCase()} · TEMPORADA {career.season}</span><h1>{titleRace ? "A corrida pelo título." : "A corrida pelo acesso."}</h1><p>{career.leagueName}: 12 clubes, 22 rodadas, {titleRace ? "duas quedas para a segunda divisão" : "três vagas na elite"}.</p></div><div className="season-progress-ring"><strong>{career.seasonRound}</strong><span>DE 22<br />RODADAS</span></div></section>
       <section className="season-layout">
         <article className="hud-card full-table-card">
-          <div className="card-heading"><div><span className="overline">CLASSIFICAÇÃO OFICIAL</span><h3>Liga Nacional B</h3></div><div className="legend"><span><i className="promotion" /> Acesso</span><span><i className="danger" /> Rebaixamento</span></div></div>
+          <div className="card-heading"><div><span className="overline">CLASSIFICAÇÃO OFICIAL</span><h3>{career.leagueName}</h3></div><div className="legend">{!titleRace && <span><i className="promotion" /> Acesso</span>}<span><i className="danger" /> {titleRace ? "Rebaixamento" : "Zona crítica"}</span></div></div>
           <div className="standings-table">
             <div className="standings-head"><span>POS</span><span>CLUBE</span><span>J</span><span>V</span><span>E</span><span>D</span><span>GP</span><span>GC</span><span>SG</span><span>FORMA</span><span>PTS</span></div>
-            {rows.map((row) => <div className={`standings-row ${row.position <= 4 ? "promotion-row" : row.position >= 11 ? "danger-row" : ""} ${row.isPlayerTeam ? "player-row" : ""}`} key={row.team.id}>
+            {rows.map((row) => <div className={`standings-row ${!titleRace && row.position <= 3 ? "promotion-row" : ""} ${row.position >= 11 ? "danger-row" : ""} ${row.isPlayerTeam ? "player-row" : ""}`} key={row.team.id}>
               <span>{String(row.position).padStart(2, "0")}</span>
               <span><TeamCrest short={row.team.short} color={row.team.color} small /><b>{row.team.name}</b>{row.isPlayerTeam && <em>VOCÊ</em>}</span>
               <span>{row.played}</span><span>{row.wins}</span><span>{row.draws}</span><span>{row.losses}</span><span>{row.goalsFor}</span><span>{row.goalsAgainst}</span><span>{row.goalDifference > 0 ? "+" : ""}{row.goalDifference}</span>
@@ -519,7 +564,8 @@ function SeasonView({ career }: { career: CareerState }) {
           </div>
         </article>
         <aside className="season-side">
-          <article className="hud-card cup-card"><span className="cup-glyph">◇</span><span className="overline">COPA DA UNIÃO</span><h3>{career.cupStage}</h3><p>Partidas eliminatórias aparecem a cada seis rodadas da liga.</p><div className="cup-bracket"><span className="is-done">1ª fase</span><i /><span>{career.cupStage}</span><i /><span>Final</span></div></article>
+          <article className="hud-card cup-card"><span className="cup-glyph">◇</span><span className="overline">COPA {career.countryName.toUpperCase()}</span><h3>{career.cupStage}</h3><p>Clubes das duas divisões se enfrentam durante a temporada.</p><div className="cup-bracket"><span className="is-done">1ª fase</span><i /><span>{career.cupStage}</span><i /><span>Final</span></div></article>
+          <article className="hud-card movement-card"><span className="overline">MOVIMENTO DA LIGA</span><h3>{titleRace ? (playerPosition >= 11 ? "Risco de queda" : "Permanência segura") : (playerPosition <= 3 ? "Na zona de acesso" : "Perseguindo o G3")}</h3><p>{career.lastSeasonSummary}</p><div className="movement-stats"><span><b>{career.promotions}</b> acessos</span><span><b>{career.relegations}</b> quedas</span></div></article>
           <article className="hud-card leaders-card"><div className="card-heading"><div><span className="overline">SEU DESEMPENHO</span><h3>Números na liga</h3></div></div><div className="leader-stat"><span>Gols</span><strong>{career.goals}</strong><small>{Math.max(1, 9 - career.goals)}º na artilharia</small></div><div className="leader-stat"><span>Assistências</span><strong>{career.assists}</strong><small>{Math.max(1, 7 - career.assists)}º no ranking</small></div><div className="leader-stat"><span>Nota média</span><strong>{career.rating.toFixed(1)}</strong><small>{career.rating >= 7.5 ? "Elite da competição" : "Em evolução"}</small></div></article>
         </aside>
       </section>
@@ -565,7 +611,7 @@ function MarketView({ career }: { career: CareerState }) {
     <main className="career-content inner-view">
       <section className="view-heading"><div><span className="overline">CENTRAL DE MERCADO</span><h1>Seu nome começa a circular.</h1><p>Desempenho, reputação e decisões fora de campo determinam quem acompanha sua carreira.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100</span></div></section>
       <section className="market-grid">
-        <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>Liga Nacional B · Titular em desenvolvimento</p></div></div><div className="contract-details"><div><span>DURAÇÃO</span><strong>{career.contractMatches} jogos</strong></div><div><span>SALÁRIO</span><strong>{money(18500)}/mês</strong></div><div><span>PAPEL</span><strong>Rotação</strong></div></div><div className="contract-progress"><span>Confiança do clube <b>{Math.min(100, 54 + career.reputation)}%</b></span><i><em style={{ width: `${Math.min(100, 54 + career.reputation)}%` }} /></i></div></article>
+        <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>{career.leagueName} · Divisão {career.division}</p></div></div><div className="contract-details"><div><span>DURAÇÃO</span><strong>{career.contractMatches} jogos</strong></div><div><span>SALÁRIO</span><strong>{money(career.salary)}/mês</strong></div><div><span>PAPEL</span><strong>{career.rating >= 7.4 ? "Titular" : "Rotação"}</strong></div></div><div className="contract-progress"><span>Confiança do clube <b>{Math.min(100, 54 + career.reputation)}%</b></span><i><em style={{ width: `${Math.min(100, 54 + career.reputation)}%` }} /></i></div></article>
         <article className="hud-card scouts-card"><div className="card-heading"><div><span className="overline">OBSERVADORES</span><h3>Clubes interessados</h3></div><span className="status-tag">{offers.length} relatórios</span></div><div className="offer-list">{offers.map((team, index) => { const required = 24 + index * 14; const unlocked = career.reputation >= required; return <div className={`offer-row ${unlocked ? "is-unlocked" : ""}`} key={team.id}><TeamCrest short={team.short} color={team.color} /><div><strong>{unlocked ? team.name : "Clube estrangeiro"}</strong><span>{team.country} · Força {unlocked ? team.strength : "??"}</span></div><div><small>INTERESSE</small><b>{unlocked ? `${Math.min(92, career.reputation + 28 - index * 9)}%` : `REP. ${required}`}</b></div></div>; })}</div></article>
         <article className="hud-card agent-card"><span className="agent-avatar">RA</span><div><span className="overline">SEU EMPRESÁRIO</span><h3>Rafael Azevedo</h3><p>“Mantenha a média acima de 7,2 e alcance reputação 30. A primeira proposta concreta virá naturalmente.”</p></div><div className="agent-objectives"><span className={career.rating >= 7.2 ? "done" : ""}>Nota média 7,2 <b>{career.rating.toFixed(1)}</b></span><span className={career.reputation >= 30 ? "done" : ""}>Reputação 30 <b>{career.reputation}</b></span><span className={career.matches >= 8 ? "done" : ""}>8 partidas <b>{career.matches}</b></span></div></article>
       </section>
@@ -675,14 +721,15 @@ function MatchScreen({
 
   function resolveMoment(target: MatchTarget) {
     if (!activeMoment) return;
-    const fatigue = minute * .0014 + (100 - career.energy) / 1600;
+    const fatigue = minute * .0012 + (100 - career.energy) / 1400;
     const difficultyPenalty = career.difficulty === "Lenda" ? .045 : career.difficulty === "Promessa" ? -.035 : 0;
-    const skill = .7 + career.level * .014 + career.morale / 1400 + career.formBoost / 100 - fatigue - difficultyPenalty;
+    const skill = .58 + career.level * .009 + career.morale / 2400 + career.formBoost / 180 - fatigue - difficultyPenalty;
     const success = target.roll < skill - target.risk;
     const secondaryRoll = (target.roll * 997.37) % 1;
-    const goal = success && ((activeMoment.kind === "shot" && secondaryRoll < .35 + target.risk * .65) || (activeMoment.kind === "dribble" && target.risk > .24 && secondaryRoll < .24));
-    const assist = success && activeMoment.kind === "pass" && target.risk > .16 && secondaryRoll < .42 + target.risk;
-    const defensiveError = !success && activeMoment.kind === "defense" && secondaryRoll > .55;
+    const canCreateGoal = goals + assists === 0;
+    const goal = canCreateGoal && success && ((activeMoment.kind === "shot" && secondaryRoll < .1 + target.risk * .28) || (activeMoment.kind === "dribble" && target.risk > .3 && secondaryRoll < .08));
+    const assist = canCreateGoal && success && activeMoment.kind === "pass" && target.risk > .16 && secondaryRoll < .14 + target.risk * .2;
+    const defensiveError = !success && activeMoment.kind === "defense" && secondaryRoll > .82;
     const earned = success ? target.reward : 3;
 
     setXp((value) => value + earned);
@@ -762,7 +809,7 @@ function ResultScreen({ career, result, fixture, onContinue }: { career: CareerS
           <div><TeamCrest short={fixture.opponent.short} color={fixture.opponent.color} /><strong>{fixture.opponent.name}</strong></div>
         </div>
         <div className="result-player-v2"><PlayerAvatar career={career} /><div><small>{career.position.toUpperCase()} · 90 MINUTOS</small><strong>{career.name}</strong><span>{result.goals} gol(s) · {result.assists} assistência(s)</span></div><div className="result-rating"><small>NOTA</small><strong>{result.rating.toFixed(1)}</strong></div></div>
-        <div className="result-rewards"><div><span>XP RECEBIDO</span><strong>+{result.xp}</strong></div><div><span>NOVOS FÃS</span><strong>+{Math.max(80, Math.round(result.rating * 43))}</strong></div><div><span>REPUTAÇÃO</span><strong>+{won ? 3 : draw ? 1 : 0}</strong></div><div><span>PONTOS NA LIGA</span><strong>+{won ? 3 : draw ? 1 : 0}</strong></div></div>
+        <div className="result-rewards"><div><span>XP RECEBIDO</span><strong>+{result.xp}</strong></div><div><span>NOVOS FÃS</span><strong>+{Math.max(80, Math.round(result.rating * 43))}</strong></div><div><span>REPUTAÇÃO</span><strong>+{won ? 3 : draw ? 1 : 0}</strong></div><div><span>{fixture.competitionType === "league" ? "PONTOS NA LIGA" : "RESULTADO NA COPA"}</span><strong>{fixture.competitionType === "league" ? `+${won ? 3 : draw ? 1 : 0}` : won ? "AVANÇOU" : draw ? "DECISÃO" : "ELIMINADO"}</strong></div></div>
         <div className="coach-report"><span>RELATÓRIO DO TREINADOR</span><p>{result.rating >= 8 ? "Você decidiu nos momentos grandes. O elenco começa a reconhecer sua liderança." : result.rating >= 7 ? "Atuação segura, com boa leitura e contribuição coletiva." : "Há espaço para evoluir. A preparação da próxima semana será importante."}</p></div>
         <button className="continue-button" onClick={onContinue}>CONTINUAR TEMPORADA <span>→</span></button>
       </section>
@@ -866,15 +913,53 @@ export default function Home() {
     const draw = lastResult.unionGoals === lastResult.opponentGoals;
     const resultLetter = won ? "V" : draw ? "E" : "D";
     const newFans = Math.max(80, Math.round(lastResult.rating * 43));
-    const leagueMatch = fixture.competition === "Liga Nacional B";
+    const leagueMatch = fixture.competitionType === "league";
     const nextSeasonMatches = career.seasonMatches + (leagueMatch ? 1 : 0);
-    const seasonEnded = nextSeasonMatches >= 22;
+    const seasonEnded = leagueMatch && nextSeasonMatches >= 22;
     const fatigueVariance = hashText(`${career.careerSeed}:${career.matches}`) % 7;
     const nextRating = Number(((career.rating * career.matches + lastResult.rating) / (career.matches + 1)).toFixed(1));
     const reputationGain = won ? 3 : draw ? 1 : lastResult.rating >= 7.5 ? 1 : 0;
-    const nextCupStage = fixture.competition === "Copa da União"
+    const nextCupStage = fixture.competitionType === "cup"
       ? won ? (career.cupStage === "Primeira fase" ? "Oitavas de final" : career.cupStage === "Oitavas de final" ? "Quartas de final" : career.cupStage === "Quartas de final" ? "Semifinal" : "Final") : "Eliminado"
       : career.cupStage;
+    const seasonPoints = career.seasonPoints + (leagueMatch ? won ? 3 : draw ? 1 : 0 : 0);
+    const seasonWins = career.seasonWins + (leagueMatch && won ? 1 : 0);
+    const seasonDraws = career.seasonDraws + (leagueMatch && draw ? 1 : 0);
+    const seasonLosses = career.seasonLosses + (leagueMatch && !won && !draw ? 1 : 0);
+    const seasonGoalsFor = career.seasonGoalsFor + (leagueMatch ? lastResult.unionGoals : 0);
+    const seasonGoalsAgainst = career.seasonGoalsAgainst + (leagueMatch ? lastResult.opponentGoals : 0);
+    const recentResults = [`${resultLetter} ${lastResult.unionGoals}–${lastResult.opponentGoals}`, ...career.recentResults].slice(0, 6);
+    const completedSeason = migrateCareer({
+      ...career,
+      seasonMatches: nextSeasonMatches,
+      seasonPoints,
+      seasonWins,
+      seasonDraws,
+      seasonLosses,
+      seasonGoalsFor,
+      seasonGoalsAgainst,
+      recentResults,
+    });
+    const finalPosition = seasonEnded ? generateStandings(completedSeason).find((row) => row.isPlayerTeam)?.position ?? 6 : 0;
+    let nextDivision: DivisionLevel = career.division;
+    let promotions = career.promotions;
+    let relegations = career.relegations;
+    let lastSeasonSummary = career.lastSeasonSummary;
+    let trophies = career.trophies;
+    if (seasonEnded && career.division === 2 && finalPosition <= 3) {
+      nextDivision = 1;
+      promotions += 1;
+      lastSeasonSummary = `${career.season}: ${finalPosition}º lugar e acesso para a elite`;
+      trophies = [`Acesso ${career.countryName} ${career.season}`, ...trophies];
+    } else if (seasonEnded && career.division === 1 && finalPosition >= 11) {
+      nextDivision = 2;
+      relegations += 1;
+      lastSeasonSummary = `${career.season}: ${finalPosition}º lugar e rebaixamento`;
+    } else if (seasonEnded) {
+      lastSeasonSummary = `${career.season}: ${finalPosition}º lugar na ${career.leagueName}`;
+    }
+    const nextLeague = getLeagueDefinition(career.countryId, nextDivision);
+    const nextReputation = Math.min(100, career.reputation + reputationGain);
     const nextCareer = migrateCareer({
       ...career,
       level: career.level + (nextXp >= 100 ? 1 : 0),
@@ -886,23 +971,33 @@ export default function Home() {
       fans: career.fans + newFans,
       energy: Math.max(38, career.energy - 18 + fatigueVariance),
       morale: Math.max(30, Math.min(100, career.morale + (won ? 7 : draw ? 1 : -5))),
-      recentResults: [`${resultLetter} ${lastResult.unionGoals}–${lastResult.opponentGoals}`, ...career.recentResults].slice(0, 6),
+      recentResults: seasonEnded ? [] : recentResults,
+      division: nextDivision,
+      leagueId: nextLeague.id,
+      leagueName: nextLeague.name,
+      clubStrength: seasonEnded && nextDivision !== career.division ? Math.max(58, Math.min(84, career.clubStrength + (nextDivision === 1 ? 3 : -2))) : career.clubStrength,
       season: seasonEnded ? career.season + 1 : career.season,
+      age: seasonEnded ? career.age + 1 : career.age,
       seasonRound: seasonEnded ? 1 : Math.min(22, career.seasonRound + (leagueMatch ? 1 : 0)),
       seasonMatches: seasonEnded ? 0 : nextSeasonMatches,
-      seasonPoints: seasonEnded ? 0 : career.seasonPoints + (leagueMatch ? won ? 3 : draw ? 1 : 0 : 0),
-      seasonWins: seasonEnded ? 0 : career.seasonWins + (leagueMatch && won ? 1 : 0),
-      seasonDraws: seasonEnded ? 0 : career.seasonDraws + (leagueMatch && draw ? 1 : 0),
-      seasonLosses: seasonEnded ? 0 : career.seasonLosses + (leagueMatch && !won && !draw ? 1 : 0),
-      seasonGoalsFor: seasonEnded ? 0 : career.seasonGoalsFor + (leagueMatch ? lastResult.unionGoals : 0),
-      seasonGoalsAgainst: seasonEnded ? 0 : career.seasonGoalsAgainst + (leagueMatch ? lastResult.opponentGoals : 0),
-      cupStage: nextCupStage,
+      seasonPoints: seasonEnded ? 0 : seasonPoints,
+      seasonWins: seasonEnded ? 0 : seasonWins,
+      seasonDraws: seasonEnded ? 0 : seasonDraws,
+      seasonLosses: seasonEnded ? 0 : seasonLosses,
+      seasonGoalsFor: seasonEnded ? 0 : seasonGoalsFor,
+      seasonGoalsAgainst: seasonEnded ? 0 : seasonGoalsAgainst,
+      cupStage: seasonEnded ? "Primeira fase" : nextCupStage,
       preparedForMatch: false,
       weeklyAction: "Nenhuma",
       formBoost: 0,
-      reputation: Math.min(100, career.reputation + reputationGain),
+      reputation: nextReputation,
       marketValue: Math.round(career.marketValue * (1 + Math.max(-.02, (lastResult.rating - 6.5) / 90))),
-      contractMatches: Math.max(0, career.contractMatches - 1),
+      salary: seasonEnded ? getSalary(career.countryId, nextDivision, nextReputation) : career.salary,
+      contractMatches: seasonEnded ? 22 : Math.max(0, career.contractMatches - 1),
+      promotions,
+      relegations,
+      lastSeasonSummary,
+      trophies,
       updatedAt: Date.now(),
     });
     updateCareer(() => nextCareer);

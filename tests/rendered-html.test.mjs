@@ -23,32 +23,34 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC application shell", async () => {
+test("server-renders the Legado FC 0.3.1 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC — Temporada Viva<\/title>/i);
+  assert.match(html, /<title>Legado FC — Novos Caminhos<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
-  assert.match(html, /og-v2\.png/i);
+  assert.match(html, /og-v3\.png/i);
 });
 
-test("keeps the main v0.2 systems in the production source", async () => {
+test("keeps the main v0.3.1 systems in the production source", async () => {
   const [page, engine, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /SLOT 0/);
-  assert.match(page, /CRIAR NOVA CARREIRA/);
-  assert.match(page, /settingsKey/);
-  assert.match(page, /mobile-nav/);
-  assert.match(engine, /LEAGUE_TEAMS/);
-  assert.match(engine, /generateStandings/);
-  assert.match(engine, /generateMatchPlan/);
+  assert.match(page, /CARREIRA 0\.3\.1/);
+  assert.match(page, /country-choice-grid/);
+  assert.match(page, /getLeagueDefinition/);
+  assert.match(page, /promotions/);
+  assert.match(engine, /COUNTRIES/);
+  assert.match(engine, /Liga Nacional A/);
+  assert.match(engine, /Premier Crown/);
+  assert.match(engine, /samplePoisson/);
+  assert.match(css, /origin-choice-grid/);
   assert.match(css, /grid-template-columns:\s*repeat\(5,1fr\)/);
-  await access(new URL("../public/og-v2.png", import.meta.url));
+  await access(new URL("../public/og-v3.png", import.meta.url));
 });

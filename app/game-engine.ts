@@ -3,6 +3,9 @@ export type MomentKind = "shot" | "pass" | "dribble" | "defense";
 export type Foot = "Direito" | "Esquerdo";
 export type Archetype = "Maestro" | "Finalizador" | "Velocista" | "Operário" | "Muralha";
 export type Difficulty = "Promessa" | "Profissional" | "Lenda";
+export type CountryId = "BR" | "AR" | "PT" | "EN";
+export type DivisionLevel = 1 | 2;
+export type OriginType = "Clube de bairro" | "Academia regional" | "Futebol escolar" | "Projeto social" | "Sem clube";
 
 export type PlayerAttributes = {
   pace: number;
@@ -25,8 +28,13 @@ export type CareerState = {
   id: string;
   name: string;
   position: Position;
-  origin: string;
+  origin: OriginType;
   nationality: string;
+  countryId: CountryId;
+  countryName: string;
+  division: DivisionLevel;
+  leagueId: string;
+  leagueName: string;
   foot: Foot;
   archetype: Archetype;
   difficulty: Difficulty;
@@ -38,6 +46,7 @@ export type CareerState = {
   clubName: string;
   clubShort: string;
   clubColor: string;
+  clubStrength: number;
   level: number;
   xp: number;
   fans: number;
@@ -64,7 +73,11 @@ export type CareerState = {
   formBoost: number;
   reputation: number;
   marketValue: number;
+  salary: number;
   contractMatches: number;
+  promotions: number;
+  relegations: number;
+  lastSeasonSummary: string;
   attributes: PlayerAttributes;
   inbox: CareerNews[];
   trophies: string[];
@@ -81,6 +94,27 @@ export type Team = {
   strength: number;
   stars: string[];
   country: string;
+  countryId: CountryId;
+  division: DivisionLevel;
+};
+
+export type LeagueDefinition = {
+  id: string;
+  name: string;
+  countryId: CountryId;
+  countryName: string;
+  division: DivisionLevel;
+  salaryBase: number;
+  teams: Team[];
+};
+
+export type CountryDefinition = {
+  id: CountryId;
+  name: string;
+  flag: string;
+  style: string;
+  currencyLabel: string;
+  leagues: [LeagueDefinition, LeagueDefinition];
 };
 
 export type Fixture = {
@@ -89,6 +123,7 @@ export type Fixture = {
   opponent: Team;
   home: boolean;
   competition: string;
+  competitionType: "league" | "cup" | "continental";
   venue: string;
   weather: string;
   pressure: string;
@@ -129,6 +164,8 @@ export type MatchPlan = {
   moments: MatchMoment[];
   baseHomeGoals: number;
   baseAwayGoals: number;
+  expectedHomeGoals: number;
+  expectedAwayGoals: number;
   intensity: number;
 };
 
@@ -147,50 +184,45 @@ export type StandingRow = {
   isPlayerTeam: boolean;
 };
 
-export const PLAYER_TEAM: Team = {
-  id: "uniao-azul",
-  name: "União Azul",
-  short: "UNI",
-  color: "#1d75d6",
-  accent: "#79b8ff",
-  strength: 72,
-  stars: ["Caio Vidal", "Ramon Luz", "Léo Bastos"],
-  country: "Brasil",
+const COLORS = [
+  ["#1d75d6", "#79b8ff"], ["#b52532", "#f3d7d8"], ["#117048", "#c7f16a"],
+  ["#d49a24", "#fff0b6"], ["#41378f", "#b8adff"], ["#222a28", "#f4f2e9"],
+  ["#b75b2a", "#ffe1c7"], ["#317b83", "#c8fbff"], ["#75472d", "#f5cfaf"],
+  ["#8c2e69", "#ffc6ec"], ["#315ea6", "#f1bd45"], ["#5f7b36", "#d8efac"],
+];
+
+const STAR_POOLS: Record<CountryId, string[]> = {
+  BR: ["Caio Vidal", "Ramon Luz", "Léo Bastos", "Iure Arberto", "João Ares", "Davi Nobre", "Mateus Serra", "Renan Valente"],
+  AR: ["Tomás Ferreyra", "Lautaro Vega", "Nico Peralta", "Santiago Ríos", "Facundo Paz", "Bruno Almada", "Julián Sosa", "Matías Luna"],
+  PT: ["Tiago Neves", "Afonso Luz", "Diogo Serra", "Tomé Pires", "Gonçalo Vale", "Rui Miranda", "Leandro Matos", "Nuno Rocha"],
+  EN: ["Oliver Grant", "Ethan Cole", "Jamie Rivers", "Noah Brooks", "Leo Turner", "Mason Hill", "Jack Palmer", "Theo Ward"],
 };
 
-export const LEAGUE_TEAMS: Team[] = [
-  PLAYER_TEAM,
-  { id: "corthias", name: "Corthias", short: "CTH", color: "#202624", accent: "#f2f4ef", strength: 77, stars: ["Iure Arberto", "Memphis Depar", "Rodrigo Garroa"], country: "Brasil" },
-  { id: "palmiros", name: "Palmiros", short: "PAL", color: "#117048", accent: "#c7f16a", strength: 82, stars: ["João Ares", "Estevão Vilas", "Viga"], country: "Brasil" },
-  { id: "flamenga", name: "Flamenga", short: "FLA", color: "#b52532", accent: "#151918", strength: 84, stars: ["Bruno Herrique", "Arrascaeta", "Pedro Guimar"], country: "Brasil" },
-  { id: "santoros", name: "Santoros", short: "SAN", color: "#323936", accent: "#f4f2e9", strength: 71, stars: ["Ney Marinho", "Guilherme Costa", "Tiquinho Soares"], country: "Brasil" },
-  { id: "sao-pauli", name: "São Pauli", short: "SPA", color: "#c63c42", accent: "#f2eee6", strength: 76, stars: ["Luciano Neves", "Oscar Junior", "Calleri"], country: "Brasil" },
-  { id: "gremial", name: "Grêmial", short: "GRE", color: "#3688bd", accent: "#111817", strength: 74, stars: ["Braite Uait", "Cristaldo", "Pavone"], country: "Brasil" },
-  { id: "cruzeiral", name: "Cruzeiral", short: "CRU", color: "#2256a4", accent: "#f5f1e9", strength: 73, stars: ["Kaio Jorge", "Matheus Perera", "Fabrício Bruno"], country: "Brasil" },
-  { id: "estrela-preta", name: "Estrela Preta", short: "EPT", color: "#171c1a", accent: "#e7d355", strength: 79, stars: ["Igor Jesua", "Savarino Lima", "Almada Júnior"], country: "Brasil" },
-  { id: "vasco-mar", name: "Vasco do Mar", short: "VAS", color: "#343a38", accent: "#d95050", strength: 70, stars: ["Vegeta", "Philippe Couto", "Rayan Rocha"], country: "Brasil" },
-  { id: "inter-sul", name: "Inter do Sul", short: "INT", color: "#d64747", accent: "#f4eee4", strength: 75, stars: ["Alan Patrix", "Borré Silva", "Vitão Santos"], country: "Brasil" },
-  { id: "bahia-dourada", name: "Bahia Dourada", short: "BAH", color: "#315ea6", accent: "#f1bd45", strength: 72, stars: ["Everton Ribeiroa", "Cauly Souza", "Lucho Rodrígues"], country: "Brasil" },
-];
+const TEAM_NAMES: Record<CountryId, { first: string[]; second: string[] }> = {
+  BR: {
+    first: ["Corthias", "Palmiros", "Flamenga", "Santoros", "São Pauli", "Grêmial", "Cruzeiral", "Estrela Preta", "Vasco do Mar", "Inter do Sul", "Bahia Dourada", "Fortaleza Real"],
+    second: ["Vila Esperança FC", "Academia do Vale", "Colégio União", "Projeto Horizonte", "Atlético da Ponte", "União Azul", "Real da Serra", "Ferroviário Central", "Operário Verde", "Nação do Norte", "Clube do Cerrado", "Estrela do Litoral"],
+  },
+  AR: {
+    first: ["Buenos Aires Rojo", "Millonários del Plata", "Boca del Puerto", "Racing de Plata", "San Lorenzo Sur", "Independente Roja", "Rosario Centralo", "Vélez Serrano", "Estudiantes del Lago", "Talleres Córdoba", "Lanús Unido", "Newell del Parque"],
+    second: ["Barrio del Sol", "Academia Porteña", "Instituto Central", "Jóvenes Unidos", "Deportivo Puente", "Unión Pampeana", "Ferro del Oeste", "Atlético Mendonza", "Club del Bosque", "Estrella Patagónica", "Huracán Norte", "Río Segundo"],
+  },
+  PT: {
+    first: ["Lisboa Verde", "Benfica da Luz", "Porto Real", "Braga Guerreira", "Vitória Guimar", "Boavista Norte", "Famalicão Azul", "Estoril Dourado", "Casa Pia Real", "Rio Aveiro", "Moreira Cônego", "Santa Clara Ilha"],
+    second: ["Bairro do Tejo", "Academia da Serra", "Colégio Lusitano", "Projeto Navegantes", "Atlético Ribeira", "União de Coimbra", "Estrela do Minho", "Marítimo Funchal", "Leiria Central", "Viseu Real", "Torreense Azul", "Oliveirense Clube"],
+  },
+  EN: {
+    first: ["Manchester Celeste", "Liverpul", "Arsenal de Londres", "Chelsea Royal", "Tottenham White", "Newcastle Uniteda", "Aston Villara", "Westham Iron", "Brighton Waves", "Everton Blue", "Nottingham Forestal", "Crystal Palacea"],
+    second: ["Riverside Borough", "Northbridge Academy", "Kingsway School", "Community Lions", "Sunday Town FC", "Sheffield Forge", "Bristol Harbour", "Leeds County", "Norwich Gold", "Coventry Sky", "Plymouth Sailors", "Oxford Scholars"],
+  },
+};
 
-export const WORLD_TEAMS: Team[] = [
-  { id: "barsemlona", name: "Barsemlona", short: "BAR", color: "#324c9c", accent: "#d04c54", strength: 88, stars: ["Lamina Jamal", "Rafinha Dias", "Pedro Gonçal"], country: "Espanha" },
-  { id: "real-madria", name: "Real Madria", short: "RMA", color: "#ddd9ce", accent: "#7051bd", strength: 90, stars: ["Vini Junior", "Jude Belingam", "Kylian Mbape"], country: "Espanha" },
-  { id: "atletica-madri", name: "Atlética Madri", short: "ATM", color: "#ce4141", accent: "#f1eee6", strength: 84, stars: ["Juliano Alvarez", "Antoine Griezma", "Rodrigo de Paula"], country: "Espanha" },
-  { id: "manchester-celeste", name: "Manchester Celeste", short: "MCT", color: "#6ca6c8", accent: "#f2e9cf", strength: 87, stars: ["Erling Raland", "Phil Fodem", "Bernardo Silva"], country: "Inglaterra" },
-  { id: "liverpul", name: "Liverpul", short: "LIV", color: "#c5303c", accent: "#f2e8d6", strength: 86, stars: ["Mo Salara", "Luis Dias", "Alex Macalister"], country: "Inglaterra" },
-  { id: "arsenal-londres", name: "Arsenal de Londres", short: "ARL", color: "#d84747", accent: "#e9d5a7", strength: 85, stars: ["Bukayo Saka", "Martin Odegar", "Gabriel Martinelo"], country: "Inglaterra" },
-  { id: "porto-real", name: "Porto Real", short: "POR", color: "#315caa", accent: "#f2eee3", strength: 78, stars: ["Samu Aghewa", "Rodrigo Moraes", "Pepê Aquino"], country: "Portugal" },
-  { id: "benfica-luz", name: "Benfica da Luz", short: "BEN", color: "#d53c43", accent: "#f1e8d8", strength: 79, stars: ["Vangelis Pavlido", "Orkun Kokçu", "Antonio Silvas"], country: "Portugal" },
-  { id: "sportivo-lisboa", name: "Sportivo Lisboa", short: "SPL", color: "#318252", accent: "#f0eadc", strength: 81, stars: ["Pedro Gonçalo", "Francisco Trinca", "Morten Hjulma"], country: "Portugal" },
-];
-
-export const TEAMS = [...LEAGUE_TEAMS.filter((team) => team.id !== PLAYER_TEAM.id), ...WORLD_TEAMS];
-
-const competitions = ["Liga Nacional B", "Copa da União", "Taça Continental", "Copa dos Campeões"];
-const weather = ["céu limpo", "chuva leve", "vento forte", "noite fria", "calor intenso", "gramado pesado"];
-const pressures = ["jogo de afirmação", "duelo direto", "clássico regional", "vale a liderança", "estreia do treinador", "vaga no mata-mata"];
-const venues = ["Arena do Vale", "Estádio Horizonte", "Parque Central", "Caldeirão do Norte", "Campo das Nações", "Arena da Serra"];
+const COUNTRY_META: Record<CountryId, { name: string; flag: string; style: string; currencyLabel: string; leagues: [string, string]; salaries: [number, number] }> = {
+  BR: { name: "Brasil", flag: "🇧🇷", style: "Técnica, pressão e calendário intenso", currencyLabel: "R$ por mês", leagues: ["Liga Nacional A", "Liga Nacional B"], salaries: [48000, 12000] },
+  AR: { name: "Argentina", flag: "🇦🇷", style: "Clássicos quentes e jogo competitivo", currencyLabel: "R$ equivalentes", leagues: ["Liga Federal A", "Liga Federal B"], salaries: [36000, 9000] },
+  PT: { name: "Portugal", flag: "🇵🇹", style: "Formação técnica e vitrine europeia", currencyLabel: "R$ equivalentes", leagues: ["Liga Lusitana", "Liga de Honra"], salaries: [72000, 22000] },
+  EN: { name: "Inglaterra", flag: "🏴", style: "Ritmo alto, físico e grande exposição", currencyLabel: "R$ equivalentes", leagues: ["Premier Crown", "Championship Union"], salaries: [190000, 62000] },
+};
 
 export function hashText(text: string) {
   let h = 2166136261;
@@ -200,6 +232,122 @@ export function hashText(text: string) {
   }
   return h >>> 0;
 }
+
+function slugify(text: string) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function shortCode(name: string) {
+  const words = name.replace(/\b(do|da|de|del|of|fc)\b/gi, "").split(/\s+/).filter(Boolean);
+  return (words.length >= 3 ? words.slice(0, 3).map((word) => word[0]).join("") : words.map((word) => word.slice(0, 2)).join("")).slice(0, 3).toUpperCase();
+}
+
+function makeTeams(countryId: CountryId, division: DivisionLevel, names: string[]) {
+  const meta = COUNTRY_META[countryId];
+  const baseStrength = division === 1 ? 77 : 66;
+  const stars = STAR_POOLS[countryId];
+  return names.map((name, index): Team => {
+    const [color, accent] = COLORS[index % COLORS.length];
+    const strengthWave = ((index * 5 + hashText(name)) % 9) - 4;
+    return {
+      id: `${countryId.toLowerCase()}-${division}-${slugify(name)}`,
+      name,
+      short: shortCode(name),
+      color,
+      accent,
+      strength: baseStrength + strengthWave,
+      stars: [stars[index % stars.length], stars[(index + 3) % stars.length], stars[(index + 5) % stars.length]],
+      country: meta.name,
+      countryId,
+      division,
+    };
+  });
+}
+
+function buildLeague(countryId: CountryId, division: DivisionLevel): LeagueDefinition {
+  const meta = COUNTRY_META[countryId];
+  return {
+    id: `${countryId.toLowerCase()}-${division}`,
+    name: meta.leagues[division - 1],
+    countryId,
+    countryName: meta.name,
+    division,
+    salaryBase: meta.salaries[division - 1],
+    teams: makeTeams(countryId, division, division === 1 ? TEAM_NAMES[countryId].first : TEAM_NAMES[countryId].second),
+  };
+}
+
+export const COUNTRIES: CountryDefinition[] = (Object.keys(COUNTRY_META) as CountryId[]).map((id) => ({
+  id,
+  name: COUNTRY_META[id].name,
+  flag: COUNTRY_META[id].flag,
+  style: COUNTRY_META[id].style,
+  currencyLabel: COUNTRY_META[id].currencyLabel,
+  leagues: [buildLeague(id, 1), buildLeague(id, 2)],
+}));
+
+export const ORIGINS: Array<{ id: OriginType; description: string }> = [
+  { id: "Clube de bairro", description: "Raiz local, moral alta e pouca estrutura." },
+  { id: "Academia regional", description: "Base técnica e maior cobrança por desempenho." },
+  { id: "Futebol escolar", description: "Disciplina, estudo e evolução equilibrada." },
+  { id: "Projeto social", description: "História inspiradora e ligação forte com a comunidade." },
+  { id: "Sem clube", description: "Começo difícil por meio de peneiras e contratos curtos." },
+];
+
+export function getCountry(countryId: CountryId) {
+  return COUNTRIES.find((country) => country.id === countryId) ?? COUNTRIES[0];
+}
+
+export function getLeagueDefinition(countryId: CountryId, division: DivisionLevel) {
+  return getCountry(countryId).leagues[division - 1];
+}
+
+export function getStartingClub(countryId: CountryId, division: DivisionLevel, origin: OriginType) {
+  const league = getLeagueDefinition(countryId, division);
+  const index = Math.max(0, ORIGINS.findIndex((item) => item.id === origin));
+  return league.teams[index % league.teams.length];
+}
+
+export function getCareerLeague(career: Pick<CareerState, "countryId" | "division" | "clubId" | "clubName" | "clubShort" | "clubColor" | "clubStrength">) {
+  const league = getLeagueDefinition(career.countryId, career.division);
+  if (league.teams.some((team) => team.id === career.clubId)) return league;
+  const playerTeam: Team = {
+    id: career.clubId,
+    name: career.clubName,
+    short: career.clubShort,
+    color: career.clubColor,
+    strength: career.clubStrength,
+    stars: ["Capitão da equipe", "Jovem promessa", "Camisa dez"],
+    country: league.countryName,
+    countryId: career.countryId,
+    division: career.division,
+  };
+  return { ...league, teams: [playerTeam, ...league.teams.slice(0, 11)] };
+}
+
+export function getSalary(countryId: CountryId, division: DivisionLevel, reputation = 12) {
+  const base = getLeagueDefinition(countryId, division).salaryBase;
+  return Math.round(base * (0.72 + Math.min(100, reputation) / 180));
+}
+
+export const PLAYER_TEAM = getStartingClub("BR", 2, "Clube de bairro");
+export const LEAGUE_TEAMS = getLeagueDefinition("BR", 2).teams;
+export const WORLD_TEAMS = COUNTRIES.flatMap((country) => country.leagues[0].teams);
+export const TEAMS = COUNTRIES.flatMap((country) => country.leagues.flatMap((league) => league.teams));
+
+const weatherByCountry: Record<CountryId, string[]> = {
+  BR: ["céu limpo", "chuva tropical", "calor intenso", "noite úmida", "gramado pesado"],
+  AR: ["noite fria", "vento dos pampas", "céu limpo", "garoa leve", "gramado rápido"],
+  PT: ["brisa atlântica", "chuva fina", "noite amena", "céu limpo", "vento costeiro"],
+  EN: ["chuva constante", "neblina", "tarde fria", "vento forte", "gramado molhado"],
+};
+const pressures = ["jogo de afirmação", "duelo direto", "clássico regional", "vale a liderança", "estreia do treinador", "confronto pela permanência"];
+const venuesByCountry: Record<CountryId, string[]> = {
+  BR: ["Arena do Vale", "Estádio Horizonte", "Parque Central", "Caldeirão do Norte"],
+  AR: ["Estadio del Sol", "Parque de Plata", "La Fortaleza", "Campo Pampeano"],
+  PT: ["Estádio do Tejo", "Parque da Serra", "Campo dos Navegantes", "Arena Lusitana"],
+  EN: ["Riverside Ground", "Crown Park", "Northbridge Lane", "Union Stadium"],
+};
 
 export function makeRng(seed: number) {
   let value = seed >>> 0;
@@ -216,37 +364,57 @@ function pick<T>(rng: () => number, values: T[]) {
   return values[Math.floor(rng() * values.length)];
 }
 
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
 function uniqueMinutes(rng: () => number, count: number, minimum = 3, maximum = 88) {
   const result = new Set<number>();
   while (result.size < count) result.add(minimum + Math.floor(rng() * (maximum - minimum + 1)));
   return [...result].sort((a, b) => a - b);
 }
 
-function fixtureOpponent(career: Pick<CareerState, "careerSeed" | "seasonRound" | "matches">) {
-  const opponents = LEAGUE_TEAMS.filter((team) => team.id !== PLAYER_TEAM.id);
+function samplePoisson(rng: () => number, lambda: number) {
+  const limit = Math.exp(-lambda);
+  let product = 1;
+  let count = 0;
+  do {
+    count += 1;
+    product *= rng();
+  } while (product > limit && count < 8);
+  return Math.min(4, count - 1);
+}
+
+function fixtureOpponent(career: CareerState) {
+  const league = getCareerLeague(career);
+  const opponents = league.teams.filter((team) => team.id !== career.clubId);
   const round = Math.max(1, career.seasonRound || career.matches + 1);
   const cycle = Math.floor((round - 1) / opponents.length);
   const offset = career.careerSeed % opponents.length;
   return opponents[(round - 1 + offset + cycle * 3) % opponents.length];
 }
 
-export function createFixture(career: Pick<CareerState, "name" | "matches" | "careerSeed"> & Partial<Pick<CareerState, "seasonRound">>): Fixture {
-  const round = career.seasonRound ?? ((career.matches % 22) + 1);
-  const seed = hashText(`${career.name}:${career.careerSeed}:${career.matches + 1}:${round}`);
+export function createFixture(careerInput: Partial<CareerState> & Pick<CareerState, "name" | "matches" | "careerSeed">): Fixture {
+  const career = migrateCareer(careerInput);
+  const round = career.seasonRound;
+  const seed = hashText(`${career.id}:${career.countryId}:${career.division}:${career.matches + 1}:${round}`);
   const rng = makeRng(seed);
   const matchNumber = career.matches + 1;
-  const isCup = matchNumber > 2 && matchNumber % 7 === 0;
-  const isContinental = career.matches > 10 && matchNumber % 17 === 0;
-  const opponent = isContinental ? pick(rng, WORLD_TEAMS) : fixtureOpponent({ ...career, seasonRound: round });
-  const competition = isContinental ? competitions[2] : isCup ? competitions[1] : competitions[0];
+  const isCup = matchNumber > 2 && matchNumber % 8 === 0;
+  const isContinental = career.division === 1 && career.matches > 12 && matchNumber % 19 === 0;
+  const cupTeams = getCountry(career.countryId).leagues.flatMap((league) => league.teams).filter((team) => team.id !== career.clubId);
+  const internationalTeams = WORLD_TEAMS.filter((team) => team.countryId !== career.countryId);
+  const opponent = isContinental ? pick(rng, internationalTeams) : isCup ? pick(rng, cupTeams) : fixtureOpponent(career);
+  const competition = isContinental ? "Taça Continental" : isCup ? `Copa ${getCountry(career.countryId).name}` : career.leagueName;
   return {
-    id: `${opponent.id}-${career.matches + 1}-${seed.toString(36)}`,
+    id: `${opponent.id}-${matchNumber}-${seed.toString(36)}`,
     seed,
     opponent,
-    home: rng() > .4,
+    home: rng() > .46,
     competition,
-    venue: pick(rng, venues),
-    weather: pick(rng, weather),
+    competitionType: isContinental ? "continental" : isCup ? "cup" : "league",
+    venue: pick(rng, venuesByCountry[career.countryId]),
+    weather: pick(rng, weatherByCountry[career.countryId]),
     pressure: isCup ? "vaga no mata-mata" : pick(rng, pressures),
     round,
   };
@@ -267,7 +435,6 @@ function narration(rng: () => number, fixture: Fixture, minute: number): MatchEv
     "O ritmo cai por alguns instantes; as equipes reorganizam as linhas.",
     "Pressão após a perda recupera a posse ainda no campo ofensivo.",
     `${star} tenta o passe vertical e força uma defesa difícil.`,
-    `A torcida do ${fixture.opponent.name} tenta transformar o jogo em pressão.`,
     "O banco se levanta: a próxima disputa pode mudar o roteiro.",
   ];
   const kinds: MatchEvent["kind"][] = ["normal", "normal", "normal", "chance", "normal", "card"];
@@ -299,24 +466,24 @@ function momentTemplates(position: Position, rng: () => number, star: string) {
 function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
   const banks: Record<MomentKind, Array<Omit<MatchTarget, "id" | "roll">>> = {
     pass: [
-      { label: "Apoio curto", hint: "manter a posse", x: 31, y: 66, risk: .06, reward: 9 },
-      { label: "Inversão", hint: "mudar o lado", x: 62, y: 22, risk: .2, reward: 17 },
-      { label: "Passe para gol", hint: "romper a linha", x: 79, y: 48, risk: .37, reward: 29 },
+      { label: "Apoio curto", hint: "manter a posse", x: 31, y: 66, risk: .07, reward: 8 },
+      { label: "Inversão", hint: "mudar o lado", x: 62, y: 22, risk: .23, reward: 16 },
+      { label: "Passe para gol", hint: "romper a linha", x: 79, y: 48, risk: .42, reward: 28 },
     ],
     shot: [
-      { label: "Colocada", hint: "canto direito", x: 90, y: 31, risk: .2, reward: 24 },
-      { label: "Potência", hint: "alto e forte", x: 94, y: 50, risk: .32, reward: 31 },
-      { label: "Rasteira", hint: "canto esquerdo", x: 90, y: 69, risk: .25, reward: 27 },
+      { label: "Colocada", hint: "canto direito", x: 90, y: 31, risk: .24, reward: 22 },
+      { label: "Potência", hint: "alto e forte", x: 94, y: 50, risk: .38, reward: 29 },
+      { label: "Rasteira", hint: "canto esquerdo", x: 90, y: 69, risk: .29, reward: 25 },
     ],
     dribble: [
-      { label: "Proteger", hint: "esperar apoio", x: 42, y: 67, risk: .08, reward: 10 },
-      { label: "Cortar para dentro", hint: "ganhar o centro", x: 65, y: 43, risk: .25, reward: 21 },
-      { label: "Partir para cima", hint: "eliminar dois", x: 75, y: 72, risk: .4, reward: 32 },
+      { label: "Proteger", hint: "esperar apoio", x: 42, y: 67, risk: .1, reward: 9 },
+      { label: "Cortar para dentro", hint: "ganhar o centro", x: 65, y: 43, risk: .29, reward: 19 },
+      { label: "Partir para cima", hint: "eliminar dois", x: 75, y: 72, risk: .45, reward: 30 },
     ],
     defense: [
-      { label: "Conter", hint: "fechar o ângulo", x: 61, y: 56, risk: .08, reward: 11 },
-      { label: "Antecipar", hint: "cortar o passe", x: 72, y: 35, risk: .24, reward: 22 },
-      { label: "Dar o bote", hint: "recuperar e sair", x: 78, y: 62, risk: .39, reward: 33 },
+      { label: "Conter", hint: "fechar o ângulo", x: 61, y: 56, risk: .09, reward: 10 },
+      { label: "Antecipar", hint: "cortar o passe", x: 72, y: 35, risk: .28, reward: 20 },
+      { label: "Dar o bote", hint: "recuperar e sair", x: 78, y: 62, risk: .44, reward: 30 },
     ],
   };
   return banks[kind].map((target, index) => ({
@@ -333,23 +500,26 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
     dribble: career.attributes.dribbling,
     defense: career.attributes.defending,
   }[kind];
-  return (attribute - 65) / 1000;
+  return (attribute - 65) / 1200;
 }
 
 export function generateMatchPlan(career: CareerState, fixture = createFixture(career)): MatchPlan {
   const rng = makeRng(fixture.seed ^ hashText(`${career.position}:${career.archetype}`));
   const overall = Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6;
-  const strengthGap = fixture.opponent.strength - (66 + career.level * 1.4 + overall * .08 + career.formBoost);
-  const intensity = .75 + rng() * .65;
-  const eventCount = 12 + Math.floor(rng() * 10);
-  const momentCount = 3 + Math.floor(rng() * 5);
+  const playerStrength = career.clubStrength + (overall - 68) * .08 + career.formBoost * .25 + (career.morale - 70) * .025;
+  const strengthGap = playerStrength - fixture.opponent.strength;
+  const homeEffect = fixture.home ? .16 : -.12;
+  const difficultyEffect = career.difficulty === "Lenda" ? -.12 : career.difficulty === "Promessa" ? .09 : 0;
+  const energyEffect = (career.energy - 75) / 240;
+  const expectedFor = clamp(1.08 + strengthGap * .026 + homeEffect + difficultyEffect + energyEffect, .3, 2.25);
+  const expectedAgainst = clamp(1.1 - strengthGap * .024 - homeEffect * .75 - difficultyEffect * .45 - energyEffect * .35, .32, 2.3);
+  const baseHomeGoals = samplePoisson(rng, expectedFor);
+  const baseAwayGoals = samplePoisson(rng, expectedAgainst);
+  const intensity = .72 + rng() * .56;
+  const eventCount = 13 + Math.floor(rng() * 8);
+  const momentCount = 3 + Math.floor(rng() * 3);
   const eventMinutes = uniqueMinutes(rng, eventCount);
-  const momentMinutes = uniqueMinutes(rng, momentCount, 7, 87);
-
-  const expectedAgainst = Math.max(.15, 1.05 + strengthGap / 18 + (rng() - .5) * 1.4);
-  const expectedFor = Math.max(.15, 1.28 - strengthGap / 24 + (rng() - .5) * 1.65);
-  const baseAwayGoals = Math.min(5, Math.floor(expectedAgainst) + (rng() < expectedAgainst % 1 ? 1 : 0));
-  const baseHomeGoals = Math.min(5, Math.floor(expectedFor) + (rng() < expectedFor % 1 ? 1 : 0));
+  const momentMinutes = uniqueMinutes(rng, momentCount, 8, 86);
 
   const goalMinutesFor = new Set(uniqueMinutes(rng, baseHomeGoals, 5, 88));
   const goalMinutesAgainst = new Set(uniqueMinutes(rng, baseAwayGoals, 5, 88));
@@ -359,7 +529,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
       return { minute, kind: "home-goal" as const, text: pick(rng, [
         `GOL DO ${career.clubName.toUpperCase()}! A jogada nasce numa recuperação alta.`,
         "A rede balança! Cruzamento preciso e cabeceio sem defesa.",
-        "GOLAÇO! Finalização de fora da área muda o placar.",
+        "Finalização de fora da área muda o placar.",
         "Tabela curta, invasão da área e chute no canto. É gol!",
       ]) };
     }
@@ -398,6 +568,8 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     moments,
     baseHomeGoals,
     baseAwayGoals,
+    expectedHomeGoals: expectedFor,
+    expectedAwayGoals: expectedAgainst,
     intensity,
   };
 }
@@ -425,9 +597,10 @@ export function getOverall(career: Pick<CareerState, "attributes">) {
 }
 
 export function generateStandings(career: CareerState): StandingRow[] {
-  const rng = makeRng(hashText(`table:${career.careerSeed}:${career.season}:${career.seasonMatches}`));
+  const league = getCareerLeague(career);
+  const rng = makeRng(hashText(`table:${career.careerSeed}:${career.season}:${career.seasonMatches}:${career.leagueId}`));
   const played = Math.min(22, career.seasonMatches);
-  const rows = LEAGUE_TEAMS.map((team) => {
+  const rows = league.teams.map((team) => {
     if (team.id === career.clubId) {
       return {
         position: 0,
@@ -444,7 +617,7 @@ export function generateStandings(career: CareerState): StandingRow[] {
         isPlayerTeam: true,
       };
     }
-    const strengthBias = (team.strength - 70) / 18;
+    const strengthBias = (team.strength - (career.division === 1 ? 77 : 66)) / 18;
     let wins = 0;
     let draws = 0;
     let losses = 0;
@@ -452,14 +625,16 @@ export function generateStandings(career: CareerState): StandingRow[] {
     let goalsAgainst = 0;
     const form: string[] = [];
     for (let game = 0; game < played; game += 1) {
-      const roll = rng() + strengthBias * .26;
-      const result = roll > .61 ? "V" : roll > .32 ? "E" : "D";
+      const roll = rng() + strengthBias * .22;
+      const result = roll > .66 ? "V" : roll > .37 ? "E" : "D";
       form.unshift(result);
       if (result === "V") wins += 1;
       if (result === "E") draws += 1;
       if (result === "D") losses += 1;
-      goalsFor += Math.max(0, Math.floor(rng() * 3.5 + strengthBias));
-      goalsAgainst += Math.max(0, Math.floor(rng() * 3.1 - strengthBias * .4));
+      const attackLambda = clamp(1.08 + strengthBias * .35, .45, 1.85);
+      const defenseLambda = clamp(1.1 - strengthBias * .28, .48, 1.8);
+      goalsFor += samplePoisson(rng, attackLambda);
+      goalsAgainst += samplePoisson(rng, defenseLambda);
     }
     return {
       position: 0,
@@ -486,12 +661,13 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
   const playerPosition = table.find((row) => row.isPlayerTeam)?.position ?? 1;
   const marketTeam = WORLD_TEAMS[(career.matches + career.careerSeed) % WORLD_TEAMS.length];
   const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
+  const objective = career.division === 2 ? "acesso" : playerPosition >= 10 ? "permanência" : "título";
   return [
     {
       id: `club-${career.matches}`,
       category: "clube",
-      title: playerPosition <= 4 ? "Clube entra na briga pelo acesso" : "Treinador cobra reação",
-      text: `${career.clubName} ocupa a ${playerPosition}ª posição e prepara um plano específico para o ${fixture.opponent.name}.`,
+      title: playerPosition <= 4 ? `Clube entra na briga pelo ${objective}` : "Treinador cobra reação",
+      text: `${career.clubName} ocupa a ${playerPosition}ª posição da ${career.leagueName} e prepara um plano específico para o ${fixture.opponent.name}.`,
       isNew: true,
     },
     {
@@ -513,12 +689,25 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
   const now = Date.now();
   const archetype = input?.archetype ?? "Maestro";
   const position = input?.position ?? "Meia";
+  const countryId = input?.countryId ?? "BR";
+  const division = input?.division === 1 ? 1 : 2;
+  const origin = (ORIGINS.some((item) => item.id === input?.origin) ? input?.origin : "Clube de bairro") as OriginType;
+  const league = getLeagueDefinition(countryId, division);
+  const startingClub = getStartingClub(countryId, division, origin);
+  const existingTeam = TEAMS.find((team) => team.id === input?.clubId);
+  const selectedClub = existingTeam ?? startingClub;
+  const reputation = input?.reputation ?? 12;
   return {
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
     position,
-    origin: input?.origin ?? "Clube de bairro",
-    nationality: input?.nationality ?? "Brasil",
+    origin,
+    nationality: input?.nationality ?? COUNTRY_META[countryId].name,
+    countryId,
+    countryName: input?.countryName ?? COUNTRY_META[countryId].name,
+    division,
+    leagueId: input?.leagueId ?? league.id,
+    leagueName: input?.leagueName ?? league.name,
     foot: input?.foot ?? "Direito",
     archetype,
     difficulty: input?.difficulty ?? "Profissional",
@@ -526,10 +715,11 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     shirtNumber: input?.shirtNumber ?? 18,
     skinTone: input?.skinTone ?? "#b97850",
     hairStyle: input?.hairStyle ?? "Curto",
-    clubId: input?.clubId ?? PLAYER_TEAM.id,
-    clubName: input?.clubName ?? PLAYER_TEAM.name,
-    clubShort: input?.clubShort ?? PLAYER_TEAM.short,
-    clubColor: input?.clubColor ?? PLAYER_TEAM.color,
+    clubId: input?.clubId ?? selectedClub.id,
+    clubName: input?.clubName ?? selectedClub.name,
+    clubShort: input?.clubShort ?? selectedClub.short,
+    clubColor: input?.clubColor ?? selectedClub.color,
+    clubStrength: input?.clubStrength ?? selectedClub.strength,
     level: input?.level ?? 1,
     xp: input?.xp ?? 35,
     fans: input?.fans ?? 1280,
@@ -554,9 +744,13 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     preparedForMatch: input?.preparedForMatch ?? false,
     weeklyAction: input?.weeklyAction ?? "Nenhuma",
     formBoost: input?.formBoost ?? 0,
-    reputation: input?.reputation ?? 12,
-    marketValue: input?.marketValue ?? 450000,
+    reputation,
+    marketValue: input?.marketValue ?? Math.round(league.salaryBase * 22),
+    salary: input?.salary ?? getSalary(countryId, division, reputation),
     contractMatches: input?.contractMatches ?? 22,
+    promotions: input?.promotions ?? 0,
+    relegations: input?.relegations ?? 0,
+    lastSeasonSummary: input?.lastSeasonSummary ?? "Primeira temporada em andamento",
     attributes: input?.attributes ?? createInitialAttributes(archetype, position),
     inbox: input?.inbox ?? [],
     trophies: input?.trophies ?? [],

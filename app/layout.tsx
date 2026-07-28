@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og-v2.png`;
+  const imageUrl = `${protocol}://${host}/og-v3.png`;
 
   return {
-    title: "Legado FC — Temporada Viva",
+    title: "Legado FC — Novos Caminhos",
     description:
-      "Simulador de vida e carreira no futebol com múltiplos saves, temporada completa, mercado e partidas interativas.",
+      "Escolha entre quatro países, oito ligas e diferentes origens em um simulador de carreira com acesso, rebaixamento e partidas equilibradas.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Temporada Viva",
+      title: "Legado FC — Novos Caminhos",
       description:
-        "Crie seu atleta, dispute uma temporada viva e decida os lances que mudam uma carreira.",
+        "Comece no Brasil, Argentina, Portugal ou Inglaterra e construa seu caminho entre duas divisões.",
       type: "website",
-      images: [{ url: imageUrl, width: 1672, height: 941, alt: "Legado FC — Temporada Viva" }],
+      images: [{ url: imageUrl, width: 1672, height: 941, alt: "Legado FC — Novos Caminhos" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Temporada Viva",
-      description: "Três carreiras. Uma temporada viva. Nenhuma partida igual.",
+      title: "Legado FC — Novos Caminhos",
+      description: "Quatro países. Oito ligas. Um caminho para construir.",
       images: [imageUrl],
     },
   };
