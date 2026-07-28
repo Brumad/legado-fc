@@ -16,14 +16,19 @@ import {
   ORIGINS,
   OriginType,
   Position,
+  Team,
   TEAMS,
   WORLD_TEAMS,
+  addDaysToDate,
   buildCareerNews,
   createFixture,
   generateMatchPlan,
   generateStandings,
+  getCountry,
+  getDaysToNextMatch,
   getLeagueDefinition,
   getOverall,
+  getPreparationActionCount,
   getSalary,
   getStartingClub,
   hashText,
@@ -49,7 +54,7 @@ type GameSettings = {
   highContrast: boolean;
   commentary: boolean;
 };
-type TrainingKind = "recovery" | "technique" | "intensity" | "media";
+type TrainingKind = "recovery" | "technique" | "intensity" | "tactics" | "setpieces" | "language" | "media";
 
 const slotsKey = "legado-fc-career-slots-v1";
 const settingsKey = "legado-fc-settings-v1";
@@ -116,7 +121,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>CARREIRA 0.3.1</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>CARREIRA 0.3.2</small></div></div>;
 }
 
 function Lobby({
@@ -192,9 +197,9 @@ function Lobby({
       </section>
 
       <footer className="lobby-footer">
-        <span>LEGADO ENGINE <b>3.1</b></span>
-        <p>Oito ligas conectadas por acesso e rebaixamento.</p>
-        <span>4 PAÍSES · 96 CLUBES</span>
+        <span>LEGADO ENGINE <b>3.2</b></span>
+        <p>Vinte e quatro ligas conectadas por acesso e rebaixamento.</p>
+        <span>12 PAÍSES · 288 CLUBES</span>
       </footer>
     </main>
   );
@@ -296,7 +301,7 @@ function CareerCreator({
               <label className="field-label">Nome do jogador<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex Silva" maxLength={24} autoFocus /></label>
               <div className="field-grid three">
                 <label className="field-label">Idade<input type="number" min="16" max="23" value={age} onChange={(event) => setAge(Number(event.target.value))} /></label>
-                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}><option>Brasil</option><option>Argentina</option><option>Portugal</option><option>Inglaterra</option><option>Espanha</option><option>Colômbia</option><option>Uruguai</option></select></label>
+                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}>{COUNTRIES.map((country) => <option key={country.id}>{country.name}</option>)}<option>Colômbia</option><option>Uruguai</option></select></label>
                 <label className="field-label">Número<input type="number" min="1" max="99" value={shirtNumber} onChange={(event) => setShirtNumber(Number(event.target.value))} /></label>
               </div>
             </div>
@@ -423,11 +428,18 @@ function CareerLayout({
 }
 
 const trainingOptions: Array<{ id: TrainingKind; icon: string; title: string; text: string; effect: string }> = [
-  { id: "recovery", icon: "◇", title: "Recuperação", text: "Fisioterapia e sono controlado.", effect: "+18 energia" },
+  { id: "recovery", icon: "◇", title: "Recuperação", text: "Fisioterapia e sono controlado.", effect: "+10 energia" },
   { id: "technique", icon: "◎", title: "Fundamentos", text: "Treino específico da sua posição.", effect: "+1 atributo" },
-  { id: "intensity", icon: "↯", title: "Alta intensidade", text: "Ritmo forte antes da rodada.", effect: "+4 forma" },
-  { id: "media", icon: "◌", title: "Ação com fãs", text: "Imprensa, torcida e patrocinadores.", effect: "+600 fãs" },
+  { id: "intensity", icon: "↯", title: "Alta intensidade", text: "Ritmo forte antes da rodada.", effect: "+3 forma" },
+  { id: "tactics", icon: "▦", title: "Treino tático", text: "Leitura do rival e posicionamento.", effect: "+confiança" },
+  { id: "setpieces", icon: "◒", title: "Bola parada", text: "Faltas, pênaltis e escanteios.", effect: "+1 técnica" },
+  { id: "language", icon: "文", title: "Aula de idioma", text: "Comunicação e adaptação ao país.", effect: "+8 idioma" },
+  { id: "media", icon: "◌", title: "Ação com fãs", text: "Imprensa, torcida e patrocinadores.", effect: "+350 fãs" },
 ];
+
+function gameDate(isoDate: string) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${isoDate}T12:00:00Z`)).replace(".", "");
+}
 
 function MiniTable({ career, limit = 5 }: { career: CareerState; limit?: number }) {
   const rows = useMemo(() => generateStandings(career).slice(0, limit), [career, limit]);
@@ -462,11 +474,16 @@ function Dashboard({
   const position = standings.find((row) => row.isPlayerTeam)?.position ?? 1;
   const news = useMemo(() => buildCareerNews(career, fixture), [career, fixture]);
   const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
+  const preparationSlots = useMemo(() => Array.from({ length: career.preparationActionsAllowed }, (_, index) => ({
+    date: addDaysToDate(career.currentDate, Math.min(career.daysUntilMatch - 1, index * 2 + 1)),
+    action: career.preparationLog[index],
+  })), [career.currentDate, career.daysUntilMatch, career.preparationActionsAllowed, career.preparationLog]);
+  const preparationComplete = career.preparationActionsUsed >= career.preparationActionsAllowed;
 
   return (
     <main className="career-content dashboard-view">
       <section className="welcome-row">
-        <div><span className="overline">SEMANA {career.seasonRound} · {career.preparedForMatch ? "PREPARAÇÃO CONCLUÍDA" : "AÇÃO PENDENTE"}</span><h1>Boa noite, {career.name.split(" ")[0]}.</h1><p>{fixture.pressure}. A comissão montou o plano para enfrentar o {fixture.opponent.name}.</p></div>
+        <div><span className="overline">SEMANA {career.seasonRound} · {career.daysUntilMatch} DIAS ATÉ O JOGO</span><h1>Boa noite, {career.name.split(" ")[0]}.</h1><p>{fixture.pressure}. Você tem {career.preparationActionsAllowed} {career.preparationActionsAllowed === 1 ? "ação" : "ações"} disponíveis antes de enfrentar o {fixture.opponent.name}.</p></div>
         <div className="condition-chip"><span className={career.energy > 70 ? "good" : "warn"} /><div><small>STATUS DO ATLETA</small><strong>{career.energy > 78 ? "Pronto para jogar" : career.energy > 60 ? "Atenção à fadiga" : "Recuperação indicada"}</strong></div></div>
       </section>
 
@@ -492,11 +509,16 @@ function Dashboard({
 
       <section className="dashboard-grid">
         <article className="hud-card weekly-card">
-          <div className="card-heading"><div><span className="overline">PREPARAÇÃO SEMANAL</span><h3>Escolha seu foco</h3></div><span className={`status-tag ${career.preparedForMatch ? "done" : ""}`}>{career.preparedForMatch ? career.weeklyAction : "1 ação disponível"}</span></div>
+          <div className="card-heading"><div><span className="overline">CALENDÁRIO DE PREPARAÇÃO</span><h3>Uma ação a cada dois dias</h3></div><span className={`status-tag ${preparationComplete ? "done" : ""}`}>{career.preparationActionsUsed}/{career.preparationActionsAllowed} realizadas</span></div>
+          <div className="preparation-calendar">
+            <div className="calendar-day is-today"><span>HOJE</span><strong>{gameDate(career.currentDate)}</strong><small>Início</small></div>
+            {preparationSlots.map((slot, index) => <div className={`calendar-day ${slot.action ? "is-filled" : ""}`} key={`${slot.date}-${index}`}><span>AÇÃO {index + 1}</span><strong>{gameDate(slot.date)}</strong><small>{slot.action ?? "Livre"}</small></div>)}
+            <div className="calendar-day is-match"><span>PARTIDA</span><strong>{gameDate(career.nextMatchDate)}</strong><small>vs {fixture.opponent.short}</small></div>
+          </div>
           <div className="training-grid">
             {trainingOptions.map((option) => (
-              <button className={`training-option ${career.weeklyAction === option.title ? "is-selected" : ""}`} disabled={career.preparedForMatch} onClick={() => onTrain(option.id)} key={option.id}>
-                <span>{option.icon}</span><div><strong>{option.title}</strong><small>{option.text}</small></div><b>{career.weeklyAction === option.title ? "✓" : option.effect}</b>
+              <button className={`training-option ${career.preparationLog.includes(option.title) ? "is-selected" : ""}`} disabled={preparationComplete} onClick={() => onTrain(option.id)} key={option.id}>
+                <span>{option.icon}</span><div><strong>{option.title}</strong><small>{option.text}</small></div><b>{career.preparationLog.includes(option.title) ? "✓" : option.effect}</b>
               </button>
             ))}
           </div>
@@ -604,15 +626,62 @@ function PlayerView({ career }: { career: CareerState }) {
   );
 }
 
-function MarketView({ career }: { career: CareerState }) {
+function MarketView({
+  career,
+  onTransfer,
+  onHousing,
+}: {
+  career: CareerState;
+  onTransfer: (team: Team) => void;
+  onHousing: (housing: "Clube" | "Apartamento" | "Casa") => void;
+}) {
   const offset = (career.careerSeed + career.matches) % WORLD_TEAMS.length;
-  const offers = [0, 1, 2].map((index) => WORLD_TEAMS[(offset + index * 2) % WORLD_TEAMS.length]);
+  const offers = [0, 1, 2].map((index) => WORLD_TEAMS[(offset + index * 17) % WORLD_TEAMS.length]);
+  const country = getCountry(career.countryId);
+  const housingOptions = [
+    { id: "Clube" as const, label: "Hotel do clube", deposit: 0 },
+    { id: "Apartamento" as const, label: "Apartamento", deposit: country.costOfLiving * 2 },
+    { id: "Casa" as const, label: "Casa própria", deposit: country.costOfLiving * 5 },
+  ];
   return (
     <main className="career-content inner-view">
       <section className="view-heading"><div><span className="overline">CENTRAL DE MERCADO</span><h1>Seu nome começa a circular.</h1><p>Desempenho, reputação e decisões fora de campo determinam quem acompanha sua carreira.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100</span></div></section>
       <section className="market-grid">
-        <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>{career.leagueName} · Divisão {career.division}</p></div></div><div className="contract-details"><div><span>DURAÇÃO</span><strong>{career.contractMatches} jogos</strong></div><div><span>SALÁRIO</span><strong>{money(career.salary)}/mês</strong></div><div><span>PAPEL</span><strong>{career.rating >= 7.4 ? "Titular" : "Rotação"}</strong></div></div><div className="contract-progress"><span>Confiança do clube <b>{Math.min(100, 54 + career.reputation)}%</b></span><i><em style={{ width: `${Math.min(100, 54 + career.reputation)}%` }} /></i></div></article>
-        <article className="hud-card scouts-card"><div className="card-heading"><div><span className="overline">OBSERVADORES</span><h3>Clubes interessados</h3></div><span className="status-tag">{offers.length} relatórios</span></div><div className="offer-list">{offers.map((team, index) => { const required = 24 + index * 14; const unlocked = career.reputation >= required; return <div className={`offer-row ${unlocked ? "is-unlocked" : ""}`} key={team.id}><TeamCrest short={team.short} color={team.color} /><div><strong>{unlocked ? team.name : "Clube estrangeiro"}</strong><span>{team.country} · Força {unlocked ? team.strength : "??"}</span></div><div><small>INTERESSE</small><b>{unlocked ? `${Math.min(92, career.reputation + 28 - index * 9)}%` : `REP. ${required}`}</b></div></div>; })}</div></article>
+        <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>{career.leagueName} · Divisão {career.division}</p></div></div><div className="contract-details"><div><span>DURAÇÃO</span><strong>{career.contractMatches} jogos</strong></div><div><span>SALÁRIO</span><strong>{money(career.salary)}/mês</strong></div><div><span>PAPEL</span><strong>{career.rating >= 7.4 ? "Titular" : "Rotação"}</strong></div></div><div className="contract-progress"><span>Confiança do treinador <b>{career.coachTrust}%</b></span><i><em style={{ width: `${career.coachTrust}%` }} /></i></div></article>
+        <article className="hud-card scouts-card">
+          <div className="card-heading"><div><span className="overline">OBSERVADORES</span><h3>Clubes interessados</h3></div><span className="status-tag">{offers.length} relatórios</span></div>
+          <div className="offer-list">
+            {offers.map((team, index) => {
+              const required = 18 + index * 14;
+              const unlocked = career.reputation >= required;
+              return (
+                <div className={`offer-row ${unlocked ? "is-unlocked" : ""}`} key={team.id}>
+                  <TeamCrest short={team.short} color={team.color} />
+                  <div><strong>{unlocked ? team.name : "Clube estrangeiro"}</strong><span>{team.country} · {getLeagueDefinition(team.countryId, team.division).name}</span></div>
+                  <div><small>INTERESSE</small><b>{unlocked ? `${Math.min(94, career.reputation + 36 - index * 8)}%` : `REP. ${required}`}</b></div>
+                  <button disabled={!unlocked || team.id === career.clubId} onClick={() => onTransfer(team)}>{team.id === career.clubId ? "ATUAL" : unlocked ? "ACEITAR" : "BLOQUEADO"}</button>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+        <article className="hud-card life-card">
+          <div className="card-heading"><div><span className="overline">VIDA FORA DO CAMPO</span><h3>Adaptação em {career.countryName}</h3></div><span className="status-tag done">{career.language}</span></div>
+          <div className="life-grid">
+            <div className="life-stat"><span>SALDO</span><strong>{money(career.bankBalance)}</strong></div>
+            <div className="life-stat"><span>CUSTO MENSAL</span><strong>{money(career.monthlyExpenses)}</strong></div>
+            <div className="life-stat"><span>MORADIA</span><strong>{career.housing}</strong></div>
+            <div className="life-stat"><span>IDIOMA</span><strong>{career.languageLevel}%</strong></div>
+            <div className="life-stat"><span>ADAPTAÇÃO</span><strong>{career.adaptation}%</strong></div>
+          </div>
+          <div className="life-bars">
+            <div><span>Fluência em {career.language}<b>{career.languageLevel}%</b></span><i><em style={{ width: `${career.languageLevel}%` }} /></i></div>
+            <div><span>Vida no país<b>{career.adaptation}%</b></span><i><em style={{ width: `${career.adaptation}%` }} /></i></div>
+          </div>
+          <div className="housing-actions">
+            {housingOptions.map((option) => <button className={career.housing === option.label ? "is-active" : ""} disabled={career.bankBalance < option.deposit} onClick={() => onHousing(option.id)} key={option.id}>{option.label} · {option.deposit ? money(option.deposit) : "grátis"}</button>)}
+          </div>
+        </article>
         <article className="hud-card agent-card"><span className="agent-avatar">RA</span><div><span className="overline">SEU EMPRESÁRIO</span><h3>Rafael Azevedo</h3><p>“Mantenha a média acima de 7,2 e alcance reputação 30. A primeira proposta concreta virá naturalmente.”</p></div><div className="agent-objectives"><span className={career.rating >= 7.2 ? "done" : ""}>Nota média 7,2 <b>{career.rating.toFixed(1)}</b></span><span className={career.reputation >= 30 ? "done" : ""}>Reputação 30 <b>{career.reputation}</b></span><span className={career.matches >= 8 ? "done" : ""}>8 partidas <b>{career.matches}</b></span></div></article>
       </section>
     </main>
@@ -643,13 +712,53 @@ function ToggleSetting({ title, text, checked, onChange }: { title: string; text
 
 function outcomeText(moment: MatchMoment, success: boolean, goal: boolean, assist: boolean, career: CareerState, opponent: string) {
   if (goal) return `GOOOL! ${career.name} escolhe a execução certa e vence o goleiro!`;
+  if (assist && moment.kind === "corner") return `Cobrança precisa! A bola encontra um companheiro e o ${career.clubName} marca.`;
+  if (assist && moment.kind === "counter") return `Contra-ataque letal! Você serve o companheiro para o gol do ${career.clubName}.`;
   if (assist) return `Passe perfeito! A defesa quebra e o ${career.clubName} marca.`;
   if (success && moment.kind === "defense") return `Desarme limpo! O ataque do ${opponent} termina aqui.`;
   if (success && moment.kind === "dribble") return "Você elimina o marcador e faz o estádio levantar.";
+  if (success && moment.kind === "freeKick") return "A falta leva perigo e força uma grande defesa do goleiro.";
+  if (success && moment.kind === "corner") return "O escanteio encontra a zona planejada e mantém a pressão.";
+  if (success && moment.kind === "penalty") return "O goleiro acerta o canto, mas você mantém a equipe viva no rebote.";
+  if (success && moment.kind === "counter") return "A transição rápida desmonta a defesa e empurra o rival para trás.";
+  if (success && moment.kind === "aerial") return "Você domina o duelo aéreo e ganha a segunda bola.";
   if (success) return "Boa leitura. A jogada continua sob controle.";
   if (moment.kind === "defense") return `O ${opponent} escapa da marcação e finaliza com perigo.`;
   if (moment.kind === "shot") return "A finalização sai por pouco. O goleiro estava vendido.";
+  if (moment.kind === "freeKick") return "A cobrança de falta para na barreira.";
+  if (moment.kind === "corner") return `O ${opponent} corta o escanteio na primeira trave.`;
+  if (moment.kind === "penalty") return "O goleiro espera até o fim e defende o pênalti.";
+  if (moment.kind === "counter") return "O passe sai tarde e o contra-ataque é interrompido.";
+  if (moment.kind === "aerial") return "O defensor sobe mais alto e afasta o perigo.";
   return "O adversário percebe a intenção e recupera a bola.";
+}
+
+function momentLabel(kind: MatchMoment["kind"]) {
+  return {
+    shot: "FINALIZAÇÃO",
+    pass: "PASSE",
+    dribble: "DRIBLE",
+    defense: "MARCAÇÃO",
+    freeKick: "FALTA",
+    corner: "ESCANTEIO",
+    penalty: "PÊNALTI",
+    counter: "CONTRA-ATAQUE",
+    aerial: "JOGO AÉREO",
+  }[kind];
+}
+
+function momentIcon(kind: MatchMoment["kind"]) {
+  return {
+    shot: "◎",
+    pass: "↗",
+    dribble: "↝",
+    defense: "×",
+    freeKick: "◉",
+    corner: "◒",
+    penalty: "●",
+    counter: "»",
+    aerial: "↑",
+  }[kind];
 }
 
 function MatchScreen({
@@ -727,8 +836,20 @@ function MatchScreen({
     const success = target.roll < skill - target.risk;
     const secondaryRoll = (target.roll * 997.37) % 1;
     const canCreateGoal = goals + assists === 0;
-    const goal = canCreateGoal && success && ((activeMoment.kind === "shot" && secondaryRoll < .1 + target.risk * .28) || (activeMoment.kind === "dribble" && target.risk > .3 && secondaryRoll < .08));
-    const assist = canCreateGoal && success && activeMoment.kind === "pass" && target.risk > .16 && secondaryRoll < .14 + target.risk * .2;
+    const directGoalKind = ["shot", "freeKick", "penalty", "aerial"].includes(activeMoment.kind);
+    const goalChance = activeMoment.kind === "penalty"
+      ? .48
+      : activeMoment.kind === "freeKick"
+        ? .12 + target.risk * .3
+        : activeMoment.kind === "aerial"
+          ? .1 + target.risk * .22
+          : .1 + target.risk * .28;
+    const goal = canCreateGoal && success && (
+      (directGoalKind && secondaryRoll < goalChance) ||
+      (activeMoment.kind === "dribble" && target.risk > .3 && secondaryRoll < .08) ||
+      (activeMoment.kind === "counter" && target.risk > .25 && secondaryRoll < .12)
+    );
+    const assist = canCreateGoal && success && ["pass", "corner", "counter"].includes(activeMoment.kind) && secondaryRoll < .14 + target.risk * .2;
     const defensiveError = !success && activeMoment.kind === "defense" && secondaryRoll > .82;
     const earned = success ? target.reward : 3;
 
@@ -768,7 +889,7 @@ function MatchScreen({
 
         <section className="match-stage">
           <div className="decision-header">
-            <div><span className="overline">{activeMoment ? `${activeMoment.kind.toUpperCase()} · PRESSÃO ${activeMoment.pressure.toUpperCase()}` : plan.signature}</span><h1>{activeMoment ? activeMoment.title : matchFinished ? "Fim de jogo." : "Leia o campo."}</h1><p>{activeMoment ? activeMoment.prompt : matchFinished ? "O resultado entra para a história desta carreira." : `${plan.events.length} eventos e ${plan.moments.length} decisões exclusivas compõem esta partida.`}</p></div>
+            <div><span className="overline">{activeMoment ? `${momentLabel(activeMoment.kind)} · PRESSÃO ${activeMoment.pressure.toUpperCase()}` : plan.signature}</span><h1>{activeMoment ? activeMoment.title : matchFinished ? "Fim de jogo." : "Leia o campo."}</h1><p>{activeMoment ? activeMoment.prompt : matchFinished ? "O resultado entra para a história desta carreira." : `${plan.events.length} eventos e ${plan.moments.length} decisões exclusivas compõem esta partida.`}</p></div>
             <div className="live-rating"><small>SUA NOTA</small><strong>{rating.toFixed(1)}</strong><span className={rating >= 7 ? "up" : ""}>{rating >= 7 ? "▲ EM ALTA" : "● ESTÁVEL"}</span></div>
           </div>
 
@@ -777,7 +898,7 @@ function MatchScreen({
             <div className="field-player user" style={{ left: "48%", top: "51%" }}><span>{career.shirtNumber}</span><small>VOCÊ</small></div>
             <div className="field-player mate" style={{ left: "63%", top: "25%" }} /><div className="field-player mate" style={{ left: "70%", top: "72%" }} /><div className="field-player mate" style={{ left: "36%", top: "35%" }} />
             <div className="field-player rival" style={{ left: "61%", top: "49%" }} /><div className="field-player rival" style={{ left: "77%", top: "64%" }} /><div className="field-player rival" style={{ left: "82%", top: "31%" }} />
-            {activeMoment?.targets.map((target) => <button className="decision-target" style={{ left: `${target.x}%`, top: `${target.y}%` }} onClick={() => resolveMoment(target)} aria-label={`${target.label}: ${target.hint}`} key={target.id}><span>{activeMoment.kind === "shot" ? "◎" : activeMoment.kind === "defense" ? "×" : "↗"}</span><strong>{target.label}</strong><small>{target.hint} · +{target.reward} XP</small></button>)}
+            {activeMoment?.targets.map((target) => <button className="decision-target" style={{ left: `${target.x}%`, top: `${target.y}%` }} onClick={() => resolveMoment(target)} aria-label={`${target.label}: ${target.hint}`} key={target.id}><span>{momentIcon(activeMoment.kind)}</span><strong>{target.label}</strong><small>{target.hint} · +{target.reward} XP</small></button>)}
             {!activeMoment && !matchFinished && <div className="match-waiting"><i /> SIMULANDO O PRÓXIMO LANCE</div>}
             {matchFinished && <div className="fulltime-v2"><span>APITO FINAL</span><strong>{score[0]} – {score[1]}</strong><p>{score[0] > score[1] ? `Vitória do ${career.clubName}!` : score[0] === score[1] ? "Um ponto para cada lado." : `Vitória do ${fixture.opponent.name}.`}</p></div>}
           </div>
@@ -884,25 +1005,130 @@ export default function Home() {
 
   function train(kind: TrainingKind) {
     updateCareer((current) => {
-      if (current.preparedForMatch) return current;
+      if (current.preparationActionsUsed >= current.preparationActionsAllowed) return current;
       const attributes = { ...current.attributes };
       let energy = current.energy;
       let morale = current.morale;
       let fans = current.fans;
       let reputation = current.reputation;
       let formBoost = current.formBoost;
+      let languageLevel = current.languageLevel;
+      let adaptation = current.adaptation;
+      let coachTrust = current.coachTrust;
       let weeklyAction = "";
-      if (kind === "recovery") { energy = Math.min(100, energy + 18); morale = Math.min(100, morale + 2); weeklyAction = "Recuperação"; }
+      if (kind === "recovery") { energy = Math.min(100, energy + 10); morale = Math.min(100, morale + 1); weeklyAction = "Recuperação"; }
       if (kind === "technique") {
         const attribute = current.position === "Atacante" ? "shooting" : current.position === "Meia" ? "passing" : current.position === "Ponta" ? "dribbling" : "defending";
         attributes[attribute] = Math.min(95, attributes[attribute] + 1);
-        energy = Math.max(40, energy - 9);
-        formBoost = 2;
+        energy = Math.max(40, energy - 7);
+        formBoost = Math.min(10, formBoost + 1);
         weeklyAction = "Fundamentos";
       }
-      if (kind === "intensity") { energy = Math.max(35, energy - 16); morale = Math.min(100, morale + 4); formBoost = 4; weeklyAction = "Alta intensidade"; }
-      if (kind === "media") { energy = Math.max(45, energy - 5); fans += 600; morale = Math.min(100, morale + 3); reputation = Math.min(100, reputation + 2); weeklyAction = "Ação com fãs"; }
-      return { ...current, attributes, energy, morale, fans, reputation, formBoost, weeklyAction, preparedForMatch: true, updatedAt: Date.now() };
+      if (kind === "intensity") { energy = Math.max(35, energy - 12); morale = Math.min(100, morale + 3); formBoost = Math.min(10, formBoost + 3); weeklyAction = "Alta intensidade"; }
+      if (kind === "tactics") { morale = Math.min(100, morale + 2); formBoost = Math.min(10, formBoost + 2); coachTrust = Math.min(100, coachTrust + 3); weeklyAction = "Treino tático"; }
+      if (kind === "setpieces") {
+        const attribute = current.position === "Meia" || current.position === "Lateral" ? "passing" : "shooting";
+        attributes[attribute] = Math.min(95, attributes[attribute] + 1);
+        energy = Math.max(40, energy - 6);
+        formBoost = Math.min(10, formBoost + 1);
+        weeklyAction = "Bola parada";
+      }
+      if (kind === "language") { energy = Math.max(45, energy - 2); languageLevel = Math.min(100, languageLevel + 8); adaptation = Math.min(100, adaptation + 4); weeklyAction = "Aula de idioma"; }
+      if (kind === "media") { energy = Math.max(45, energy - 4); fans += 350; morale = Math.min(100, morale + 2); reputation = Math.min(100, reputation + 1); weeklyAction = "Ação com fãs"; }
+      return {
+        ...current,
+        attributes,
+        energy,
+        morale,
+        fans,
+        reputation,
+        formBoost,
+        languageLevel,
+        adaptation,
+        coachTrust,
+        weeklyAction,
+        preparedForMatch: true,
+        preparationActionsUsed: current.preparationActionsUsed + 1,
+        preparationLog: [...current.preparationLog, weeklyAction],
+        updatedAt: Date.now(),
+      };
+    });
+  }
+
+  function transferTo(team: Team) {
+    if (!career || team.id === career.clubId) return;
+    if (!window.confirm(`Aceitar a proposta do ${team.name} e mudar para ${team.country}?`)) return;
+    updateCareer((current) => {
+      const previousCountry = getCountry(current.countryId);
+      const country = getCountry(team.countryId);
+      const league = getLeagueDefinition(team.countryId, team.division);
+      const baseSalary = getSalary(team.countryId, team.division, current.reputation);
+      const nextGap = getDaysToNextMatch(current.careerSeed, current.matches, team.countryId);
+      const sameCountry = current.countryId === team.countryId;
+      const sameLanguage = previousCountry.language === country.language;
+      return migrateCareer({
+        ...current,
+        countryId: team.countryId,
+        countryName: team.country,
+        division: team.division,
+        leagueId: league.id,
+        leagueName: league.name,
+        clubId: team.id,
+        clubName: team.name,
+        clubShort: team.short,
+        clubColor: team.color,
+        clubStrength: team.strength,
+        salary: Math.round(baseSalary * 1.12),
+        bankBalance: current.bankBalance + baseSalary * 2,
+        monthlyExpenses: country.costOfLiving,
+        housing: "Hotel do clube",
+        language: country.language,
+        languageLevel: sameLanguage ? Math.max(current.languageLevel, 80) : 15,
+        adaptation: sameCountry ? current.adaptation : 38,
+        coachTrust: 42,
+        contractMatches: 44,
+        seasonRound: 1,
+        seasonMatches: 0,
+        seasonPoints: 0,
+        seasonWins: 0,
+        seasonDraws: 0,
+        seasonLosses: 0,
+        seasonGoalsFor: 0,
+        seasonGoalsAgainst: 0,
+        recentResults: [],
+        cupStage: "Primeira fase",
+        preparedForMatch: false,
+        weeklyAction: "Nenhuma",
+        nextMatchDate: addDaysToDate(current.currentDate, nextGap),
+        daysUntilMatch: nextGap,
+        preparationActionsAllowed: getPreparationActionCount(nextGap),
+        preparationActionsUsed: 0,
+        preparationLog: [],
+        formBoost: 0,
+        lastSeasonSummary: `Transferência para o ${team.name}, de ${team.country}`,
+        updatedAt: Date.now(),
+      });
+    });
+    setView("dashboard");
+  }
+
+  function changeHousing(kind: "Clube" | "Apartamento" | "Casa") {
+    updateCareer((current) => {
+      const cost = getCountry(current.countryId).costOfLiving;
+      const option = {
+        Clube: { label: "Hotel do clube", deposit: 0, monthly: cost },
+        Apartamento: { label: "Apartamento", deposit: cost * 2, monthly: Math.round(cost * 1.15) },
+        Casa: { label: "Casa própria", deposit: cost * 5, monthly: Math.round(cost * 1.7) },
+      }[kind];
+      if (current.bankBalance < option.deposit || current.housing === option.label) return current;
+      return {
+        ...current,
+        housing: option.label,
+        bankBalance: current.bankBalance - option.deposit,
+        monthlyExpenses: option.monthly,
+        adaptation: Math.min(100, current.adaptation + (kind === "Casa" ? 8 : kind === "Apartamento" ? 5 : 1)),
+        updatedAt: Date.now(),
+      };
     });
   }
 
@@ -960,6 +1186,11 @@ export default function Home() {
     }
     const nextLeague = getLeagueDefinition(career.countryId, nextDivision);
     const nextReputation = Math.min(100, career.reputation + reputationGain);
+    const nextCurrentDate = career.nextMatchDate;
+    const nextGap = getDaysToNextMatch(career.careerSeed, career.matches + 1, career.countryId);
+    const nextMatchDate = addDaysToDate(nextCurrentDate, nextGap);
+    const matchIncome = Math.round(career.salary / 4);
+    const periodExpenses = Math.round(career.monthlyExpenses * nextGap / 30);
     const nextCareer = migrateCareer({
       ...career,
       level: career.level + (nextXp >= 100 ? 1 : 0),
@@ -989,10 +1220,20 @@ export default function Home() {
       cupStage: seasonEnded ? "Primeira fase" : nextCupStage,
       preparedForMatch: false,
       weeklyAction: "Nenhuma",
+      currentDate: nextCurrentDate,
+      nextMatchDate,
+      daysUntilMatch: nextGap,
+      preparationActionsAllowed: getPreparationActionCount(nextGap),
+      preparationActionsUsed: 0,
+      preparationLog: [],
       formBoost: 0,
       reputation: nextReputation,
       marketValue: Math.round(career.marketValue * (1 + Math.max(-.02, (lastResult.rating - 6.5) / 90))),
       salary: seasonEnded ? getSalary(career.countryId, nextDivision, nextReputation) : career.salary,
+      bankBalance: Math.max(0, career.bankBalance + matchIncome - periodExpenses),
+      languageLevel: Math.min(100, career.languageLevel + (career.languageLevel < 100 ? 1 : 0)),
+      adaptation: Math.min(100, career.adaptation + 2),
+      coachTrust: Math.max(15, Math.min(100, career.coachTrust + (lastResult.rating >= 7.5 ? 4 : won ? 2 : lastResult.rating < 6 ? -4 : -1))),
       contractMatches: seasonEnded ? 22 : Math.max(0, career.contractMatches - 1),
       promotions,
       relegations,
@@ -1030,7 +1271,7 @@ export default function Home() {
           {view === "dashboard" && <Dashboard career={career} fixture={fixture} onPlay={() => setView("match")} onTrain={train} onNavigate={setView} />}
           {view === "season" && <SeasonView career={career} />}
           {view === "player" && <PlayerView career={career} />}
-          {view === "market" && <MarketView career={career} />}
+          {view === "market" && <MarketView career={career} onTransfer={transferTo} onHousing={changeHousing} />}
           {view === "settings" && <SettingsView settings={settings} onChange={setSettings} />}
         </CareerLayout>}
   </div>;

@@ -7,12 +7,14 @@ import {
   generateMatchPlan,
   generateStandings,
   getLeagueDefinition,
+  getPreparationActionCount,
   migrateCareer,
 } from "../app/game-engine.ts";
 
 const signatures = new Set();
 const scorelines = new Set();
 const momentPatterns = new Set();
+const momentKinds = new Set();
 let victories = 0;
 let draws = 0;
 let losses = 0;
@@ -31,6 +33,7 @@ for (let index = 0; index < 1000; index += 1) {
   signatures.add(plan.signature);
   scorelines.add(`${plan.baseHomeGoals}-${plan.baseAwayGoals}`);
   momentPatterns.add(plan.moments.map((moment) => `${moment.minute}:${moment.kind}`).join("|"));
+  plan.moments.forEach((moment) => momentKinds.add(moment.kind));
   totalGoals += plan.baseHomeGoals + plan.baseAwayGoals;
   if (plan.baseHomeGoals > plan.baseAwayGoals) victories += 1;
   else if (plan.baseHomeGoals === plan.baseAwayGoals) draws += 1;
@@ -52,13 +55,23 @@ if (lossRate < .2 || lossRate > .5) throw new Error(`Taxa de derrotas fora da me
 if (averageGoals < 1.7 || averageGoals > 3.1) throw new Error(`Média de gols fora da meta: ${averageGoals}`);
 if (unusualScorelines > 45) throw new Error(`Placares com seis ou mais gols: ${unusualScorelines}/1000`);
 
-if (COUNTRIES.length !== 4) throw new Error(`Países disponíveis: ${COUNTRIES.length}/4`);
-if (TEAMS.length !== 96) throw new Error(`Clubes disponíveis: ${TEAMS.length}/96`);
+for (const kind of ["dribble", "freeKick", "corner", "penalty", "counter", "aerial"]) {
+  if (!momentKinds.has(kind)) throw new Error(`Tipo de lance não apareceu nas simulações: ${kind}`);
+}
+
+if (COUNTRIES.length !== 12) throw new Error(`Países disponíveis: ${COUNTRIES.length}/12`);
+if (TEAMS.length !== 288) throw new Error(`Clubes disponíveis: ${TEAMS.length}/288`);
 for (const country of COUNTRIES) {
   if (country.leagues.length !== 2) throw new Error(`${country.name} não possui duas divisões`);
   if (getLeagueDefinition(country.id, 1).teams.length !== 12 || getLeagueDefinition(country.id, 2).teams.length !== 12) {
     throw new Error(`${country.name} não possui 12 clubes por divisão`);
   }
+}
+
+for (let days = 3; days <= 9; days += 1) {
+  const actions = getPreparationActionCount(days);
+  if (actions !== Math.floor(days / 2)) throw new Error(`Calendário de ${days} dias gerou ${actions} ações`);
+  if (actions < 1 || actions > 4) throw new Error(`Quantidade inválida de ações para ${days} dias: ${actions}`);
 }
 
 const scenarioWinRates = [];
@@ -125,6 +138,7 @@ console.log(JSON.stringify({
   simulatedMatches: 1000,
   uniqueSignatures: signatures.size,
   uniqueMomentPatterns: momentPatterns.size,
+  momentKinds: [...momentKinds].sort(),
   distinctScorelines: scorelines.size,
   winRate: Number(winRate.toFixed(3)),
   drawRate: Number(drawRate.toFixed(3)),

@@ -1,9 +1,9 @@
 export type Position = "Atacante" | "Ponta" | "Meia" | "Lateral" | "Zagueiro";
-export type MomentKind = "shot" | "pass" | "dribble" | "defense";
+export type MomentKind = "shot" | "pass" | "dribble" | "defense" | "freeKick" | "corner" | "penalty" | "counter" | "aerial";
 export type Foot = "Direito" | "Esquerdo";
 export type Archetype = "Maestro" | "Finalizador" | "Velocista" | "Operário" | "Muralha";
 export type Difficulty = "Promessa" | "Profissional" | "Lenda";
-export type CountryId = "BR" | "AR" | "PT" | "EN";
+export type CountryId = "BR" | "AR" | "PT" | "EN" | "ES" | "IT" | "DE" | "FR" | "NL" | "MX" | "US" | "JP";
 export type DivisionLevel = 1 | 2;
 export type OriginType = "Clube de bairro" | "Academia regional" | "Futebol escolar" | "Projeto social" | "Sem clube";
 
@@ -70,10 +70,23 @@ export type CareerState = {
   cupStage: string;
   preparedForMatch: boolean;
   weeklyAction: string;
+  currentDate: string;
+  nextMatchDate: string;
+  daysUntilMatch: number;
+  preparationActionsAllowed: number;
+  preparationActionsUsed: number;
+  preparationLog: string[];
   formBoost: number;
   reputation: number;
   marketValue: number;
   salary: number;
+  bankBalance: number;
+  monthlyExpenses: number;
+  housing: string;
+  language: string;
+  languageLevel: number;
+  adaptation: number;
+  coachTrust: number;
   contractMatches: number;
   promotions: number;
   relegations: number;
@@ -114,6 +127,8 @@ export type CountryDefinition = {
   flag: string;
   style: string;
   currencyLabel: string;
+  language: string;
+  costOfLiving: number;
   leagues: [LeagueDefinition, LeagueDefinition];
 };
 
@@ -196,6 +211,14 @@ const STAR_POOLS: Record<CountryId, string[]> = {
   AR: ["Tomás Ferreyra", "Lautaro Vega", "Nico Peralta", "Santiago Ríos", "Facundo Paz", "Bruno Almada", "Julián Sosa", "Matías Luna"],
   PT: ["Tiago Neves", "Afonso Luz", "Diogo Serra", "Tomé Pires", "Gonçalo Vale", "Rui Miranda", "Leandro Matos", "Nuno Rocha"],
   EN: ["Oliver Grant", "Ethan Cole", "Jamie Rivers", "Noah Brooks", "Leo Turner", "Mason Hill", "Jack Palmer", "Theo Ward"],
+  ES: ["Iker Montes", "Pablo Sierra", "Álvaro Roca", "Hugo León", "Nico Valdés", "Dani Cobo", "Mario Soler", "Sergio Vidal"],
+  IT: ["Luca Moretti", "Matteo Romano", "Enzo Ricci", "Marco Bellini", "Davide Conti", "Nico Gallo", "Pietro Serra", "Tommaso Greco"],
+  DE: ["Lukas Adler", "Jonas Weber", "Felix Hartmann", "Leon Bauer", "Noah Klein", "Max Vogel", "Elias Wolf", "Finn Krüger"],
+  FR: ["Lucas Moreau", "Hugo Laurent", "Enzo Dubois", "Mathis Bernard", "Theo Girard", "Noah Mercier", "Jules Petit", "Adam Fontaine"],
+  NL: ["Daan de Wit", "Sem Bakker", "Luuk Smit", "Finn Visser", "Bram Bos", "Mees Dekker", "Jesse Mulder", "Thijs Vos"],
+  MX: ["Santiago Cruz", "Mateo Reyes", "Diego Navarro", "Emilio Rojas", "Gael Mendoza", "Iván Salgado", "Bruno Luna", "Ángel Paredes"],
+  US: ["Liam Carter", "Mason Reed", "Ethan Walker", "Noah Bennett", "Logan Cooper", "Caleb Foster", "Owen Brooks", "Aiden Parker"],
+  JP: ["Haruto Sato", "Ren Takahashi", "Yuto Nakamura", "Sora Kobayashi", "Kaito Ito", "Riku Yamamoto", "Hinata Watanabe", "Daiki Mori"],
 };
 
 const TEAM_NAMES: Record<CountryId, { first: string[]; second: string[] }> = {
@@ -215,13 +238,53 @@ const TEAM_NAMES: Record<CountryId, { first: string[]; second: string[] }> = {
     first: ["Manchester Celeste", "Liverpul", "Arsenal de Londres", "Chelsea Royal", "Tottenham White", "Newcastle Uniteda", "Aston Villara", "Westham Iron", "Brighton Waves", "Everton Blue", "Nottingham Forestal", "Crystal Palacea"],
     second: ["Riverside Borough", "Northbridge Academy", "Kingsway School", "Community Lions", "Sunday Town FC", "Sheffield Forge", "Bristol Harbour", "Leeds County", "Norwich Gold", "Coventry Sky", "Plymouth Sailors", "Oxford Scholars"],
   },
+  ES: {
+    first: ["Barsemlona", "Real Madria", "Atlética Madri", "Sevilha Real", "Valência Naranja", "Bilbao Athletic", "Vila Realena", "Betis Verde", "Girona Vermelha", "Sociedad Azul", "Celta Galícia", "Mallorca Ilha"],
+    second: ["Atlético del Barrio", "Cantera Dorada", "Colegio Estrella", "Fundación Real", "Unión del Parque", "Deportivo Castilla", "Racing Cantábrico", "Sporting Astúria", "Levante del Mar", "Granada Sierra", "Córdoba Blanca", "Tenerife Solar"],
+  },
+  IT: {
+    first: ["Milano Rosso", "Internazionale Blu", "Juventa Torino", "Roma Imperial", "Napoli Azzurra", "Lazio Celeste", "Atalanta Bergamo", "Fiorenza Viola", "Bologna Rossoblù", "Torino Granata", "Genoa Marítima", "Udine Calcio"],
+    second: ["Borgo Verde", "Scuola Torino", "Istituto Roma", "Progetto Futuro", "Atletico Ponte", "Parma Ducale", "Palermo Rosa", "Bari Adriatico", "Pisa Torre", "Venezia Laguna", "Modena Gialla", "Spezia Marina"],
+  },
+  DE: {
+    first: ["München Rot", "Dortmund Amarelo", "Leverkusen Werk", "Leipzig Energia", "Stuttgart Branco", "Frankfurt Águia", "Wolfsburg Verde", "Freiburg Floresta", "Bremen Norte", "Mainz Rubro", "Berlin União", "Hamburg Azul"],
+    second: ["Jugend Berlin", "Akademie Rhein", "Schule Hamburg", "Projekt Zukunft", "Verein Brücke", "Köln Dom", "Hannover Central", "Dresden Dynamo", "Nürnberg Burg", "Karlsruhe Blau", "Bochum Mineiro", "Kiel Marítimo"],
+  },
+  FR: {
+    first: ["Paris Lumière", "Marseille Olímpico", "Lyon Imperial", "Mônaco Real", "Lille do Norte", "Nice Riviera", "Lens Sangue Ouro", "Rennes Bretão", "Strasbourg Azul", "Nantes Atlântico", "Toulouse Violeta", "Bordeaux Vin"],
+    second: ["Banlieue Paris", "Académie Lyon", "École Marseille", "Jeunesse Unie", "Club du Pont", "Metz Lorraine", "Caen Normand", "Grenoble Alpes", "Amiens Picardie", "Bastia Corse", "Dijon Mostarda", "Angers Loire"],
+  },
+  NL: {
+    first: ["Amsterdam Ajaxia", "Rotterdam Feyenor", "Eindhoven PSVita", "Alkmaar Queijo", "Utrecht Central", "Twente Vermelho", "Heerenveen Frísio", "Groningen Verde", "Arnhem Vitesse", "Nijmegen União", "Breda Amarelo", "Zwolle Azul"],
+    second: ["Buurt Amsterdam", "Academie Oranje", "School Rotterdam", "Stichting Toekomst", "Brugge Clube", "Volendam Peixe", "Dordrecht Leão", "Eindhoven Jovem", "Maastricht Sul", "Tilburg Tricolor", "Almere Cidade", "Haarlem Tulipa"],
+  },
+  MX: {
+    first: ["Águilas Capital", "Guadalajara Rojiblanca", "Monterra Azul", "Tigres del Norte", "Cruz Celeste", "Pumas Universitários", "Toluca Diablos", "León Esmeralda", "Pachuca Mineira", "Santos Laguna", "Atlas Rojinegro", "Tijuana Frontera"],
+    second: ["Barrio Azteca", "Academia Monterra", "Escuela Guadalajara", "Proyecto Esperanza", "Deportivo Puente", "Oaxaca Alebrije", "Sonora Dorada", "Mérida Maya", "Morelia Monarca", "Cancún Caribe", "Celaya Cajeta", "Tepatitlán Rojo"],
+  },
+  US: {
+    first: ["Miami Flamingos", "Los Angeles Stars", "New York Empire", "Seattle Soundwave", "Austin Verde", "Atlanta Uniteda", "Portland Pines", "Chicago Fireline", "Dallas Lone Star", "Boston Harbor", "Orlando Solar", "Denver Peaks"],
+    second: ["Queens Borough FC", "California Academy", "Liberty High", "Community Eagles", "Sunday Valley", "Detroit Motors", "Phoenix Risinga", "San Diego Waves", "Las Vegas Lights", "Tampa Bay Union", "Sacramento Gold", "Charlotte Crown"],
+  },
+  JP: {
+    first: ["Tokyo Sakura", "Osaka Gambaia", "Yokohama Marinoso", "Kobe Vitória", "Kawasaki Frontaleiro", "Urawa Vermelha", "Nagoya Orcas", "Hiroshima Arrows", "Fukuoka Avispa", "Sapporo Norte", "Kyoto Púrpura", "Kashima Antlersa"],
+    second: ["Bairro Asakusa", "Academia Osaka", "Escola Yokohama", "Projeto Mirai", "Ponte de Kyoto", "Sendai Verde", "Chiba United", "Nagasaki Azul", "Kumamoto Fogo", "Oita Trinita", "Mito Holly", "Gunma Trovão"],
+  },
 };
 
-const COUNTRY_META: Record<CountryId, { name: string; flag: string; style: string; currencyLabel: string; leagues: [string, string]; salaries: [number, number] }> = {
-  BR: { name: "Brasil", flag: "🇧🇷", style: "Técnica, pressão e calendário intenso", currencyLabel: "R$ por mês", leagues: ["Liga Nacional A", "Liga Nacional B"], salaries: [48000, 12000] },
-  AR: { name: "Argentina", flag: "🇦🇷", style: "Clássicos quentes e jogo competitivo", currencyLabel: "R$ equivalentes", leagues: ["Liga Federal A", "Liga Federal B"], salaries: [36000, 9000] },
-  PT: { name: "Portugal", flag: "🇵🇹", style: "Formação técnica e vitrine europeia", currencyLabel: "R$ equivalentes", leagues: ["Liga Lusitana", "Liga de Honra"], salaries: [72000, 22000] },
-  EN: { name: "Inglaterra", flag: "🏴", style: "Ritmo alto, físico e grande exposição", currencyLabel: "R$ equivalentes", leagues: ["Premier Crown", "Championship Union"], salaries: [190000, 62000] },
+const COUNTRY_META: Record<CountryId, { name: string; flag: string; style: string; currencyLabel: string; language: string; costOfLiving: number; leagues: [string, string]; salaries: [number, number] }> = {
+  BR: { name: "Brasil", flag: "🇧🇷", style: "Técnica, pressão e calendário intenso", currencyLabel: "R$ por mês", language: "Português", costOfLiving: 4200, leagues: ["Liga Nacional A", "Liga Nacional B"], salaries: [48000, 12000] },
+  AR: { name: "Argentina", flag: "🇦🇷", style: "Clássicos quentes e jogo competitivo", currencyLabel: "R$ equivalentes", language: "Espanhol", costOfLiving: 3800, leagues: ["Liga Federal A", "Liga Federal B"], salaries: [36000, 9000] },
+  PT: { name: "Portugal", flag: "🇵🇹", style: "Formação técnica e vitrine europeia", currencyLabel: "R$ equivalentes", language: "Português", costOfLiving: 7200, leagues: ["Liga Lusitana", "Liga de Honra"], salaries: [72000, 22000] },
+  EN: { name: "Inglaterra", flag: "🏴", style: "Ritmo alto, físico e grande exposição", currencyLabel: "R$ equivalentes", language: "Inglês", costOfLiving: 12000, leagues: ["Premier Crown", "Championship Union"], salaries: [190000, 62000] },
+  ES: { name: "Espanha", flag: "🇪🇸", style: "Posse, técnica e pressão por resultados", currencyLabel: "R$ equivalentes", language: "Espanhol", costOfLiving: 8500, leagues: ["Liga Estelar", "Liga de Plata"], salaries: [110000, 36000] },
+  IT: { name: "Itália", flag: "🇮🇹", style: "Tática, defesa e tradição regional", currencyLabel: "R$ equivalentes", language: "Italiano", costOfLiving: 8200, leagues: ["Serie Suprema", "Serie de Ascenso"], salaries: [105000, 34000] },
+  DE: { name: "Alemanha", flag: "🇩🇪", style: "Intensidade, estrutura e estádios cheios", currencyLabel: "R$ equivalentes", language: "Alemão", costOfLiving: 9400, leagues: ["Bundes Liga", "Bundes Zwei"], salaries: [125000, 42000] },
+  FR: { name: "França", flag: "🇫🇷", style: "Atletismo, juventude e grandes vitrines", currencyLabel: "R$ equivalentes", language: "Francês", costOfLiving: 9700, leagues: ["Ligue Élite", "Ligue National"], salaries: [115000, 38000] },
+  NL: { name: "Países Baixos", flag: "🇳🇱", style: "Formação, ataque e futebol posicional", currencyLabel: "R$ equivalentes", language: "Holandês", costOfLiving: 10200, leagues: ["Ere Liga", "Primeira Divisie"], salaries: [92000, 30000] },
+  MX: { name: "México", flag: "🇲🇽", style: "Técnica, altitude e mata-matas intensos", currencyLabel: "R$ equivalentes", language: "Espanhol", costOfLiving: 4600, leagues: ["Liga Azteca", "Liga Expansión"], salaries: [45000, 13000] },
+  US: { name: "Estados Unidos", flag: "🇺🇸", style: "Físico, espetáculo e longas viagens", currencyLabel: "R$ equivalentes", language: "Inglês", costOfLiving: 13500, leagues: ["Major Union", "National Championship"], salaries: [95000, 30000] },
+  JP: { name: "Japão", flag: "🇯🇵", style: "Disciplina, velocidade e precisão", currencyLabel: "R$ equivalentes", language: "Japonês", costOfLiving: 9200, leagues: ["J-Liga Sakura", "J-Liga Mirai"], salaries: [75000, 24000] },
 };
 
 export function hashText(text: string) {
@@ -283,6 +346,8 @@ export const COUNTRIES: CountryDefinition[] = (Object.keys(COUNTRY_META) as Coun
   flag: COUNTRY_META[id].flag,
   style: COUNTRY_META[id].style,
   currencyLabel: COUNTRY_META[id].currencyLabel,
+  language: COUNTRY_META[id].language,
+  costOfLiving: COUNTRY_META[id].costOfLiving,
   leagues: [buildLeague(id, 1), buildLeague(id, 2)],
 }));
 
@@ -330,6 +395,20 @@ export function getSalary(countryId: CountryId, division: DivisionLevel, reputat
   return Math.round(base * (0.72 + Math.min(100, reputation) / 180));
 }
 
+export function addDaysToDate(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function getDaysToNextMatch(careerSeed: number, matches: number, countryId: CountryId) {
+  return 3 + (hashText(`${careerSeed}:${matches + 1}:${countryId}:calendar`) % 7);
+}
+
+export function getPreparationActionCount(daysUntilMatch: number) {
+  return Math.max(1, Math.floor(daysUntilMatch / 2));
+}
+
 export const PLAYER_TEAM = getStartingClub("BR", 2, "Clube de bairro");
 export const LEAGUE_TEAMS = getLeagueDefinition("BR", 2).teams;
 export const WORLD_TEAMS = COUNTRIES.flatMap((country) => country.leagues[0].teams);
@@ -340,6 +419,14 @@ const weatherByCountry: Record<CountryId, string[]> = {
   AR: ["noite fria", "vento dos pampas", "céu limpo", "garoa leve", "gramado rápido"],
   PT: ["brisa atlântica", "chuva fina", "noite amena", "céu limpo", "vento costeiro"],
   EN: ["chuva constante", "neblina", "tarde fria", "vento forte", "gramado molhado"],
+  ES: ["noite seca", "calor mediterrâneo", "céu limpo", "vento leve", "gramado rápido"],
+  IT: ["noite amena", "chuva fina", "brisa costeira", "céu limpo", "tarde fria"],
+  DE: ["frio intenso", "chuva leve", "céu nublado", "vento forte", "gramado úmido"],
+  FR: ["garoa parisiense", "céu limpo", "vento atlântico", "noite fria", "chuva moderada"],
+  NL: ["vento forte", "chuva lateral", "céu nublado", "tarde fria", "gramado molhado"],
+  MX: ["altitude elevada", "calor seco", "noite quente", "chuva de verão", "céu limpo"],
+  US: ["calor intenso", "noite seca", "chuva forte", "vento continental", "céu limpo"],
+  JP: ["chuva fina", "umidade alta", "noite fresca", "vento costeiro", "céu limpo"],
 };
 const pressures = ["jogo de afirmação", "duelo direto", "clássico regional", "vale a liderança", "estreia do treinador", "confronto pela permanência"];
 const venuesByCountry: Record<CountryId, string[]> = {
@@ -347,6 +434,14 @@ const venuesByCountry: Record<CountryId, string[]> = {
   AR: ["Estadio del Sol", "Parque de Plata", "La Fortaleza", "Campo Pampeano"],
   PT: ["Estádio do Tejo", "Parque da Serra", "Campo dos Navegantes", "Arena Lusitana"],
   EN: ["Riverside Ground", "Crown Park", "Northbridge Lane", "Union Stadium"],
+  ES: ["Estadio del Reino", "Arena Mediterránea", "Campo de la Estrella", "Parque Castilla"],
+  IT: ["Stadio Imperiale", "Arena del Borgo", "Campo Azzurro", "Parco Romano"],
+  DE: ["Adler Arena", "Rhein Stadion", "Nord Park", "Werk Arena"],
+  FR: ["Stade Lumière", "Parc National", "Arène du Rhône", "Stade Atlantique"],
+  NL: ["Oranje Arena", "Tulip Park", "Haven Stadion", "Polder Ground"],
+  MX: ["Estadio Azteca Nova", "Arena del Sol", "Parque Maya", "Fortaleza Norte"],
+  US: ["Liberty Stadium", "Pacific Field", "Lone Star Arena", "Empire Park"],
+  JP: ["Sakura Stadium", "Mirai Arena", "Fuji Park", "Hikari Field"],
 };
 
 export function makeRng(seed: number) {
@@ -445,19 +540,25 @@ function momentTemplates(position: Position, rng: () => number, star: string) {
   const common: Array<Omit<MatchMoment, "id" | "minute" | "targets">> = [
     { title: "Quebre a pressão", prompt: "A marcação saltou. Escolha a saída antes que o espaço desapareça.", kind: "pass", pressure: "média" },
     { title: "Ataque o corredor", prompt: "Há campo livre e dois defensores desalinhados.", kind: "dribble", pressure: "média" },
+    { title: "Drible em espaço curto", prompt: "Dois marcadores fecham a linha lateral. Escolha como escapar.", kind: "dribble", pressure: "alta" },
     { title: "A bola do jogo", prompt: "O goleiro deu um passo. Escolha canto e força.", kind: "shot", pressure: "alta" },
     { title: `Pare ${star}`, prompt: "O craque adversário acelera em direção à área. Antecipe a jogada.", kind: "defense", pressure: "alta" },
     { title: "Último passe", prompt: "Três companheiros atacam a área por caminhos diferentes.", kind: "pass", pressure: "alta" },
     { title: "Segunda bola", prompt: "O rebote cai na entrada da área e a defesa ainda está desorganizada.", kind: "shot", pressure: "média" },
     { title: "Saída sob risco", prompt: "Um passe seguro mantém a posse; um passe vertical desmonta o bloco.", kind: "pass", pressure: "baixa" },
     { title: "Um contra um", prompt: "Você ficou isolado contra o marcador. Decida antes da cobertura.", kind: "dribble", pressure: "alta" },
+    { title: "Falta na entrada da área", prompt: "A barreira está montada. Escolha a trajetória da cobrança.", kind: "freeKick", pressure: "alta" },
+    { title: "Escanteio decisivo", prompt: "A defesa alterna entre zona e marcação individual. Escolha a jogada ensaiada.", kind: "corner", pressure: "média" },
+    { title: "Pênalti sob pressão", prompt: "O goleiro tenta antecipar sua escolha. Defina canto e estilo da batida.", kind: "penalty", pressure: "alta" },
+    { title: "Contra-ataque aberto", prompt: "Três contra três e muito campo pela frente. Escolha o ritmo da transição.", kind: "counter", pressure: "alta" },
+    { title: "Duelo pelo alto", prompt: "O cruzamento vem forte entre zagueiro e goleiro. Ataque o espaço certo.", kind: "aerial", pressure: "média" },
   ];
   const preferred: Record<Position, MomentKind[]> = {
-    Atacante: ["shot", "shot", "dribble", "pass"],
-    Ponta: ["dribble", "pass", "shot", "dribble"],
-    Meia: ["pass", "pass", "dribble", "shot"],
-    Lateral: ["pass", "defense", "dribble", "defense"],
-    Zagueiro: ["defense", "defense", "pass", "defense"],
+    Atacante: ["shot", "dribble", "aerial", "penalty", "counter", "freeKick"],
+    Ponta: ["dribble", "corner", "counter", "pass", "freeKick", "shot"],
+    Meia: ["pass", "freeKick", "corner", "counter", "dribble", "shot"],
+    Lateral: ["pass", "defense", "corner", "counter", "aerial", "dribble"],
+    Zagueiro: ["defense", "aerial", "pass", "defense", "corner", "counter"],
   };
   const kind = pick(rng, preferred[position]);
   return pick(rng, common.filter((item) => item.kind === kind));
@@ -485,6 +586,31 @@ function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
       { label: "Antecipar", hint: "cortar o passe", x: 72, y: 35, risk: .28, reward: 20 },
       { label: "Dar o bote", hint: "recuperar e sair", x: 78, y: 62, risk: .44, reward: 30 },
     ],
+    freeKick: [
+      { label: "Por cima da barreira", hint: "curva no ângulo", x: 91, y: 29, risk: .36, reward: 31 },
+      { label: "Forte no canto", hint: "surpreender o goleiro", x: 93, y: 67, risk: .3, reward: 27 },
+      { label: "Jogada ensaiada", hint: "passe por baixo", x: 76, y: 52, risk: .18, reward: 19 },
+    ],
+    corner: [
+      { label: "Primeiro pau", hint: "desvio rápido", x: 86, y: 29, risk: .24, reward: 22 },
+      { label: "Marca do pênalti", hint: "buscar o cabeceador", x: 78, y: 51, risk: .31, reward: 26 },
+      { label: "Curto", hint: "criar novo ângulo", x: 69, y: 76, risk: .12, reward: 14 },
+    ],
+    penalty: [
+      { label: "Canto esquerdo", hint: "batida colocada", x: 91, y: 67, risk: .24, reward: 28 },
+      { label: "Canto direito", hint: "esperar o goleiro", x: 91, y: 31, risk: .27, reward: 29 },
+      { label: "No centro", hint: "assumir o risco", x: 94, y: 50, risk: .34, reward: 32 },
+    ],
+    counter: [
+      { label: "Acelerar", hint: "atacar antes da cobertura", x: 75, y: 46, risk: .32, reward: 27 },
+      { label: "Abrir na ponta", hint: "alongar a defesa", x: 66, y: 22, risk: .18, reward: 18 },
+      { label: "Prender e esperar", hint: "garantir a posse", x: 48, y: 68, risk: .08, reward: 10 },
+    ],
+    aerial: [
+      { label: "Testar firme", hint: "buscar o chão", x: 89, y: 56, risk: .29, reward: 26 },
+      { label: "Desviar", hint: "tirar do goleiro", x: 83, y: 32, risk: .23, reward: 22 },
+      { label: "Escorar", hint: "servir um companheiro", x: 73, y: 65, risk: .14, reward: 16 },
+    ],
   };
   return banks[kind].map((target, index) => ({
     ...target,
@@ -499,6 +625,11 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
     pass: career.attributes.passing,
     dribble: career.attributes.dribbling,
     defense: career.attributes.defending,
+    freeKick: Math.round((career.attributes.shooting * 2 + career.attributes.passing) / 3),
+    corner: career.attributes.passing,
+    penalty: career.attributes.shooting,
+    counter: Math.round((career.attributes.pace + career.attributes.dribbling) / 2),
+    aerial: Math.round((career.attributes.physical + career.attributes.shooting) / 2),
   }[kind];
   return (attribute - 65) / 1200;
 }
@@ -517,7 +648,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
   const baseAwayGoals = samplePoisson(rng, expectedAgainst);
   const intensity = .72 + rng() * .56;
   const eventCount = 13 + Math.floor(rng() * 8);
-  const momentCount = 3 + Math.floor(rng() * 3);
+  const momentCount = 4 + Math.floor(rng() * 3);
   const eventMinutes = uniqueMinutes(rng, eventCount);
   const momentMinutes = uniqueMinutes(rng, momentCount, 8, 86);
 
@@ -697,6 +828,14 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
   const existingTeam = TEAMS.find((team) => team.id === input?.clubId);
   const selectedClub = existingTeam ?? startingClub;
   const reputation = input?.reputation ?? 12;
+  const careerSeed = input?.careerSeed ?? hashText(`${input?.name ?? "Alex Silva"}:${now}`);
+  const matches = input?.matches ?? 0;
+  const currentDate = input?.currentDate ?? "2026-01-05";
+  const daysUntilMatch = input?.daysUntilMatch ?? getDaysToNextMatch(careerSeed, matches, countryId);
+  const preparationActionsAllowed = input?.preparationActionsAllowed ?? getPreparationActionCount(daysUntilMatch);
+  const preparationActionsUsed = input?.preparationActionsUsed ?? (input?.preparedForMatch ? 1 : 0);
+  const country = getCountry(countryId);
+  const salary = input?.salary ?? getSalary(countryId, division, reputation);
   return {
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
@@ -723,14 +862,14 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     level: input?.level ?? 1,
     xp: input?.xp ?? 35,
     fans: input?.fans ?? 1280,
-    matches: input?.matches ?? 0,
+    matches,
     goals: input?.goals ?? 0,
     assists: input?.assists ?? 0,
     rating: input?.rating ?? 6.8,
     energy: input?.energy ?? 86,
     morale: input?.morale ?? 74,
     recentResults: input?.recentResults ?? [],
-    careerSeed: input?.careerSeed ?? hashText(`${input?.name ?? "Alex Silva"}:${now}`),
+    careerSeed,
     season: input?.season ?? 2026,
     seasonRound: input?.seasonRound ?? 1,
     seasonMatches: input?.seasonMatches ?? 0,
@@ -741,12 +880,25 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     seasonGoalsFor: input?.seasonGoalsFor ?? 0,
     seasonGoalsAgainst: input?.seasonGoalsAgainst ?? 0,
     cupStage: input?.cupStage ?? "Primeira fase",
-    preparedForMatch: input?.preparedForMatch ?? false,
+    preparedForMatch: input?.preparedForMatch ?? preparationActionsUsed > 0,
     weeklyAction: input?.weeklyAction ?? "Nenhuma",
+    currentDate,
+    nextMatchDate: input?.nextMatchDate ?? addDaysToDate(currentDate, daysUntilMatch),
+    daysUntilMatch,
+    preparationActionsAllowed,
+    preparationActionsUsed,
+    preparationLog: input?.preparationLog ?? (input?.weeklyAction && input.weeklyAction !== "Nenhuma" ? [input.weeklyAction] : []),
     formBoost: input?.formBoost ?? 0,
     reputation,
     marketValue: input?.marketValue ?? Math.round(league.salaryBase * 22),
-    salary: input?.salary ?? getSalary(countryId, division, reputation),
+    salary,
+    bankBalance: input?.bankBalance ?? salary * 2,
+    monthlyExpenses: input?.monthlyExpenses ?? country.costOfLiving,
+    housing: input?.housing ?? "Apartamento do clube",
+    language: input?.language ?? country.language,
+    languageLevel: input?.languageLevel ?? ((input?.nationality ?? country.name) === country.name ? 100 : 35),
+    adaptation: input?.adaptation ?? 100,
+    coachTrust: input?.coachTrust ?? 52,
     contractMatches: input?.contractMatches ?? 22,
     promotions: input?.promotions ?? 0,
     relegations: input?.relegations ?? 0,

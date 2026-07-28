@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og-v3.png`;
+  const imageUrl = `${protocol}://${host}/og-v4.png`;
 
   return {
-    title: "Legado FC — Novos Caminhos",
+    title: "Legado FC — Mundo Profissional",
     description:
-      "Escolha entre quatro países, oito ligas e diferentes origens em um simulador de carreira com acesso, rebaixamento e partidas equilibradas.",
+      "Construa uma carreira em 12 países, prepare cada partida pelo calendário e decida faltas, escanteios, dribles e outros lances únicos.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Novos Caminhos",
+      title: "Legado FC — Mundo Profissional",
       description:
-        "Comece no Brasil, Argentina, Portugal ou Inglaterra e construa seu caminho entre duas divisões.",
+        "Do futebol de bairro ao mercado internacional: 24 ligas, 288 clubes e partidas interativas.",
       type: "website",
-      images: [{ url: imageUrl, width: 1672, height: 941, alt: "Legado FC — Novos Caminhos" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Mundo Profissional" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Novos Caminhos",
-      description: "Quatro países. Oito ligas. Um caminho para construir.",
+      title: "Legado FC — Mundo Profissional",
+      description: "Doze países. Vinte e quatro ligas. Uma carreira sem fronteiras.",
       images: [imageUrl],
     },
   };
