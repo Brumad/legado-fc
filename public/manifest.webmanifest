@@ -1,0 +1,11 @@
+{
+  "name": "Legado FC",
+  "short_name": "Legado FC",
+  "description": "Simulador de vida e carreira no futebol.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d2018",
+  "theme_color": "#0d2018",
+  "lang": "pt-BR",
+  "orientation": "any"
+}
