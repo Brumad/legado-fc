@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og.png`;
+  const imageUrl = `${protocol}://${host}/og-v2.png`;
 
   return {
-    title: "Legado FC — Sua história entra em campo",
+    title: "Legado FC — Temporada Viva",
     description:
-      "Protótipo jogável de um simulador de vida e carreira no futebol, com partidas minuto a minuto e melhores momentos interativos.",
+      "Simulador de vida e carreira no futebol com múltiplos saves, temporada completa, mercado e partidas interativas.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Sua história entra em campo",
+      title: "Legado FC — Temporada Viva",
       description:
-        "Crie seu atleta, acompanhe a partida e decida os lances que mudam uma carreira.",
+        "Crie seu atleta, dispute uma temporada viva e decida os lances que mudam uma carreira.",
       type: "website",
-      images: [{ url: imageUrl, width: 1672, height: 941, alt: "Legado FC — Sua história entra em campo" }],
+      images: [{ url: imageUrl, width: 1672, height: 941, alt: "Legado FC — Temporada Viva" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Sua história entra em campo",
-      description: "Uma carreira inteira. Um lance de cada vez.",
+      title: "Legado FC — Temporada Viva",
+      description: "Três carreiras. Uma temporada viva. Nenhuma partida igual.",
       images: [imageUrl],
     },
   };

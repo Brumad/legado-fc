@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Simulador de vida e carreira no futebol.",
+  "description": "Simulador de vida e carreira no futebol com temporada, mercado e múltiplos saves.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d2018",
