@@ -38,6 +38,7 @@ dev-server.*.log
 # typescript
 next-env.d.ts
 /dist/
+/github-dist/
 /.wrangler/
 /outputs/
 /work/

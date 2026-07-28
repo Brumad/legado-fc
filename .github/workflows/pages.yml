@@ -1,0 +1,63 @@
+name: Publicar Legado FC
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      - name: Preparar o pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Configurar o GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Testar 1.000 partidas
+        run: pnpm verify:variation
+
+      - name: Gerar o site estático
+        run: pnpm build:github
+        env:
+          GITHUB_PAGES_BASE: /legado-fc/
+
+      - name: Enviar site para publicação
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: github-dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4

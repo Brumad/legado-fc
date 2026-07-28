@@ -164,6 +164,7 @@ button:disabled { cursor: not-allowed; opacity: .46; }
 }
 .form-good { background: var(--green); color: white; }
 .form-neutral { background: var(--amber); color: var(--deep); }
+.form-bad { background: #c45c50; color: white; }
 .form-next { border: 1px dashed var(--green); color: var(--green); }
 .condition-row { display: grid; grid-template-columns: 52px 1fr 34px; gap: 12px; margin: 14px 0; font-size: 9px; }
 .condition-row strong { font-family: var(--font-plex-mono); }
