@@ -16,6 +16,42 @@ export type PlayerAttributes = {
   physical: number;
 };
 
+export type SquadPlayer = {
+  id: string;
+  name: string;
+  position: "GOL" | "LD" | "ZAG" | "LE" | "VOL" | "MEI" | "PD" | "PE" | "ATA";
+  overall: number;
+  teamId: string;
+  teamName: string;
+};
+
+export type LeaguePlayerStat = SquadPlayer & {
+  goals: number;
+  assists: number;
+  appearances: number;
+};
+
+export type TeamSeasonRecord = {
+  teamId: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+  form: string[];
+};
+
+export type RoundMatchResult = {
+  homeId: string;
+  homeName: string;
+  awayId: string;
+  awayName: string;
+  homeGoals: number;
+  awayGoals: number;
+};
+
 export type CareerNews = {
   id: string;
   category: "clube" | "mercado" | "liga" | "pessoal";
@@ -87,10 +123,37 @@ export type CareerState = {
   languageLevel: number;
   adaptation: number;
   coachTrust: number;
+  car: string;
+  foodPlan: string;
+  privateTraining: string;
+  investments: number;
+  debt: number;
+  retirementFund: number;
+  sponsorship: string;
+  socialFollowers: number;
+  socialReputation: number;
+  relationshipStatus: string;
+  partnerName: string;
+  children: number;
+  familyBond: number;
+  squadRelations: number;
+  discipline: number;
+  injuryStatus: string;
+  injuryRisk: number;
+  socialProject: string;
+  pendingLifeEvent: string;
+  lifeEventHistory: string[];
+  lifeFlags: string[];
+  individualAwards: string[];
+  historicalRecords: string[];
+  futurePath: string;
   contractMatches: number;
   promotions: number;
   relegations: number;
   lastSeasonSummary: string;
+  leagueTable: TeamSeasonRecord[];
+  leagueLeaders: LeaguePlayerStat[];
+  lastRoundResults: RoundMatchResult[];
   attributes: PlayerAttributes;
   inbox: CareerNews[];
   trophies: string[];
@@ -109,6 +172,19 @@ export type Team = {
   country: string;
   countryId: CountryId;
   division: DivisionLevel;
+  squad: SquadPlayer[];
+};
+
+export type LeagueFormat = {
+  teamCount: number;
+  rounds: number;
+  matchesPerRound: number;
+  directPromotion: number;
+  playoffPromotion: number;
+  directRelegation: number;
+  relegationPlayoff: number;
+  structure: "ida-e-volta" | "zonas-e-playoffs" | "apertura-e-playoffs" | "conferencias" | "temporada-especial";
+  note: string;
 };
 
 export type LeagueDefinition = {
@@ -118,6 +194,7 @@ export type LeagueDefinition = {
   countryName: string;
   division: DivisionLevel;
   salaryBase: number;
+  format: LeagueFormat;
   teams: Team[];
 };
 
@@ -206,21 +283,6 @@ const COLORS = [
   ["#8c2e69", "#ffc6ec"], ["#315ea6", "#f1bd45"], ["#5f7b36", "#d8efac"],
 ];
 
-const STAR_POOLS: Record<CountryId, string[]> = {
-  BR: ["Caio Vidal", "Ramon Luz", "Léo Bastos", "Iure Arberto", "João Ares", "Davi Nobre", "Mateus Serra", "Renan Valente"],
-  AR: ["Tomás Ferreyra", "Lautaro Vega", "Nico Peralta", "Santiago Ríos", "Facundo Paz", "Bruno Almada", "Julián Sosa", "Matías Luna"],
-  PT: ["Tiago Neves", "Afonso Luz", "Diogo Serra", "Tomé Pires", "Gonçalo Vale", "Rui Miranda", "Leandro Matos", "Nuno Rocha"],
-  EN: ["Oliver Grant", "Ethan Cole", "Jamie Rivers", "Noah Brooks", "Leo Turner", "Mason Hill", "Jack Palmer", "Theo Ward"],
-  ES: ["Iker Montes", "Pablo Sierra", "Álvaro Roca", "Hugo León", "Nico Valdés", "Dani Cobo", "Mario Soler", "Sergio Vidal"],
-  IT: ["Luca Moretti", "Matteo Romano", "Enzo Ricci", "Marco Bellini", "Davide Conti", "Nico Gallo", "Pietro Serra", "Tommaso Greco"],
-  DE: ["Lukas Adler", "Jonas Weber", "Felix Hartmann", "Leon Bauer", "Noah Klein", "Max Vogel", "Elias Wolf", "Finn Krüger"],
-  FR: ["Lucas Moreau", "Hugo Laurent", "Enzo Dubois", "Mathis Bernard", "Theo Girard", "Noah Mercier", "Jules Petit", "Adam Fontaine"],
-  NL: ["Daan de Wit", "Sem Bakker", "Luuk Smit", "Finn Visser", "Bram Bos", "Mees Dekker", "Jesse Mulder", "Thijs Vos"],
-  MX: ["Santiago Cruz", "Mateo Reyes", "Diego Navarro", "Emilio Rojas", "Gael Mendoza", "Iván Salgado", "Bruno Luna", "Ángel Paredes"],
-  US: ["Liam Carter", "Mason Reed", "Ethan Walker", "Noah Bennett", "Logan Cooper", "Caleb Foster", "Owen Brooks", "Aiden Parker"],
-  JP: ["Haruto Sato", "Ren Takahashi", "Yuto Nakamura", "Sora Kobayashi", "Kaito Ito", "Riku Yamamoto", "Hinata Watanabe", "Daiki Mori"],
-};
-
 const TEAM_NAMES: Record<CountryId, { first: string[]; second: string[] }> = {
   BR: {
     first: ["Corthias", "Palmiros", "Flamenga", "Santoros", "São Pauli", "Grêmial", "Cruzeiral", "Estrela Preta", "Vasco do Mar", "Inter do Sul", "Bahia Dourada", "Fortaleza Real"],
@@ -272,6 +334,87 @@ const TEAM_NAMES: Record<CountryId, { first: string[]; second: string[] }> = {
   },
 };
 
+const CLUB_EXPANSIONS: Record<CountryId, string[]> = {
+  BR: ["Botafogo Estrela", "Atlético Mineiral", "Atlético Paranael", "Fluminensa", "Bragantina Red", "Vitória Rubra", "Cearense SC", "Recife Sporta", "Juventude Serrana", "Goiânia Esporte", "Campinas Ponte", "Curitiba Azul", "Amazonas Verde", "Belém Remo", "Maceió Regatas", "Chapecó União", "Cuiabá Dourada", "Natal América", "Londrina Café", "Ribeirão Pantera", "Santos Laguna", "Joinville Norte", "Pelotas Brasil", "Maringá Real"],
+  AR: ["Huracán Viento", "Argentinos Jovens", "Belgrano Celeste", "Instituto Córdoba", "Tigre del Norte", "Unión Santa Fé", "Banfield Verde", "Defensa Florencio", "Central Córdoba", "Atlético Tucumán", "Sarmiento Junín", "Platense Calamar", "Godoy Cruzado", "Gimnasia Plata", "Barracas Porteño", "Riestra Deportivo", "Mendoza Independiente", "Aldosivi Mar", "Colón Sabalero", "Quilmes Cervecero", "Ferro Carril", "Chacarita Jovem", "San Martín Cuyo", "Temperley Gasolero"],
+  PT: ["Arouca Serra", "Gil Vicenteiro", "Nacional Madeira", "Farense Algarve", "AVS Vila", "Tondela Ouro", "Paços Castor", "Penafiel Rubro", "Feirense Castelo", "Chaves Flávia", "Portimonense Praia", "Académica Coimbra", "Leixões Porto", "Mafra Real", "Vizela Azul", "Varzim Mar"],
+  EN: ["Manchester Rubro", "Leeds Branco", "Sunderland Cats", "Fulham Cottage", "Bournemouth Cherry", "Brentford Bees", "Wolverhampton Gold", "Leicester Fox", "Burnley Clarets", "Southampton Saints", "Watford Hornets", "Middlesbrough River", "Blackburn Roses", "Derby Rams", "Stoke Potters", "West Bromwich", "Millwall Lions", "Preston North", "Hull Tigers", "Cardiff Dragons", "Swansea Whites", "Portsmouth Navy", "Birmingham Royal", "QPR Park"],
+  ES: ["Osasuna Roja", "Getafe Azul", "Rayo Vallecano", "Espanyol Branco", "Alavés Norte", "Elche Palmeira", "Oviedo Real", "Las Palmas Solar", "Zaragoza Leões", "Valladolid Violeta", "Eibar Armería", "Huesca Pirineus", "Almería Deserto", "Cádiz Amarillo", "Málaga Costa", "Santander Racing", "Gijón Sporting", "Burgos Castelo", "Leganés Pepino", "Albacete Manchego", "Mirandés Ebro", "Castellón Branco"],
+  IT: ["Como Lago", "Parma Ducal", "Verona Mastino", "Cagliari Sardo", "Lecce Salento", "Sassuolo Verde", "Empoli Toscano", "Monza Coroa", "Palermo Rosa", "Bari Galo", "Catanzaro Águia", "Cremona Cinza", "Frosinone Amarelo", "Sampdoria Mar", "Cesena Cavalo", "Mantova Virgil", "Modena Canário", "Reggiana Granata", "Salerno Mar", "Spezia Aquila"],
+  DE: ["Augsburg Fênix", "Hoffenheim Azul", "Mönchen Verde", "Heidenheim Vermelho", "St Pauli Pirata", "Köln Bode", "Schalke Azul", "Hertha Berlin", "Düsseldorf Fortuna", "Paderborn SC", "Kaiserslautern", "Darmstadt Lírio", "Hannover Norte", "Nürnberg Clube", "Elversberg Saar", "Karlsruhe Baden", "Bochum Mineiro", "Kiel Cegonha"],
+  FR: ["Auxerre Borgonha", "Le Havre Porto", "Reims Champagne", "Saint Étienne", "Montpellier Sul", "Brest Pirata", "Lorient Merlu", "Paris Vermelho", "Troyes Azul", "Guingamp Bretão", "Dunkerque Corsário", "Annecy Alpes", "Rodez Sangue", "Laval Tango", "Pau Pirineus", "Clermont Vulcão", "Ajaccio Corse", "Nancy Lorraine"],
+  NL: ["Fortuna Sittard", "Sparta Rotterdam", "Go Ahead Águias", "Heracles Almelo", "Waalwijk Amarelo", "Tilburg Willem", "Excelsior Kralingen", "Cambuur Leeuwarden", "Den Haag Cegonha", "Emmen Vermelho", "Graafschap Azul", "Roda Kerkrade", "Helmond Sport", "Venlo VVV", "Oss Top", "Dordrecht Carneiro", "Telstar Branco", "Volendam Laranja"],
+  MX: ["Querétaro Galo", "Juárez Frontera", "Necaxa Raio", "Puebla Franja", "San Luis Atlético", "Mazatlán Cañón", "Atlante Potro", "Morelia Monarca", "Leones Negros", "Tampico Jaiba", "Mineros Zacateca", "Venados Yucatán", "Correcaminos Norte", "Celaya Touro", "Cancún Caribe", "Oaxaca Alebrije", "La Paz Atlético", "Tapatío Jovem"],
+  US: ["Cincinnati Orange", "Columbus Crewmen", "Philadelphia Bell", "Nashville Notes", "Minnesota Loons", "Houston Orbit", "Kansas Sporting", "Salt Lake Royals", "San Jose Quakes", "St Louis Arch", "Charlotte Crown", "Montreal Fleur", "Toronto Maple", "Vancouver Peak", "San Diego Tide", "Louisville City", "Charleston Battery", "Oakland Roots", "Indy Eleven", "Rhode Island Anchor", "Pittsburgh River", "Memphis Blues", "New Mexico Sun", "Colorado Springs"],
+  JP: ["Machida Zelvia", "Kashiwa Sol", "Shonan Bellmare", "Niigata Albirex", "Okayama Fagiano", "Shimizu Pulse", "Tokyo Verdia", "Cerezo Osaka", "Júbilo Iwata", "Sendai Vegalta", "Chiba JEF", "Omiya Ardija", "Kofu Ventforet", "Yamagata Montedio", "Nagasaki Varen", "Mito Hollyhock", "Kumamoto Roasso", "Oita Trinita", "Ehime Laranja", "Yamaguchi Renofa"],
+};
+
+const NAME_POOLS: Record<CountryId, { first: string[]; last: string[] }> = {
+  BR: { first: ["Caio", "Iure", "João", "Renan", "Davi", "Mateus", "Ramon", "Léo", "Gabriel", "Vinícius", "André", "Pedro"], last: ["Arberto", "Ares", "Luz", "Bastos", "Nobre", "Valente", "Serra", "Moura", "Rocha", "Freitas", "Dourado", "Teles", "Prado", "Farias"] },
+  AR: { first: ["Tomás", "Lautaro", "Nico", "Santiago", "Facundo", "Bruno", "Julián", "Matías", "Franco", "Valentín", "Thiago", "Agustín"], last: ["Ferreyra", "Vega", "Peralta", "Ríos", "Paz", "Almada", "Sosa", "Luna", "Acosta", "Medina", "Romero", "Benítez", "Ponce", "Suárez"] },
+  PT: { first: ["Tiago", "Afonso", "Diogo", "Tomé", "Gonçalo", "Rui", "Leandro", "Nuno", "João", "Duarte", "Vasco", "Pedro"], last: ["Neves", "Luz", "Serra", "Pires", "Vale", "Miranda", "Matos", "Rocha", "Coelho", "Faria", "Tavares", "Leite", "Nunes", "Vaz"] },
+  EN: { first: ["Oliver", "Ethan", "Jamie", "Noah", "Leo", "Mason", "Jack", "Theo", "Harry", "Lewis", "Alfie", "Callum"], last: ["Grant", "Cole", "Rivers", "Brooks", "Turner", "Hill", "Palmer", "Ward", "Bennett", "Foster", "Clarke", "Stone", "Walker", "Reed"] },
+  ES: { first: ["Iker", "Pablo", "Álvaro", "Hugo", "Nico", "Dani", "Mario", "Sergio", "Lamina", "Pedri", "Gavi", "Ferran"], last: ["Montes", "Sierra", "Roca", "León", "Valdés", "Cobo", "Soler", "Vidal", "Jamal", "Olmo", "Torres", "Ruiz", "Navarro", "Molina"] },
+  IT: { first: ["Luca", "Matteo", "Enzo", "Marco", "Davide", "Nico", "Pietro", "Tommaso", "Andrea", "Alessio", "Federico", "Giacomo"], last: ["Moretti", "Romano", "Ricci", "Bellini", "Conti", "Gallo", "Serra", "Greco", "Rossi", "Bianchi", "Mancini", "Esposito", "Lombardi", "Ferrari"] },
+  DE: { first: ["Lukas", "Jonas", "Felix", "Leon", "Noah", "Max", "Elias", "Finn", "Florian", "Julian", "Niklas", "Kai"], last: ["Adler", "Weber", "Hartmann", "Bauer", "Klein", "Vogel", "Wolf", "Krüger", "Schmidt", "Wagner", "Becker", "Koch", "Richter", "Hoffmann"] },
+  FR: { first: ["Lucas", "Hugo", "Enzo", "Mathis", "Theo", "Noah", "Jules", "Adam", "Kylian", "Rayan", "Antoine", "Malik"], last: ["Moreau", "Laurent", "Dubois", "Bernard", "Girard", "Mercier", "Petit", "Fontaine", "Henry", "Leroux", "Diallo", "Camara", "Fofana", "Traoré"] },
+  NL: { first: ["Daan", "Sem", "Luuk", "Finn", "Bram", "Mees", "Jesse", "Thijs", "Xavi", "Jorrit", "Sven", "Teun"], last: ["de Wit", "Bakker", "Smit", "Visser", "Bos", "Dekker", "Mulder", "Vos", "van Dijk", "de Jong", "Meijer", "Hoek", "Kuiper", "Prins"] },
+  MX: { first: ["Santiago", "Mateo", "Diego", "Emilio", "Gael", "Iván", "Bruno", "Ángel", "Luis", "Jorge", "Raúl", "Carlos"], last: ["Cruz", "Reyes", "Navarro", "Rojas", "Mendoza", "Salgado", "Luna", "Paredes", "Vega", "Ochoa", "Montes", "Guzmán", "Ortega", "Flores"] },
+  US: { first: ["Liam", "Mason", "Ethan", "Noah", "Logan", "Caleb", "Owen", "Aiden", "Tyler", "Jordan", "Miles", "Cameron"], last: ["Carter", "Reed", "Walker", "Bennett", "Cooper", "Foster", "Brooks", "Parker", "Miller", "Johnson", "Adams", "Morgan", "Bailey", "Turner"] },
+  JP: { first: ["Haruto", "Ren", "Yuto", "Sora", "Kaito", "Riku", "Hinata", "Daiki", "Takumi", "Ao", "Ryota", "Kei"], last: ["Sato", "Takahashi", "Nakamura", "Kobayashi", "Ito", "Yamamoto", "Watanabe", "Mori", "Aoki", "Fujita", "Kato", "Shimizu", "Maeda", "Endo"] },
+};
+
+const LEAGUE_FORMATS: Record<CountryId, [LeagueFormat, LeagueFormat]> = {
+  BR: [
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 4, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes, 38 rodadas e quatro rebaixados" },
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 2, playoffPromotion: 2, directRelegation: 4, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes; dois acessos diretos e dois por playoffs" },
+  ],
+  AR: [
+    { teamCount: 30, rounds: 16, matchesPerRound: 15, directPromotion: 0, playoffPromotion: 0, directRelegation: 2, relegationPlayoff: 0, structure: "zonas-e-playoffs", note: "30 clubes em duas zonas, 16 jogos e mata-mata" },
+    { teamCount: 36, rounds: 34, matchesPerRound: 18, directPromotion: 2, playoffPromotion: 0, directRelegation: 4, relegationPlayoff: 0, structure: "zonas-e-playoffs", note: "36 clubes em zonas nacionais" },
+  ],
+  PT: [
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 0, playoffPromotion: 0, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes; duas quedas diretas e uma repescagem" },
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 2, playoffPromotion: 1, directRelegation: 2, relegationPlayoff: 0, structure: "ida-e-volta", note: "18 clubes; dois acessos e uma repescagem" },
+  ],
+  EN: [
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 3, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes, 380 jogos e três rebaixados" },
+    { teamCount: 24, rounds: 46, matchesPerRound: 12, directPromotion: 2, playoffPromotion: 1, directRelegation: 3, relegationPlayoff: 0, structure: "ida-e-volta", note: "24 clubes; dois acessos diretos e um por playoffs" },
+  ],
+  ES: [
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 3, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes, 38 rodadas e três rebaixados" },
+    { teamCount: 22, rounds: 42, matchesPerRound: 11, directPromotion: 2, playoffPromotion: 1, directRelegation: 4, relegationPlayoff: 0, structure: "ida-e-volta", note: "22 clubes; três acessos e quatro quedas" },
+  ],
+  IT: [
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 3, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes e três rebaixados" },
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 2, playoffPromotion: 1, directRelegation: 3, relegationPlayoff: 1, structure: "ida-e-volta", note: "20 clubes com playoffs de acesso e permanência" },
+  ],
+  DE: [
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 0, playoffPromotion: 0, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes; duas quedas e uma repescagem" },
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 2, playoffPromotion: 1, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes; dois acessos e duelo de repescagem" },
+  ],
+  FR: [
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 0, playoffPromotion: 0, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes; duas quedas e uma repescagem" },
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 2, playoffPromotion: 1, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes com playoffs de acesso" },
+  ],
+  NL: [
+    { teamCount: 18, rounds: 34, matchesPerRound: 9, directPromotion: 0, playoffPromotion: 0, directRelegation: 2, relegationPlayoff: 1, structure: "ida-e-volta", note: "18 clubes; duas quedas diretas e playoffs" },
+    { teamCount: 20, rounds: 38, matchesPerRound: 10, directPromotion: 2, playoffPromotion: 1, directRelegation: 0, relegationPlayoff: 0, structure: "ida-e-volta", note: "20 clubes; dois acessos diretos e playoffs" },
+  ],
+  MX: [
+    { teamCount: 18, rounds: 17, matchesPerRound: 9, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "apertura-e-playoffs", note: "18 clubes, turno curto e playoffs; sem rebaixamento" },
+    { teamCount: 15, rounds: 14, matchesPerRound: 7, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "apertura-e-playoffs", note: "15 clubes e playoffs; acesso suspenso" },
+  ],
+  US: [
+    { teamCount: 30, rounds: 34, matchesPerRound: 15, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "conferencias", note: "30 clubes, 34 jogos e playoffs por conferência; sem queda" },
+    { teamCount: 24, rounds: 34, matchesPerRound: 12, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "conferencias", note: "24 clubes em conferências independentes" },
+  ],
+  JP: [
+    { teamCount: 20, rounds: 19, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "temporada-especial", note: "Temporada especial 2026 com 20 clubes e sem rebaixamento" },
+    { teamCount: 20, rounds: 19, matchesPerRound: 10, directPromotion: 0, playoffPromotion: 0, directRelegation: 0, relegationPlayoff: 0, structure: "temporada-especial", note: "Temporada especial regional, sem acesso ou queda" },
+  ],
+};
+
 const COUNTRY_META: Record<CountryId, { name: string; flag: string; style: string; currencyLabel: string; language: string; costOfLiving: number; leagues: [string, string]; salaries: [number, number] }> = {
   BR: { name: "Brasil", flag: "🇧🇷", style: "Técnica, pressão e calendário intenso", currencyLabel: "R$ por mês", language: "Português", costOfLiving: 4200, leagues: ["Liga Nacional A", "Liga Nacional B"], salaries: [48000, 12000] },
   AR: { name: "Argentina", flag: "🇦🇷", style: "Clássicos quentes e jogo competitivo", currencyLabel: "R$ equivalentes", language: "Espanhol", costOfLiving: 3800, leagues: ["Liga Federal A", "Liga Federal B"], salaries: [36000, 9000] },
@@ -305,30 +448,69 @@ function shortCode(name: string) {
   return (words.length >= 3 ? words.slice(0, 3).map((word) => word[0]).join("") : words.map((word) => word.slice(0, 2)).join("")).slice(0, 3).toUpperCase();
 }
 
+function completeTeamNames(countryId: CountryId, division: DivisionLevel, names: string[], count: number) {
+  const additions = CLUB_EXPANSIONS[countryId];
+  const completed = [...names];
+  let index = 0;
+  while (completed.length < count) {
+    const root = additions[index % additions.length];
+    const cycle = Math.floor(index / additions.length);
+    const suffix = cycle ? ` ${cycle + 1}` : "";
+    completed.push(division === 1 ? `${root}${suffix}` : `Academia ${root}${suffix}`);
+    index += 1;
+  }
+  return completed.slice(0, count);
+}
+
+const SQUAD_POSITIONS: SquadPlayer["position"][] = ["GOL", "LD", "ZAG", "ZAG", "LE", "VOL", "MEI", "PD", "PE", "ATA", "ATA"];
+
+function makeSquad(countryId: CountryId, teamId: string, teamName: string, teamIndex: number, strength: number): SquadPlayer[] {
+  const pool = NAME_POOLS[countryId];
+  return SQUAD_POSITIONS.map((position, slot) => {
+    const sequence = teamIndex * 11 + slot;
+    const first = pool.first[sequence % pool.first.length];
+    const last = pool.last[Math.floor(sequence / pool.first.length) % pool.last.length];
+    const extra = sequence >= pool.first.length * pool.last.length ? ` ${pool.last[(sequence * 5 + 3) % pool.last.length]}` : "";
+    return {
+      id: `${teamId}-p${slot + 1}`,
+      name: `${first} ${last}${extra}`,
+      position,
+      overall: Math.max(54, Math.min(91, strength + ((hashText(`${teamId}:${slot}`) % 11) - 5))),
+      teamId,
+      teamName,
+    };
+  });
+}
+
 function makeTeams(countryId: CountryId, division: DivisionLevel, names: string[]) {
   const meta = COUNTRY_META[countryId];
   const baseStrength = division === 1 ? 77 : 66;
-  const stars = STAR_POOLS[countryId];
   return names.map((name, index): Team => {
     const [color, accent] = COLORS[index % COLORS.length];
     const strengthWave = ((index * 5 + hashText(name)) % 9) - 4;
+    const id = `${countryId.toLowerCase()}-${division}-${slugify(name)}`;
+    const strength = baseStrength + strengthWave;
+    const squad = makeSquad(countryId, id, name, index, strength);
     return {
-      id: `${countryId.toLowerCase()}-${division}-${slugify(name)}`,
+      id,
       name,
       short: shortCode(name),
       color,
       accent,
-      strength: baseStrength + strengthWave,
-      stars: [stars[index % stars.length], stars[(index + 3) % stars.length], stars[(index + 5) % stars.length]],
+      strength,
+      stars: squad.slice().sort((a, b) => b.overall - a.overall).slice(0, 3).map((player) => player.name),
       country: meta.name,
       countryId,
       division,
+      squad,
     };
   });
 }
 
 function buildLeague(countryId: CountryId, division: DivisionLevel): LeagueDefinition {
   const meta = COUNTRY_META[countryId];
+  const format = LEAGUE_FORMATS[countryId][division - 1];
+  const baseNames = division === 1 ? TEAM_NAMES[countryId].first : TEAM_NAMES[countryId].second;
   return {
     id: `${countryId.toLowerCase()}-${division}`,
     name: meta.leagues[division - 1],
@@ -336,7 +518,8 @@ function buildLeague(countryId: CountryId, division: DivisionLevel): LeagueDefin
     countryName: meta.name,
     division,
     salaryBase: meta.salaries[division - 1],
-    teams: makeTeams(countryId, division, division === 1 ? TEAM_NAMES[countryId].first : TEAM_NAMES[countryId].second),
+    format,
+    teams: makeTeams(countryId, division, completeTeamNames(countryId, division, baseNames, format.teamCount)),
   };
 }
 
@@ -386,8 +569,9 @@ export function getCareerLeague(career: Pick<CareerState, "countryId" | "divisio
     country: league.countryName,
     countryId: career.countryId,
     division: career.division,
+    squad: makeSquad(career.countryId, career.clubId, career.clubName, 0, career.clubStrength),
   };
-  return { ...league, teams: [playerTeam, ...league.teams.slice(0, 11)] };
+  return { ...league, teams: [playerTeam, ...league.teams.slice(0, league.format.teamCount - 1)] };
 }
 
 export function getSalary(countryId: CountryId, division: DivisionLevel, reputation = 12) {
@@ -482,11 +666,10 @@ function samplePoisson(rng: () => number, lambda: number) {
 
 function fixtureOpponent(career: CareerState) {
   const league = getCareerLeague(career);
-  const opponents = league.teams.filter((team) => team.id !== career.clubId);
   const round = Math.max(1, career.seasonRound || career.matches + 1);
-  const cycle = Math.floor((round - 1) / opponents.length);
-  const offset = career.careerSeed % opponents.length;
-  return opponents[(round - 1 + offset + cycle * 3) % opponents.length];
+  const pairing = getRoundPairings(league.teams, round).find(([home, away]) => home.id === career.clubId || away.id === career.clubId);
+  if (pairing) return pairing[0].id === career.clubId ? pairing[1] : pairing[0];
+  return league.teams.find((team) => team.id !== career.clubId) ?? league.teams[0];
 }
 
 export function createFixture(careerInput: Partial<CareerState> & Pick<CareerState, "name" | "matches" | "careerSeed">): Fixture {
@@ -536,7 +719,7 @@ function narration(rng: () => number, fixture: Fixture, minute: number): MatchEv
   return { minute, text: pick(rng, templates), kind: pick(rng, kinds) };
 }
 
-function momentTemplates(position: Position, rng: () => number, star: string) {
+function momentTemplates(position: Position, rng: () => number, star: string, forcedKind?: MomentKind) {
   const common: Array<Omit<MatchMoment, "id" | "minute" | "targets">> = [
     { title: "Quebre a pressão", prompt: "A marcação saltou. Escolha a saída antes que o espaço desapareça.", kind: "pass", pressure: "média" },
     { title: "Ataque o corredor", prompt: "Há campo livre e dois defensores desalinhados.", kind: "dribble", pressure: "média" },
@@ -560,7 +743,7 @@ function momentTemplates(position: Position, rng: () => number, star: string) {
     Lateral: ["pass", "defense", "corner", "counter", "aerial", "dribble"],
     Zagueiro: ["defense", "aerial", "pass", "defense", "corner", "counter"],
   };
-  const kind = pick(rng, preferred[position]);
+  const kind = forcedKind ?? pick(rng, preferred[position]);
   return pick(rng, common.filter((item) => item.kind === kind));
 }
 
@@ -634,7 +817,7 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
   return (attribute - 65) / 1200;
 }
 
-export function generateMatchPlan(career: CareerState, fixture = createFixture(career)): MatchPlan {
+export function generateMatchPlan(career: CareerState, fixture = createFixture(career), showcase = false): MatchPlan {
   const rng = makeRng(fixture.seed ^ hashText(`${career.position}:${career.archetype}`));
   const overall = Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6;
   const playerStrength = career.clubStrength + (overall - 68) * .08 + career.formBoost * .25 + (career.morale - 70) * .025;
@@ -648,7 +831,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
   const baseAwayGoals = samplePoisson(rng, expectedAgainst);
   const intensity = .72 + rng() * .56;
   const eventCount = 13 + Math.floor(rng() * 8);
-  const momentCount = 4 + Math.floor(rng() * 3);
+  const momentCount = showcase ? 9 : 4 + Math.floor(rng() * 3);
   const eventMinutes = uniqueMinutes(rng, eventCount);
   const momentMinutes = uniqueMinutes(rng, momentCount, 8, 86);
 
@@ -672,7 +855,8 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
   });
 
   const moments = momentMinutes.map((minute, index) => {
-    const template = momentTemplates(career.position, rng, pick(rng, fixture.opponent.stars));
+    const showcaseKinds: MomentKind[] = ["pass", "dribble", "shot", "defense", "freeKick", "corner", "penalty", "counter", "aerial"];
+    const template = momentTemplates(career.position, rng, pick(rng, fixture.opponent.stars), showcase ? showcaseKinds[index] : undefined);
     const targets = targetsFor(template.kind, rng).map((target) => ({
       ...target,
       roll: Math.max(0, target.roll - attributeForMoment(career, template.kind)),
@@ -727,10 +911,159 @@ export function getOverall(career: Pick<CareerState, "attributes">) {
   return Math.round(Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6);
 }
 
+function emptySeasonRecord(teamId: string): TeamSeasonRecord {
+  return { teamId, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0, form: [] };
+}
+
+function getRoundPairings(teams: Team[], round: number) {
+  const rotation: Array<Team | null> = teams.length % 2 ? [...teams, null] : [...teams];
+  const cycleLength = rotation.length - 1;
+  const step = (Math.max(1, round) - 1) % cycleLength;
+  const returnLeg = Math.floor((Math.max(1, round) - 1) / cycleLength) % 2 === 1;
+  for (let index = 0; index < step; index += 1) rotation.splice(1, 0, rotation.pop() ?? null);
+  const pairs: Array<[Team, Team]> = [];
+  for (let index = 0; index < rotation.length / 2; index += 1) {
+    const left = rotation[index];
+    const right = rotation[rotation.length - 1 - index];
+    if (!left || !right) continue;
+    const swap = (index === 0 ? step % 2 === 1 : index % 2 === 1) !== returnLeg;
+    pairs.push(swap ? [right, left] : [left, right]);
+  }
+  return pairs;
+}
+
+function initialLeagueLeaders(league: LeagueDefinition): LeaguePlayerStat[] {
+  return league.teams.flatMap((team) => team.squad.map((player) => ({ ...player, goals: 0, assists: 0, appearances: 0 })));
+}
+
+function addResultToRecord(record: TeamSeasonRecord, goalsFor: number, goalsAgainst: number) {
+  const result = goalsFor > goalsAgainst ? "V" : goalsFor === goalsAgainst ? "E" : "D";
+  return {
+    ...record,
+    played: record.played + 1,
+    wins: record.wins + (result === "V" ? 1 : 0),
+    draws: record.draws + (result === "E" ? 1 : 0),
+    losses: record.losses + (result === "D" ? 1 : 0),
+    goalsFor: record.goalsFor + goalsFor,
+    goalsAgainst: record.goalsAgainst + goalsAgainst,
+    points: record.points + (result === "V" ? 3 : result === "E" ? 1 : 0),
+    form: [result, ...record.form].slice(0, 5),
+  };
+}
+
+export function simulateFullRound(
+  career: CareerState,
+  userResult: { clubGoals: number; opponentGoals: number; opponentId: string; goals: number; assists: number },
+) {
+  const league = getCareerLeague(career);
+  const validTeamIds = new Set(league.teams.map((team) => team.id));
+  const existingTable = career.leagueTable.length && career.leagueTable.every((record) => validTeamIds.has(record.teamId))
+    ? career.leagueTable
+    : league.teams.map((team) => emptySeasonRecord(team.id));
+  const records = new Map(existingTable.map((record) => [record.teamId, { ...record, form: [...record.form] }]));
+  const leaderSource = career.leagueLeaders.length ? career.leagueLeaders : initialLeagueLeaders(league);
+  const leaders = new Map(leaderSource.filter((player) => validTeamIds.has(player.teamId)).map((player) => [player.id, { ...player }]));
+  const careerPlayerId = `career-player-${career.id}`;
+  if (!leaders.has(careerPlayerId)) {
+    leaders.set(careerPlayerId, {
+      id: careerPlayerId,
+      name: career.name,
+      position: career.position === "Zagueiro" ? "ZAG" : career.position === "Lateral" ? "LD" : career.position === "Meia" ? "MEI" : career.position === "Ponta" ? "PE" : "ATA",
+      overall: getOverall(career),
+      teamId: career.clubId,
+      teamName: career.clubName,
+      goals: 0,
+      assists: 0,
+      appearances: 0,
+    });
+  }
+
+  const results: RoundMatchResult[] = [];
+  const pairs = getRoundPairings(league.teams, career.seasonRound);
+  const roundRng = makeRng(hashText(`round:${career.careerSeed}:${career.season}:${career.leagueId}:${career.seasonRound}`));
+
+  function creditTeam(team: Team, goals: number, forcedGoals = 0, forcedAssists = 0) {
+    const squad = team.squad.filter((player) => player.position !== "GOL");
+    const careerPlayer = leaders.get(careerPlayerId);
+    if (team.id === career.clubId && careerPlayer) {
+      careerPlayer.goals += forcedGoals;
+      careerPlayer.assists += forcedAssists;
+      careerPlayer.appearances += 1;
+    }
+    for (const player of team.squad) {
+      const stat = leaders.get(player.id);
+      if (stat) stat.appearances += 1;
+    }
+    const remainingGoals = Math.max(0, goals - forcedGoals);
+    for (let goal = 0; goal < remainingGoals; goal += 1) {
+      const scorer = squad[Math.floor(roundRng() * squad.length)];
+      const scorerStat = leaders.get(scorer.id);
+      if (scorerStat) scorerStat.goals += 1;
+      if (roundRng() < .72) {
+        const possible = squad.filter((player) => player.id !== scorer.id);
+        const assister = possible[Math.floor(roundRng() * possible.length)];
+        const assisterStat = leaders.get(assister.id);
+        if (assisterStat) assisterStat.assists += 1;
+      }
+    }
+  }
+
+  for (const [home, away] of pairs) {
+    const isCareerMatch = home.id === career.clubId || away.id === career.clubId;
+    let homeGoals: number;
+    let awayGoals: number;
+    if (isCareerMatch) {
+      const careerAtHome = home.id === career.clubId;
+      homeGoals = careerAtHome ? userResult.clubGoals : userResult.opponentGoals;
+      awayGoals = careerAtHome ? userResult.opponentGoals : userResult.clubGoals;
+      creditTeam(home, homeGoals, careerAtHome ? userResult.goals : 0, careerAtHome ? userResult.assists : 0);
+      creditTeam(away, awayGoals, careerAtHome ? 0 : userResult.goals, careerAtHome ? 0 : userResult.assists);
+    } else {
+      const strengthGap = (home.strength - away.strength) / 18;
+      homeGoals = samplePoisson(roundRng, clamp(1.28 + strengthGap * .34, .45, 2.15));
+      awayGoals = samplePoisson(roundRng, clamp(1.08 - strengthGap * .3, .4, 1.95));
+      creditTeam(home, homeGoals);
+      creditTeam(away, awayGoals);
+    }
+    records.set(home.id, addResultToRecord(records.get(home.id) ?? emptySeasonRecord(home.id), homeGoals, awayGoals));
+    records.set(away.id, addResultToRecord(records.get(away.id) ?? emptySeasonRecord(away.id), awayGoals, homeGoals));
+    results.push({ homeId: home.id, homeName: home.name, awayId: away.id, awayName: away.name, homeGoals, awayGoals });
+  }
+
+  return {
+    leagueTable: [...records.values()],
+    leagueLeaders: [...leaders.values()],
+    lastRoundResults: results,
+  };
+}
+
 export function generateStandings(career: CareerState): StandingRow[] {
   const league = getCareerLeague(career);
+  const recordMap = new Map(career.leagueTable.map((record) => [record.teamId, record]));
+  if (career.leagueTable.length) {
+    return league.teams
+      .map((team) => {
+        const record = recordMap.get(team.id) ?? emptySeasonRecord(team.id);
+        return {
+          position: 0,
+          team,
+          played: record.played,
+          wins: record.wins,
+          draws: record.draws,
+          losses: record.losses,
+          goalsFor: record.goalsFor,
+          goalsAgainst: record.goalsAgainst,
+          goalDifference: record.goalsFor - record.goalsAgainst,
+          points: record.points,
+          form: record.form,
+          isPlayerTeam: team.id === career.clubId,
+        };
+      })
+      .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor)
+      .map((row, index) => ({ ...row, position: index + 1 }));
+  }
   const rng = makeRng(hashText(`table:${career.careerSeed}:${career.season}:${career.seasonMatches}:${career.leagueId}`));
-  const played = Math.min(22, career.seasonMatches);
+  const played = Math.min(league.format.rounds, career.seasonMatches);
   const rows = league.teams.map((team) => {
     if (team.id === career.clubId) {
       return {
@@ -785,6 +1118,19 @@ export function generateStandings(career: CareerState): StandingRow[] {
   return rows
     .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor)
     .map((row, index) => ({ ...row, position: index + 1 }));
+}
+
+export function getClubLeaders(career: CareerState) {
+  const league = getCareerLeague(career);
+  const stats = career.leagueLeaders.length ? career.leagueLeaders : initialLeagueLeaders(league);
+  return league.teams.map((team) => {
+    const players = stats.filter((player) => player.teamId === team.id);
+    return {
+      team,
+      scorer: players.slice().sort((a, b) => b.goals - a.goals || b.overall - a.overall)[0],
+      assister: players.slice().sort((a, b) => b.assists - a.assists || b.overall - a.overall)[0],
+    };
+  });
 }
 
 export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNews[] {
@@ -899,10 +1245,37 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     languageLevel: input?.languageLevel ?? ((input?.nationality ?? country.name) === country.name ? 100 : 35),
     adaptation: input?.adaptation ?? 100,
     coachTrust: input?.coachTrust ?? 52,
-    contractMatches: input?.contractMatches ?? 22,
+    car: input?.car ?? "Transporte do clube",
+    foodPlan: input?.foodPlan ?? "Refeições do clube",
+    privateTraining: input?.privateTraining ?? "Nenhum",
+    investments: input?.investments ?? 0,
+    debt: input?.debt ?? 0,
+    retirementFund: input?.retirementFund ?? 0,
+    sponsorship: input?.sponsorship ?? "Sem patrocinador",
+    socialFollowers: input?.socialFollowers ?? input?.fans ?? 1280,
+    socialReputation: input?.socialReputation ?? 48,
+    relationshipStatus: input?.relationshipStatus ?? "Solteiro",
+    partnerName: input?.partnerName ?? "",
+    children: input?.children ?? 0,
+    familyBond: input?.familyBond ?? 70,
+    squadRelations: input?.squadRelations ?? 65,
+    discipline: input?.discipline ?? 82,
+    injuryStatus: input?.injuryStatus ?? "Apto",
+    injuryRisk: input?.injuryRisk ?? 12,
+    socialProject: input?.socialProject ?? "Nenhum",
+    pendingLifeEvent: input?.pendingLifeEvent ?? "primeira-entrevista",
+    lifeEventHistory: input?.lifeEventHistory ?? [],
+    lifeFlags: input?.lifeFlags ?? [],
+    individualAwards: input?.individualAwards ?? [],
+    historicalRecords: input?.historicalRecords ?? [],
+    futurePath: input?.futurePath ?? "Indefinido",
+    contractMatches: input?.contractMatches ?? league.format.rounds,
     promotions: input?.promotions ?? 0,
     relegations: input?.relegations ?? 0,
     lastSeasonSummary: input?.lastSeasonSummary ?? "Primeira temporada em andamento",
+    leagueTable: input?.leagueTable ?? [],
+    leagueLeaders: input?.leagueLeaders ?? [],
+    lastRoundResults: input?.lastRoundResults ?? [],
     attributes: input?.attributes ?? createInitialAttributes(archetype, position),
     inbox: input?.inbox ?? [],
     trophies: input?.trophies ?? [],

@@ -9,6 +9,7 @@ import {
   getLeagueDefinition,
   getPreparationActionCount,
   migrateCareer,
+  simulateFullRound,
 } from "../app/game-engine.ts";
 
 const signatures = new Set();
@@ -60,13 +61,25 @@ for (const kind of ["dribble", "freeKick", "corner", "penalty", "counter", "aeri
 }
 
 if (COUNTRIES.length !== 12) throw new Error(`Países disponíveis: ${COUNTRIES.length}/12`);
-if (TEAMS.length !== 288) throw new Error(`Clubes disponíveis: ${TEAMS.length}/288`);
+if (TEAMS.length !== 505) throw new Error(`Clubes disponíveis: ${TEAMS.length}/505`);
+let firstDivisionPlayers = 0;
 for (const country of COUNTRIES) {
   if (country.leagues.length !== 2) throw new Error(`${country.name} não possui duas divisões`);
-  if (getLeagueDefinition(country.id, 1).teams.length !== 12 || getLeagueDefinition(country.id, 2).teams.length !== 12) {
-    throw new Error(`${country.name} não possui 12 clubes por divisão`);
+  for (const division of [1, 2]) {
+    const league = getLeagueDefinition(country.id, division);
+    if (league.teams.length !== league.format.teamCount) {
+      throw new Error(`${league.name}: ${league.teams.length}/${league.format.teamCount} clubes`);
+    }
+    if (league.format.matchesPerRound !== Math.floor(league.format.teamCount / 2)) {
+      throw new Error(`${league.name}: número incorreto de partidas por rodada`);
+    }
+    if (league.teams.some((team) => team.squad.length !== 11)) {
+      throw new Error(`${league.name} possui clube sem 11 titulares`);
+    }
   }
+  firstDivisionPlayers += country.leagues[0].teams.reduce((total, team) => total + team.squad.length, 0);
 }
+if (firstDivisionPlayers !== 2750) throw new Error(`Titulares na elite: ${firstDivisionPlayers}/2750`);
 
 for (let days = 3; days <= 9; days += 1) {
   const actions = getPreparationActionCount(days);
@@ -87,7 +100,7 @@ for (const country of COUNTRIES) {
           division,
           origin: origin.id,
           matches: match,
-          seasonRound: (match % 22) + 1,
+          seasonRound: (match % getLeagueDefinition(country.id, division).format.rounds) + 1,
           careerSeed: 91357,
         });
         const plan = generateMatchPlan(career, createFixture(career));
@@ -103,7 +116,8 @@ for (const country of COUNTRIES) {
 }
 
 const seasonOpponents = new Map();
-for (let round = 1; round <= 22; round += 1) {
+const brazilSecond = getLeagueDefinition("BR", 2);
+for (let round = 1; round <= brazilSecond.format.rounds; round += 1) {
   const career = migrateCareer({
     id: "calendar-career",
     name: "Teste de Temporada",
@@ -117,8 +131,54 @@ for (let round = 1; round <= 22; round += 1) {
 if (seasonOpponents.size !== LEAGUE_TEAMS.length - 1) {
   throw new Error(`Calendário incompleto: ${seasonOpponents.size}/${LEAGUE_TEAMS.length - 1} adversários`);
 }
+
+for (const country of COUNTRIES) {
+  const league = getLeagueDefinition(country.id, 1);
+  const club = league.teams[0];
+  const opponent = league.teams[1];
+  const career = migrateCareer({
+    id: `round-${country.id}`,
+    name: "Atleta de Teste",
+    countryId: country.id,
+    countryName: country.name,
+    division: 1,
+    leagueId: league.id,
+    leagueName: league.name,
+    clubId: club.id,
+    clubName: club.name,
+    clubShort: club.short,
+    clubColor: club.color,
+    clubStrength: club.strength,
+    seasonRound: 1,
+    careerSeed: 81173,
+  });
+  const round = simulateFullRound(career, { clubGoals: 2, opponentGoals: 1, opponentId: opponent.id, goals: 1, assists: 1 });
+  if (round.lastRoundResults.length !== league.format.matchesPerRound) {
+    throw new Error(`${league.name}: rodada simulou ${round.lastRoundResults.length}/${league.format.matchesPerRound} partidas`);
+  }
+  if (round.leagueTable.some((record) => record.played !== 1)) {
+    throw new Error(`${league.name}: nem todos os clubes foram atualizados na rodada`);
+  }
+  if (!round.leagueLeaders.some((player) => player.name === career.name && player.goals === 1 && player.assists === 1)) {
+    throw new Error(`${league.name}: estatísticas do jogador não foram creditadas`);
+  }
+}
 if ([...seasonOpponents.values()].some((matches) => matches !== 2)) {
   throw new Error("O calendário não produziu turno e returno equilibrados");
+}
+
+const showcaseCareer = migrateCareer({
+  id: "developer-showcase",
+  name: "Jogador Dev",
+  countryId: "BR",
+  division: 1,
+  seasonRound: 1,
+  careerSeed: 99351,
+});
+const showcase = generateMatchPlan(showcaseCareer, createFixture(showcaseCareer), true);
+const showcaseKinds = new Set(showcase.moments.map((moment) => moment.kind));
+if (showcase.moments.length !== 9 || showcaseKinds.size !== 9) {
+  throw new Error(`Modo dev incompleto: ${showcase.moments.length} lances, ${showcaseKinds.size} tipos`);
 }
 
 const standingsCareer = migrateCareer({
@@ -147,6 +207,7 @@ console.log(JSON.stringify({
   unusualScorelines,
   countries: COUNTRIES.length,
   totalClubs: TEAMS.length,
+  firstDivisionPlayers,
   scenarioWinRateRange: [
     Number(Math.min(...scenarioWinRates).toFixed(3)),
     Number(Math.max(...scenarioWinRates).toFixed(3)),

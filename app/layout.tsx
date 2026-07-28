@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og-v4.png`;
+  const imageUrl = `${protocol}://${host}/og-v5.png`;
 
   return {
-    title: "Legado FC — Mundo Profissional",
+    title: "Legado FC — Vida e Legado",
     description:
-      "Construa uma carreira em 12 países, prepare cada partida pelo calendário e decida faltas, escanteios, dribles e outros lances únicos.",
+      "Viva uma carreira completa dentro e fora de campo: 12 países, ligas simuladas por inteiro, finanças, relações, patrocínios e decisões com consequências.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Mundo Profissional",
+      title: "Legado FC — Vida e Legado",
       description:
-        "Do futebol de bairro ao mercado internacional: 24 ligas, 288 clubes e partidas interativas.",
+        "A atualização 0.3.3 transforma sua carreira em uma vida: 24 ligas, 505 clubes, partidas interativas e decisões fora de campo.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Mundo Profissional" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Vida e Legado" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Mundo Profissional",
-      description: "Doze países. Vinte e quatro ligas. Uma carreira sem fronteiras.",
+      title: "Legado FC — Vida e Legado",
+      description: "Doze países. Vinte e quatro ligas. Uma carreira e uma vida inteira.",
       images: [imageUrl],
     },
   };
