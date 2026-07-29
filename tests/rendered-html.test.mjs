@@ -23,26 +23,26 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.3.3 application shell", async () => {
+test("server-renders the Legado FC 0.4.1 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC — Vida e Legado<\/title>/i);
+  assert.match(html, /<title>Legado FC — O Mundo Continua<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
-  assert.match(html, /og-v5\.png/i);
+  assert.match(html, /og-v6\.png/i);
 });
 
-test("keeps the main v0.3.3 systems in the production source", async () => {
+test("keeps the living-world v0.4.1 systems in the production source", async () => {
   const [page, engine, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /VIDA E LEGADO 0\.3\.3/);
+  assert.match(page, /O MUNDO CONTINUA 0\.4\.1/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
@@ -52,6 +52,10 @@ test("keeps the main v0.3.3 systems in the production source", async () => {
   assert.match(page, /developerMode/);
   assert.match(page, /LifeView/);
   assert.match(page, /getClubLeaders/);
+  assert.match(page, /WorldView/);
+  assert.match(page, /MUNDO \+5 TEMPORADAS/);
+  assert.match(page, /exportCareer/);
+  assert.match(page, /importCareer/);
   assert.match(engine, /COUNTRIES/);
   assert.match(engine, /Liga Nacional A/);
   assert.match(engine, /Premier Crown/);
@@ -64,9 +68,15 @@ test("keeps the main v0.3.3 systems in the production source", async () => {
   assert.match(engine, /simulateFullRound/);
   assert.match(engine, /LEAGUE_FORMATS/);
   assert.match(engine, /SquadPlayer/);
+  assert.match(engine, /WorldPlayerState/);
+  assert.match(engine, /advanceWorldSeason/);
+  assert.match(engine, /createRegeneratedPlayer/);
+  assert.match(engine, /worldLastUpdatedSeason/);
   assert.match(css, /origin-choice-grid/);
   assert.match(css, /grid-template-columns:\s*repeat\(5,1fr\)/);
   assert.match(css, /developer-panel/);
   assert.match(css, /life-dashboard/);
-  await access(new URL("../public/og-v5.png", import.meta.url));
+  assert.match(css, /world-dashboard-grid/);
+  assert.match(css, /career-archive-card/);
+  await access(new URL("../public/og-v6.png", import.meta.url));
 });

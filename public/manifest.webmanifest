@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Simulador de carreira e vida com 12 países, 24 ligas, rodadas completas, finanças, relações e partidas interativas.",
+  "description": "Simulador de carreira com universo persistente, evolução da IA, mercado mundial, histórico de temporadas e vida fora de campo.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d2018",

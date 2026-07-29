@@ -20,6 +20,7 @@ import {
   TEAMS,
   WORLD_TEAMS,
   addDaysToDate,
+  advanceWorldSeason,
   buildCareerNews,
   createFixture,
   generateMatchPlan,
@@ -37,7 +38,7 @@ import {
   simulateFullRound,
 } from "./game-engine";
 
-type AppView = "lobby" | "dashboard" | "season" | "player" | "life" | "market" | "settings" | "match" | "result";
+type AppView = "lobby" | "dashboard" | "season" | "world" | "player" | "life" | "market" | "settings" | "match" | "result";
 type FeedItem = { minute: number; text: string; tone?: "goal" | "chance" | "normal" };
 type MatchResult = {
   xp: number;
@@ -125,7 +126,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>VIDA E LEGADO 0.3.3</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>O MUNDO CONTINUA 0.4.1</small></div></div>;
 }
 
 function Lobby({
@@ -133,12 +134,16 @@ function Lobby({
   onSelect,
   onCreate,
   onDelete,
+  onExport,
+  onImport,
   onSettings,
 }: {
   slots: Array<CareerState | null>;
   onSelect: (index: number) => void;
   onCreate: (index: number) => void;
   onDelete: (index: number) => void;
+  onExport: (index: number) => void;
+  onImport: (index: number, file: File) => void;
   onSettings: () => void;
 }) {
   const totalMatches = slots.reduce((total, slot) => total + (slot?.matches ?? 0), 0);
@@ -171,7 +176,10 @@ function Lobby({
           <article className="career-slot has-career" key={career.id}>
             <div className="slot-top">
               <span>SLOT 0{index + 1}</span>
-              <button className="slot-menu" onClick={() => onDelete(index)} aria-label={`Excluir carreira de ${career.name}`}>×</button>
+              <div className="slot-menu-actions">
+                <button className="slot-menu export" onClick={() => onExport(index)} aria-label={`Exportar carreira de ${career.name}`}>↓</button>
+                <button className="slot-menu" onClick={() => onDelete(index)} aria-label={`Excluir carreira de ${career.name}`}>×</button>
+              </div>
             </div>
             <div className="slot-player">
               <PlayerAvatar career={career} large />
@@ -195,15 +203,22 @@ function Lobby({
             <div className="empty-pitch"><span className="pitch-cross">+</span><i /><i /></div>
             <h2>Um novo começo</h2>
             <p>Escolha país, divisão, origem e o clube onde sua história começa.</p>
-            <button className="slot-create" onClick={() => onCreate(index)}><span>＋</span> CRIAR NOVA CARREIRA</button>
+            <div className="empty-slot-actions">
+              <button className="slot-create" onClick={() => onCreate(index)}><span>＋</span> CRIAR NOVA CARREIRA</button>
+              <label className="slot-import">IMPORTAR SAVE<input type="file" accept="application/json,.json" onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onImport(index, file);
+                event.target.value = "";
+              }} /></label>
+            </div>
           </article>
         ))}
       </section>
 
       <footer className="lobby-footer">
-        <span>LEGADO ENGINE <b>3.3</b></span>
-        <p>Rodadas completas, elencos titulares e uma vida inteira fora do campo.</p>
-        <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} TITULARES</span>
+        <span>LEGADO ENGINE <b>4.1</b></span>
+        <p>Um universo persistente que evolui, negocia e escreve a própria história.</p>
+        <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} CARREIRAS DA IA</span>
       </footer>
     </main>
   );
@@ -372,6 +387,7 @@ function CareerCreator({
 const navItems: Array<{ view: AppView; icon: string; label: string }> = [
   { view: "dashboard", icon: "⌂", label: "Central" },
   { view: "season", icon: "▦", label: "Temporada" },
+  { view: "world", icon: "◉", label: "Mundo" },
   { view: "player", icon: "◎", label: "Atleta" },
   { view: "life", icon: "◇", label: "Vida" },
   { view: "market", icon: "↗", label: "Mercado" },
@@ -617,6 +633,94 @@ function SeasonView({ career }: { career: CareerState }) {
   );
 }
 
+function WorldView({ career }: { career: CareerState }) {
+  const activePlayers = useMemo(() => career.worldPlayers.filter((player) => player.status === "Ativo"), [career.worldPlayers]);
+  const elite = useMemo(() => activePlayers
+    .slice()
+    .sort((a, b) => b.overall - a.overall || b.potential - a.potential)
+    .slice(0, 10), [activePlayers]);
+  const prospects = useMemo(() => activePlayers
+    .filter((player) => player.age <= 21)
+    .sort((a, b) => b.potential - a.potential || b.overall - a.overall)
+    .slice(0, 8), [activePlayers]);
+  const latestWorldSeason = career.worldHistory[0];
+  const internationalMoves = career.worldTransfers.filter((transfer) => transfer.fromCountryId !== transfer.toCountryId).length;
+  const averageOverall = activePlayers.length
+    ? Math.round(activePlayers.reduce((total, player) => total + player.overall, 0) / activePlayers.length)
+    : 0;
+  return (
+    <main className="career-content inner-view world-view">
+      <section className="world-hero">
+        <div className="world-hero-copy">
+          <span className="overline">LEGADO ENGINE 4.1 · UNIVERSO PERSISTENTE</span>
+          <h1>O mundo não espera por você.</h1>
+          <p>Enquanto sua carreira avança, jogadores evoluem, trocam de clube, envelhecem e deixam espaço para uma nova geração.</p>
+          <div className="world-live-stats">
+            <div><strong>{activePlayers.length}</strong><span>ATLETAS MONITORADOS</span></div>
+            <div><strong>{career.worldTransfers.length}</strong><span>TRANSFERÊNCIAS REGISTRADAS</span></div>
+            <div><strong>{career.worldHistory.length}</strong><span>TEMPORADAS ARQUIVADAS</span></div>
+            <div><strong>{averageOverall}</strong><span>NÍVEL MÉDIO DA ELITE</span></div>
+          </div>
+        </div>
+        <div className="world-orbit" aria-hidden="true"><i /><i /><i /><span>12<small>PAÍSES</small></span></div>
+      </section>
+
+      <section className="world-dashboard-grid">
+        <article className="hud-card world-ranking-card">
+          <div className="card-heading"><div><span className="overline">RANKING MUNDIAL</span><h3>Os melhores da temporada</h3></div><span className="status-tag done">ATUALIZADO</span></div>
+          <div className="world-player-list">
+            {elite.map((player, index) => <div className="world-player-row" key={player.id}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div><strong>{player.name}</strong><small>{player.teamName} · {player.position} · {player.age} anos</small></div>
+              <em>OVR {player.overall}</em>
+            </div>)}
+          </div>
+        </article>
+
+        <article className="hud-card world-prospects-card">
+          <div className="card-heading"><div><span className="overline">NOVA GERAÇÃO</span><h3>Promessas globais</h3></div><span className="status-tag">ATÉ 21 ANOS</span></div>
+          <div className="prospect-grid">
+            {prospects.map((player) => <div key={player.id}><span>{player.position}</span><strong>{player.name}</strong><small>{player.teamName}</small><p><b>{player.overall}</b> atual <i>→</i> <b>{player.potential}</b> potencial</p></div>)}
+          </div>
+        </article>
+
+        <article className="hud-card world-transfer-card">
+          <div className="card-heading"><div><span className="overline">JANELA GLOBAL</span><h3>Mercado em movimento</h3></div><span className="status-tag">{internationalMoves} internacionais</span></div>
+          {career.worldTransfers.length ? <div className="world-transfer-list">
+            {career.worldTransfers.slice(0, 8).map((transfer) => <div key={transfer.id}>
+              <span className="transfer-rating">{transfer.overall}</span>
+              <div><strong>{transfer.playerName}</strong><small>{transfer.fromTeamName} <b>→</b> {transfer.toTeamName}</small></div>
+              <em>{money(transfer.fee)}</em>
+            </div>)}
+          </div> : <div className="world-empty-state"><span>↗</span><strong>A primeira janela abrirá ao fim da temporada.</strong><p>Os movimentos ficarão salvos e influenciarão as próximas gerações.</p></div>}
+        </article>
+
+        <article className="hud-card world-champions-card">
+          <div className="card-heading"><div><span className="overline">MAPA DE CAMPEÕES</span><h3>{latestWorldSeason ? `Temporada ${latestWorldSeason.season}` : "Temporada em andamento"}</h3></div></div>
+          {latestWorldSeason ? <div className="champion-country-grid">
+            {latestWorldSeason.champions.map((champion) => {
+              const country = COUNTRIES.find((item) => item.id === champion.countryId);
+              return <div key={champion.countryId}><span>{country?.flag}</span><p><small>{champion.countryName}</small><strong>{champion.teamName}</strong></p></div>;
+            })}
+          </div> : <div className="world-empty-state"><span>◇</span><strong>Doze títulos ainda estão em disputa.</strong><p>Conclua sua primeira temporada para gravar o mapa mundial de campeões.</p></div>}
+        </article>
+      </section>
+
+      <section className="hud-card career-archive-card">
+        <div className="card-heading"><div><span className="overline">ARQUIVO PERMANENTE</span><h3>Sua carreira, temporada por temporada</h3></div><span className="status-tag">{career.seasonArchive.length} registros</span></div>
+        {career.seasonArchive.length ? <div className="career-archive-list">
+          {career.seasonArchive.map((season) => <div key={`${season.season}-${season.clubName}`}>
+            <strong>{season.season}</strong>
+            <span><b>{season.clubName}</b><small>{season.leagueName} · {season.position}º lugar</small></span>
+            <span><b>{season.playerGoals} G · {season.playerAssists} A</b><small>Nota {season.playerRating.toFixed(1)}</small></span>
+            <em>{season.outcome}</em>
+          </div>)}
+        </div> : <div className="world-empty-state compact"><strong>O primeiro capítulo será arquivado ao fim desta temporada.</strong></div>}
+      </section>
+    </main>
+  );
+}
+
 const attributeLabels: Array<[keyof CareerState["attributes"], string]> = [
   ["pace", "Velocidade"],
   ["shooting", "Finalização"],
@@ -792,7 +896,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   const format = getLeagueDefinition(career.countryId, career.division).format;
   return (
     <aside className="developer-panel">
-      <div><span>DEV 0.3.3</span><strong>Laboratório da carreira</strong><small>Alterações são aplicadas somente a este slot.</small></div>
+      <div><span>DEV 0.4.1</span><strong>Laboratório do mundo</strong><small>Alterações são aplicadas somente a este slot.</small></div>
       <section>
         <button onClick={() => onAction("unlock")}>LIBERAR TUDO</button>
         <button onClick={() => onAction("max-player")}>MAXIMIZAR ATLETA</button>
@@ -803,6 +907,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
         <button onClick={() => onAction("reset-week")}>LIBERAR PREPARAÇÕES</button>
         <button onClick={() => onAction("injury")}>TESTAR LESÃO</button>
         <button onClick={() => onAction("legacy")}>TESTAR PÓS-CARREIRA</button>
+        <button onClick={() => onAction("world-five")}>MUNDO +5 TEMPORADAS</button>
       </section>
     </aside>
   );
@@ -1124,6 +1229,33 @@ export default function Home() {
     setSlots((current) => current.map((slot, slotIndex) => slotIndex === index ? null : slot));
   }
 
+  function exportCareer(index: number) {
+    const target = slots[index];
+    if (!target) return;
+    const blob = new Blob([JSON.stringify({
+      product: "Legado FC",
+      saveVersion: 4,
+      exportedAt: new Date().toISOString(),
+      career: target,
+    })], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `legado-fc-${target.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "carreira"}-${target.season}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importCareer(index: number, file: File) {
+    try {
+      const parsed = JSON.parse(await file.text()) as { career?: Partial<CareerState> } | Partial<CareerState>;
+      const imported = migrateCareer("career" in parsed && parsed.career ? parsed.career : parsed);
+      setSlots((current) => current.map((slot, slotIndex) => slotIndex === index ? imported : slot));
+    } catch {
+      window.alert("Este arquivo não contém uma carreira válida do Legado FC.");
+    }
+  }
+
   function train(kind: TrainingKind) {
     updateCareer((current) => {
       if (current.preparationActionsUsed >= current.preparationActionsAllowed) return current;
@@ -1380,6 +1512,14 @@ export default function Home() {
       if (action === "reset-week") return { ...current, preparationActionsAllowed: 6, preparationActionsUsed: 0, preparationLog: [], preparedForMatch: false, energy: 100, updatedAt: Date.now() };
       if (action === "injury") return { ...current, injuryStatus: "Lesão muscular moderada", injuryRisk: 78, pendingLifeEvent: "decisao-medica", energy: 45, updatedAt: Date.now() };
       if (action === "legacy") return { ...current, age: 36, matches: Math.max(650, current.matches), goals: Math.max(220, current.goals), assists: Math.max(160, current.assists), retirementFund: Math.max(12_000_000, current.retirementFund), individualAwards: ["Lenda da liga", "Melhor jogador da temporada", ...current.individualAwards], historicalRecords: ["650 jogos profissionais", "220 gols na carreira", ...current.historicalRecords], futurePath: current.futurePath === "Indefinido" ? "Treinador" : current.futurePath, updatedAt: Date.now() };
+      if (action === "world-five") {
+        let state = current;
+        for (let index = 0; index < 5; index += 1) {
+          const world = advanceWorldSeason(state, 1, `${state.season}: simulação avançada do modo dev`);
+          state = migrateCareer({ ...state, ...world, season: state.season + 1, age: state.age + 1 });
+        }
+        return { ...state, updatedAt: Date.now() };
+      }
       if (action === "toggle-division") {
         const division: DivisionLevel = current.division === 1 ? 2 : 1;
         const league = getLeagueDefinition(current.countryId, division);
@@ -1461,6 +1601,15 @@ export default function Home() {
     } else if (seasonEnded) {
       lastSeasonSummary = `${career.season}: ${finalPosition}º lugar na ${career.leagueName}`;
     }
+    const worldAdvance = seasonEnded
+      ? advanceWorldSeason(completedSeason, finalPosition, lastSeasonSummary)
+      : {
+        worldPlayers: career.worldPlayers,
+        worldTransfers: career.worldTransfers,
+        worldHistory: career.worldHistory,
+        seasonArchive: career.seasonArchive,
+        worldLastUpdatedSeason: career.worldLastUpdatedSeason,
+      };
     const nextLeague = getLeagueDefinition(career.countryId, nextDivision);
     const nextReputation = Math.min(100, career.reputation + reputationGain);
     const nextCurrentDate = career.nextMatchDate;
@@ -1534,6 +1683,7 @@ export default function Home() {
       leagueTable: seasonEnded ? [] : roundSimulation.leagueTable,
       leagueLeaders: seasonEnded ? [] : roundSimulation.leagueLeaders,
       lastRoundResults: seasonEnded ? [] : roundSimulation.lastRoundResults,
+      ...worldAdvance,
       promotions,
       relegations,
       lastSeasonSummary,
@@ -1555,7 +1705,7 @@ export default function Home() {
 
   if (view === "lobby" || !career || activeSlot === null) {
     return <div className={rootClass}>
-      <Lobby slots={slots} onSelect={(index) => { setActiveSlot(index); setView("dashboard"); }} onCreate={setCreatorSlot} onDelete={deleteCareer} onSettings={() => setShowLobbySettings(true)} />
+      <Lobby slots={slots} onSelect={(index) => { setActiveSlot(index); setView("dashboard"); }} onCreate={setCreatorSlot} onDelete={deleteCareer} onExport={exportCareer} onImport={importCareer} onSettings={() => setShowLobbySettings(true)} />
       {creatorSlot !== null && <CareerCreator slot={creatorSlot} onCreate={createCareer} onClose={() => setCreatorSlot(null)} />}
       {showLobbySettings && <SettingsView settings={settings} onChange={setSettings} standalone onClose={() => setShowLobbySettings(false)} />}
     </div>;
@@ -1569,6 +1719,7 @@ export default function Home() {
         : <CareerLayout career={career} view={view} onNavigate={setView} onLobby={() => { setActiveSlot(null); setView("lobby"); }}>
           {view === "dashboard" && <Dashboard career={career} fixture={fixture} onPlay={() => setView("match")} onTrain={train} onNavigate={setView} />}
           {view === "season" && <SeasonView career={career} />}
+          {view === "world" && <WorldView career={career} />}
           {view === "player" && <PlayerView career={career} />}
           {view === "life" && <LifeView career={career} onAction={handleLifeAction} />}
           {view === "market" && <MarketView career={career} onTransfer={transferTo} onHousing={changeHousing} />}

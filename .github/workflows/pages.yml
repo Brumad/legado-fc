@@ -43,6 +43,9 @@ jobs:
       - name: Testar 1.000 partidas
         run: pnpm verify:variation
 
+      - name: Testar 15 temporadas do mundo
+        run: pnpm verify:world
+
       - name: Gerar o site estático
         run: pnpm build:github
         env:

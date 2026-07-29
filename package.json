@@ -1,6 +1,6 @@
 {
   "name": "carreira-futebol-game",
-  "version": "0.3.3",
+  "version": "0.4.1",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -10,8 +10,9 @@
     "build": "vinext build",
     "build:github": "vite build --config vite.github.config.ts",
     "verify:variation": "node --experimental-strip-types scripts/verify-variation.mjs",
+    "verify:world": "node --experimental-strip-types scripts/verify-world.mjs",
     "start": "vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && npm run verify:variation && npm run verify:world && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern github-dist --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate"
   },

@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og-v5.png`;
+  const imageUrl = `${protocol}://${host}/og-v6.png`;
 
   return {
-    title: "Legado FC — Vida e Legado",
+    title: "Legado FC — O Mundo Continua",
     description:
-      "Viva uma carreira completa dentro e fora de campo: 12 países, ligas simuladas por inteiro, finanças, relações, patrocínios e decisões com consequências.",
+      "Um universo persistente com 2.750 jogadores da IA evoluindo, transferindo-se, envelhecendo e construindo uma história temporada após temporada.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Vida e Legado",
+      title: "Legado FC — O Mundo Continua",
       description:
-        "A atualização 0.3.3 transforma sua carreira em uma vida: 24 ligas, 505 clubes, partidas interativas e decisões fora de campo.",
+        "A atualização 0.4.1 cria um mundo vivo: transferências, promessas, aposentadorias, campeões globais e arquivo permanente.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Vida e Legado" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — O Mundo Continua" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Vida e Legado",
-      description: "Doze países. Vinte e quatro ligas. Uma carreira e uma vida inteira.",
+      title: "Legado FC — O Mundo Continua",
+      description: "Doze países. 2.750 atletas. Um mundo que continua sem esperar.",
       images: [imageUrl],
     },
   };
