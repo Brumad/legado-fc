@@ -675,6 +675,9 @@ h1, h2, h3, p { margin-top: 0; }
 .world-player-row strong { overflow: hidden; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .world-player-row small { overflow: hidden; color: var(--muted); font-size: 6px; text-overflow: ellipsis; white-space: nowrap; }
 .world-player-row em { padding: 6px 7px; border-radius: 6px; color: var(--green); background: #e7f3e5; font: 700 6px var(--font-mono); font-style: normal; }
+.world-player-row.is-career { margin-inline: -9px; padding-inline: 9px; border-radius: 8px; background: #e7f3e5; }
+.world-player-row.is-career > span, .world-player-row.is-career strong { color: var(--green); }
+.world-player-row.is-career em { color: var(--deep); background: var(--lime); }
 .prospect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .prospect-grid > div { display: grid; gap: 4px; padding: 13px; border-radius: 9px; background: var(--surface-2); }
 .prospect-grid > div > span { color: var(--green); font: 700 6px var(--font-mono); }

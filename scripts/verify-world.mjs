@@ -3,6 +3,7 @@ import {
   WORLD_TEAMS,
   advanceWorldSeason,
   createInitialWorldPlayers,
+  getWorldRanking,
   migrateCareer,
 } from "../app/game-engine.ts";
 
@@ -17,6 +18,34 @@ if (new Set(initialPlayers.map((player) => player.id)).size !== expectedPlayers)
 if (initialPlayers.some((player) => player.age < 18 || player.age > 32 || player.potential < player.overall)) {
   throw new Error("Faixa de idade ou potencial inválida no mundo inicial");
 }
+if (initialPlayers.some((player) => !player.nationality || !player.nationalityId)) {
+  throw new Error("Existem jogadores sem nacionalidade no mundo inicial");
+}
+
+const clubsByStrength = WORLD_TEAMS.slice().sort((a, b) => a.strength - b.strength);
+const lowerClubIds = new Set(clubsByStrength.slice(0, Math.ceil(clubsByStrength.length / 4)).map((team) => team.id));
+const upperClubIds = new Set(clubsByStrength.slice(-Math.ceil(clubsByStrength.length / 4)).map((team) => team.id));
+const strongestLowerClubPlayer = Math.max(...initialPlayers.filter((player) => lowerClubIds.has(player.teamId)).map((player) => player.overall));
+const strongestUpperClubPlayer = Math.max(...initialPlayers.filter((player) => upperClubIds.has(player.teamId)).map((player) => player.overall));
+if (strongestLowerClubPlayer >= 85 || strongestUpperClubPlayer <= strongestLowerClubPlayer) {
+  throw new Error(`Hierarquia de clubes inválida: elite ${strongestUpperClubPlayer}, clubes menores ${strongestLowerClubPlayer}`);
+}
+const weakestClub = clubsByStrength[0];
+const weakestClubPlayer = initialPlayers.find((player) => player.teamId === weakestClub.id);
+const distortedPlayers = initialPlayers.map((player) => player.id === weakestClubPlayer?.id
+  ? { ...player, overall: 95, potential: 95, nationality: undefined, nationalityId: undefined }
+  : player);
+const rebalancedLegacy = migrateCareer({
+  id: "save-041-before-hotfix",
+  name: "Save Rebalanceado",
+  saveVersion: 4,
+  careerSeed: 4012026,
+  worldPlayers: distortedPlayers,
+});
+const correctedPlayer = rebalancedLegacy.worldPlayers.find((player) => player.id === weakestClubPlayer?.id);
+if (!correctedPlayer?.nationality || correctedPlayer.overall > weakestClub.strength + 5) {
+  throw new Error("A migração não corrigiu nacionalidade e craque incompatível com clube menor");
+}
 
 const legacyCareer = migrateCareer({
   id: "save-033",
@@ -24,8 +53,18 @@ const legacyCareer = migrateCareer({
   season: 2026,
   careerSeed: 4012026,
 });
-if (legacyCareer.saveVersion !== 4 || legacyCareer.worldPlayers.length !== expectedPlayers) {
+if (legacyCareer.saveVersion !== 5 || legacyCareer.worldPlayers.length !== expectedPlayers) {
   throw new Error("A migração da 0.3.3 não criou o universo persistente");
+}
+const eliteCareer = migrateCareer({
+  ...legacyCareer,
+  name: "Craque do Teste",
+  nationality: "Portugal",
+  attributes: { pace: 95, shooting: 95, passing: 95, dribbling: 95, defending: 95, physical: 95 },
+});
+const eliteRanking = getWorldRanking(eliteCareer);
+if (eliteRanking[0]?.id !== `career-player-${eliteCareer.id}` || eliteRanking[0].nationality !== "Portugal") {
+  throw new Error("O atleta da carreira com overall 95 não liderou o ranking mundial com sua nacionalidade");
 }
 
 const firstAdvance = advanceWorldSeason(legacyCareer, 5, "2026: permanência na divisão");
@@ -37,6 +76,13 @@ if (firstAdvance.worldHistory[0]?.champions.length !== COUNTRIES.length) {
 }
 if (firstAdvance.seasonArchive.length !== 1 || firstAdvance.worldLastUpdatedSeason !== 2026) {
   throw new Error("O arquivo da primeira temporada não foi persistido");
+}
+for (const transfer of firstAdvance.worldTransfers) {
+  const destination = WORLD_TEAMS.find((team) => team.id === transfer.toTeamId);
+  if (!destination) throw new Error(`Destino desconhecido para ${transfer.playerName}`);
+  if (transfer.overall >= 87 && destination.strength < 81) {
+    throw new Error(`Craque de overall ${transfer.overall} foi enviado para clube de força ${destination.strength}`);
+  }
 }
 
 const guarded = advanceWorldSeason(
@@ -87,5 +133,8 @@ console.log(JSON.stringify({
   archivedWorldSeasons: longCareer.worldHistory.length,
   careerSeasons: longCareer.seasonArchive.length,
   generatedProspects: totalProspects,
+  strongestLowerClubPlayer,
+  strongestUpperClubPlayer,
+  eliteCareerRank: 1,
   serializedBytes,
 }));

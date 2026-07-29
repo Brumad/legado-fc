@@ -23,6 +23,8 @@ export type SquadPlayer = {
   overall: number;
   teamId: string;
   teamName: string;
+  nationalityId: CountryId;
+  nationality: string;
 };
 
 export type LeaguePlayerStat = SquadPlayer & {
@@ -543,6 +545,8 @@ function makeSquad(countryId: CountryId, teamId: string, teamName: string, teamI
       overall: Math.max(54, Math.min(91, strength + ((hashText(`${teamId}:${slot}`) % 11) - 5))),
       teamId,
       teamName,
+      nationalityId: countryId,
+      nationality: COUNTRY_META[countryId].name,
     };
   });
 }
@@ -552,9 +556,13 @@ function makeTeams(countryId: CountryId, division: DivisionLevel, names: string[
   const baseStrength = division === 1 ? 77 : 66;
   return names.map((name, index): Team => {
     const [color, accent] = COLORS[index % COLORS.length];
-    const strengthWave = ((index * 5 + hashText(name)) % 9) - 4;
+    const prestigePosition = names.length <= 1 ? 0 : index / (names.length - 1);
+    const prestigeBias = division === 1
+      ? Math.round(6 - prestigePosition * 11)
+      : Math.round(4 - prestigePosition * 8);
+    const strengthWave = ((index * 5 + hashText(name)) % 5) - 2;
     const id = `${countryId.toLowerCase()}-${division}-${slugify(name)}`;
-    const strength = baseStrength + strengthWave;
+    const strength = baseStrength + prestigeBias + strengthWave;
     const squad = makeSquad(countryId, id, name, index, strength);
     return {
       id,
@@ -1046,6 +1054,7 @@ export function simulateFullRound(
   const leaders = new Map(leaderSource.filter((player) => validTeamIds.has(player.teamId)).map((player) => [player.id, { ...player }]));
   const careerPlayerId = `career-player-${career.id}`;
   if (!leaders.has(careerPlayerId)) {
+    const nationality = COUNTRIES.find((country) => country.name === career.nationality);
     leaders.set(careerPlayerId, {
       id: careerPlayerId,
       name: career.name,
@@ -1053,6 +1062,8 @@ export function simulateFullRound(
       overall: getOverall(career),
       teamId: career.clubId,
       teamName: career.clubName,
+      nationalityId: nationality?.id ?? career.countryId,
+      nationality: career.nationality,
       goals: 0,
       assists: 0,
       appearances: 0,
@@ -1214,6 +1225,37 @@ export function getClubLeaders(career: CareerState) {
   });
 }
 
+export function getWorldRanking(career: CareerState) {
+  const nationality = COUNTRIES.find((country) => country.name === career.nationality);
+  const position: WorldPlayerState["position"] = career.position === "Zagueiro"
+    ? "ZAG"
+    : career.position === "Lateral"
+      ? "LD"
+      : career.position === "Meia"
+        ? "MEI"
+        : career.position === "Ponta"
+          ? "PE"
+          : "ATA";
+  const careerPlayer: WorldPlayerState = {
+    id: `career-player-${career.id}`,
+    name: career.name,
+    position,
+    overall: getOverall(career),
+    teamId: career.clubId,
+    teamName: career.clubName,
+    nationalityId: nationality?.id ?? career.countryId,
+    nationality: career.nationality,
+    age: career.age,
+    potential: Math.min(99, getOverall(career) + Math.max(2, 27 - career.age)),
+    countryId: nationality?.id ?? career.countryId,
+    status: "Ativo",
+  };
+  return [
+    ...career.worldPlayers.filter((player) => player.status === "Ativo"),
+    careerPlayer,
+  ].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
+}
+
 function createRegeneratedPlayer(retired: WorldPlayerState, season: number, index: number): WorldPlayerState {
   const pool = NAME_POOLS[retired.countryId];
   const seed = hashText(`regen:${season}:${retired.id}:${index}`);
@@ -1290,9 +1332,12 @@ export function advanceWorldSeason(career: CareerState, finalPosition: number, o
     if (!currentTeam) continue;
     const moveSeed = hashText(`destination:${career.careerSeed}:${career.season}:${player.id}`);
     const preferDomestic = moveSeed % 100 < 52;
-    const destinationPool = preferDomestic
-      ? WORLD_TEAMS.filter((team) => team.countryId === currentTeam.countryId && team.id !== currentTeam.id)
-      : WORLD_TEAMS.filter((team) => team.id !== currentTeam.id);
+    const minimumClubStrength = player.overall >= 87 ? 81 : player.overall >= 83 ? 78 : player.overall >= 79 ? 74 : 0;
+    const eligibleDestinations = WORLD_TEAMS.filter((team) => team.id !== currentTeam.id && team.strength >= minimumClubStrength);
+    const domesticDestinations = eligibleDestinations.filter((team) => team.countryId === currentTeam.countryId);
+    const destinationPool = preferDomestic && domesticDestinations.length
+      ? domesticDestinations
+      : eligibleDestinations;
     const destination = destinationPool[(Math.floor(moveSeed / 101) + index * 7) % destinationPool.length];
     if (!destination) continue;
     const ageFactor = player.age <= 23 ? 1.28 : player.age >= 30 ? .68 : 1;
@@ -1418,6 +1463,25 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
   ];
 }
 
+function normalizeWorldPlayers(players: WorldPlayerState[], previousSaveVersion: number) {
+  const teamById = new Map(WORLD_TEAMS.map((team) => [team.id, team]));
+  return players.map((player) => {
+    const team = teamById.get(player.teamId);
+    const nationalityId = player.nationalityId ?? player.countryId ?? team?.countryId ?? "BR";
+    const balancedOverall = previousSaveVersion < 5 && team
+      ? Math.min(player.overall, team.strength + 5)
+      : player.overall;
+    return {
+      ...player,
+      countryId: player.countryId ?? nationalityId,
+      nationalityId,
+      nationality: player.nationality ?? COUNTRY_META[nationalityId].name,
+      overall: balancedOverall,
+      potential: Math.max(balancedOverall, player.potential),
+    };
+  });
+}
+
 export function migrateCareer(input: Partial<CareerState> | null): CareerState {
   const now = Date.now();
   const archetype = input?.archetype ?? "Maestro";
@@ -1438,8 +1502,12 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
   const preparationActionsUsed = input?.preparationActionsUsed ?? (input?.preparedForMatch ? 1 : 0);
   const country = getCountry(countryId);
   const salary = input?.salary ?? getSalary(countryId, division, reputation);
+  const rawWorldPlayers = input?.worldPlayers?.length
+    ? input.worldPlayers
+    : createInitialWorldPlayers(careerSeed, input?.season ?? 2026);
+  const worldPlayers = normalizeWorldPlayers(rawWorldPlayers, input?.saveVersion ?? 0);
   return {
-    saveVersion: 4,
+    saveVersion: 5,
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
     position,
@@ -1533,7 +1601,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     leagueTable: input?.leagueTable ?? [],
     leagueLeaders: input?.leagueLeaders ?? [],
     lastRoundResults: input?.lastRoundResults ?? [],
-    worldPlayers: input?.worldPlayers?.length ? input.worldPlayers : createInitialWorldPlayers(careerSeed, input?.season ?? 2026),
+    worldPlayers,
     worldTransfers: input?.worldTransfers ?? [],
     worldHistory: input?.worldHistory ?? [],
     seasonArchive: input?.seasonArchive ?? [],

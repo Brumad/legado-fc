@@ -33,6 +33,7 @@ import {
   getPreparationActionCount,
   getSalary,
   getStartingClub,
+  getWorldRanking,
   hashText,
   migrateCareer,
   simulateFullRound,
@@ -126,7 +127,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>O MUNDO CONTINUA 0.4.1</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>O MUNDO CONTINUA 0.4.1A</small></div></div>;
 }
 
 function Lobby({
@@ -627,7 +628,7 @@ function SeasonView({ career }: { career: CareerState }) {
       <section className="hud-card club-leaders-card">
         <div className="card-heading"><div><span className="overline">PAINEL DE DESTAQUES</span><h3>Líderes de cada clube</h3></div><span className="status-tag">{league.teams.length * 11} titulares</span></div>
         <div className="club-leaders-head"><span>CLUBE</span><span>ARTILHEIRO</span><span>GARÇOM</span></div>
-        <div className="club-leaders-list">{clubLeaders.map(({ team, scorer, assister }) => <div className="club-leader-row" key={team.id}><span><TeamCrest short={team.short} color={team.color} small /><b>{team.name}</b></span><span><b>{scorer?.name ?? "—"}</b><em>{scorer?.goals ?? 0} gols</em></span><span><b>{assister?.name ?? "—"}</b><em>{assister?.assists ?? 0} assist.</em></span></div>)}</div>
+        <div className="club-leaders-list">{clubLeaders.map(({ team, scorer, assister }) => <div className="club-leader-row" key={team.id}><span><TeamCrest short={team.short} color={team.color} small /><b>{team.name}</b></span><span><b>{scorer?.name ?? "—"}</b><em>{scorer?.goals ?? 0} gols · {scorer?.nationality ?? team.country}</em></span><span><b>{assister?.name ?? "—"}</b><em>{assister?.assists ?? 0} assist. · {assister?.nationality ?? team.country}</em></span></div>)}</div>
       </section>
     </main>
   );
@@ -635,10 +636,9 @@ function SeasonView({ career }: { career: CareerState }) {
 
 function WorldView({ career }: { career: CareerState }) {
   const activePlayers = useMemo(() => career.worldPlayers.filter((player) => player.status === "Ativo"), [career.worldPlayers]);
-  const elite = useMemo(() => activePlayers
-    .slice()
-    .sort((a, b) => b.overall - a.overall || b.potential - a.potential)
-    .slice(0, 10), [activePlayers]);
+  const rankingPlayers = useMemo(() => getWorldRanking(career), [career]);
+  const elite = useMemo(() => rankingPlayers.slice(0, 10), [rankingPlayers]);
+  const playerWorldRank = useMemo(() => rankingPlayers.findIndex((player) => player.id === `career-player-${career.id}`) + 1, [career.id, rankingPlayers]);
   const prospects = useMemo(() => activePlayers
     .filter((player) => player.age <= 21)
     .sort((a, b) => b.potential - a.potential || b.overall - a.overall)
@@ -667,20 +667,27 @@ function WorldView({ career }: { career: CareerState }) {
 
       <section className="world-dashboard-grid">
         <article className="hud-card world-ranking-card">
-          <div className="card-heading"><div><span className="overline">RANKING MUNDIAL</span><h3>Os melhores da temporada</h3></div><span className="status-tag done">ATUALIZADO</span></div>
+          <div className="card-heading"><div><span className="overline">RANKING MUNDIAL</span><h3>Os melhores da temporada</h3></div><span className="status-tag done">VOCÊ #{playerWorldRank}</span></div>
           <div className="world-player-list">
-            {elite.map((player, index) => <div className="world-player-row" key={player.id}>
+            {elite.map((player, index) => {
+              const country = COUNTRIES.find((item) => item.id === player.nationalityId);
+              const isCareer = player.id === `career-player-${career.id}`;
+              return <div className={`world-player-row ${isCareer ? "is-career" : ""}`} key={player.id}>
               <span>{String(index + 1).padStart(2, "0")}</span>
-              <div><strong>{player.name}</strong><small>{player.teamName} · {player.position} · {player.age} anos</small></div>
-              <em>OVR {player.overall}</em>
-            </div>)}
+              <div><strong>{player.name}</strong><small>{country?.flag} {player.nationality} · {player.teamName} · {player.position} · {player.age} anos</small></div>
+              <em>{isCareer ? "VOCÊ · " : ""}OVR {player.overall}</em>
+            </div>;
+            })}
           </div>
         </article>
 
         <article className="hud-card world-prospects-card">
           <div className="card-heading"><div><span className="overline">NOVA GERAÇÃO</span><h3>Promessas globais</h3></div><span className="status-tag">ATÉ 21 ANOS</span></div>
           <div className="prospect-grid">
-            {prospects.map((player) => <div key={player.id}><span>{player.position}</span><strong>{player.name}</strong><small>{player.teamName}</small><p><b>{player.overall}</b> atual <i>→</i> <b>{player.potential}</b> potencial</p></div>)}
+            {prospects.map((player) => {
+              const country = COUNTRIES.find((item) => item.id === player.nationalityId);
+              return <div key={player.id}><span>{country?.flag} {player.nationality} · {player.position}</span><strong>{player.name}</strong><small>{player.teamName}</small><p><b>{player.overall}</b> atual <i>→</i> <b>{player.potential}</b> potencial</p></div>;
+            })}
           </div>
         </article>
 
@@ -896,7 +903,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   const format = getLeagueDefinition(career.countryId, career.division).format;
   return (
     <aside className="developer-panel">
-      <div><span>DEV 0.4.1</span><strong>Laboratório do mundo</strong><small>Alterações são aplicadas somente a este slot.</small></div>
+      <div><span>DEV 0.4.1A</span><strong>Laboratório do mundo</strong><small>Alterações são aplicadas somente a este slot.</small></div>
       <section>
         <button onClick={() => onAction("unlock")}>LIBERAR TUDO</button>
         <button onClick={() => onAction("max-player")}>MAXIMIZAR ATLETA</button>
@@ -1234,7 +1241,7 @@ export default function Home() {
     if (!target) return;
     const blob = new Blob([JSON.stringify({
       product: "Legado FC",
-      saveVersion: 4,
+      saveVersion: 5,
       exportedAt: new Date().toISOString(),
       career: target,
     })], { type: "application/json" });

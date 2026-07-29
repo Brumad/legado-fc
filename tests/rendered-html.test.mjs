@@ -42,7 +42,7 @@ test("keeps the living-world v0.4.1 systems in the production source", async () 
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /O MUNDO CONTINUA 0\.4\.1/);
+  assert.match(page, /O MUNDO CONTINUA 0\.4\.1A/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
@@ -53,6 +53,8 @@ test("keeps the living-world v0.4.1 systems in the production source", async () 
   assert.match(page, /LifeView/);
   assert.match(page, /getClubLeaders/);
   assert.match(page, /WorldView/);
+  assert.match(page, /playerWorldRank/);
+  assert.match(page, /player\.nationality/);
   assert.match(page, /MUNDO \+5 TEMPORADAS/);
   assert.match(page, /exportCareer/);
   assert.match(page, /importCareer/);
@@ -69,6 +71,11 @@ test("keeps the living-world v0.4.1 systems in the production source", async () 
   assert.match(engine, /LEAGUE_FORMATS/);
   assert.match(engine, /SquadPlayer/);
   assert.match(engine, /WorldPlayerState/);
+  assert.match(engine, /nationalityId/);
+  assert.match(engine, /prestigeBias/);
+  assert.match(engine, /minimumClubStrength/);
+  assert.match(engine, /normalizeWorldPlayers/);
+  assert.match(engine, /getWorldRanking/);
   assert.match(engine, /advanceWorldSeason/);
   assert.match(engine, /createRegeneratedPlayer/);
   assert.match(engine, /worldLastUpdatedSeason/);
