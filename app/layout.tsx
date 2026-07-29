@@ -16,25 +16,25 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
-  const imageUrl = `${protocol}://${host}/og-v6.png`;
+  const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.4.3 — Universo em Campo",
+    title: "Legado FC 0.4.3 — Consequências",
     description:
-      "O fechamento da fase 0.4.x: doze táticas, briefing jogável, abordagens do atleta, rivalidades adaptativas, lesões com recuperação e memória completa das partidas.",
+      "Escolhas que atravessam partidas e temporadas: personalidade dinâmica, consequências persistentes, cobranças futuras, treinador, elenco, saúde, família e mercado.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.4.3 — Universo em Campo",
+      title: "Legado FC 0.4.3 — Consequências",
       description:
-        "Doze estilos táticos, escolhas antes do apito, adversários adaptativos e uma carreira que guarda cada relatório.",
+        "Suas decisões agora mudam desempenho, fadiga, lesões, disciplina, relações, contratos e acontecimentos futuros.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.4.3 — Universo em Campo" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.4.3 — Consequências" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.4.3 — Universo em Campo",
-      description: "Do briefing ao legado: cada adversário pensa, reage e deixa memória na carreira.",
+      title: "Legado FC 0.4.3 — Consequências",
+      description: "Toda escolha deixa uma marca — dentro e fora do campo.",
       images: [imageUrl],
     },
   };

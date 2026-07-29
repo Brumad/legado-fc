@@ -143,7 +143,46 @@ export type CareerMatchRecord = {
   redCard: boolean;
   injuryStatus: string;
   signature: string;
+  consequenceImpact: string[];
 };
+
+export type PersonalityProfile = {
+  professionalism: number;
+  loyalty: number;
+  mediaStyle: number;
+  teamwork: number;
+  ambition: number;
+};
+
+export type ConsequenceEffects = {
+  performance?: number;
+  fatigue?: number;
+  injuryRisk?: number;
+  cardRisk?: number;
+  coachTrust?: number;
+  squadRelations?: number;
+  reputation?: number;
+  transferInterest?: number;
+  morale?: number;
+  income?: number;
+};
+
+export type CareerConsequence = {
+  id: string;
+  key: string;
+  source: string;
+  title: string;
+  description: string;
+  tone: "positive" | "negative" | "mixed";
+  createdMatch: number;
+  remainingMatches: number;
+  totalMatches: number;
+  effects: ConsequenceEffects;
+  resolutionEvent: string;
+  resolutionText: string;
+};
+
+export type ConsequenceModifiers = Required<ConsequenceEffects>;
 
 export type ContractRenewal = {
   available: boolean;
@@ -286,8 +325,12 @@ export type CareerState = {
   suspensionMatches: number;
   socialProject: string;
   pendingLifeEvent: string;
+  queuedLifeEvents: string[];
   lifeEventHistory: string[];
   lifeFlags: string[];
+  personality: PersonalityProfile;
+  activeConsequences: CareerConsequence[];
+  consequenceHistory: CareerConsequence[];
   individualAwards: string[];
   historicalRecords: string[];
   futurePath: string;
@@ -460,6 +503,8 @@ export type MatchPlan = {
   tacticalAdvantage: number;
   tacticalInstruction: string;
   rivalryLevel: number;
+  consequenceModifiers: ConsequenceModifiers;
+  consequenceNarratives: string[];
 };
 
 export type StandingRow = {
@@ -1065,6 +1110,65 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+const emptyConsequenceModifiers: ConsequenceModifiers = {
+  performance: 0,
+  fatigue: 0,
+  injuryRisk: 0,
+  cardRisk: 0,
+  coachTrust: 0,
+  squadRelations: 0,
+  reputation: 0,
+  transferInterest: 0,
+  morale: 0,
+  income: 0,
+};
+
+export function getConsequenceModifiers(career: CareerState): ConsequenceModifiers {
+  const modifiers = { ...emptyConsequenceModifiers };
+  career.activeConsequences.forEach((consequence) => {
+    (Object.keys(modifiers) as Array<keyof ConsequenceModifiers>).forEach((key) => {
+      modifiers[key] += consequence.effects[key] ?? 0;
+    });
+  });
+
+  modifiers.performance += career.personality.professionalism / 45 + career.personality.teamwork / 70;
+  modifiers.cardRisk -= career.personality.professionalism / 9;
+  modifiers.coachTrust += career.personality.professionalism / 24 + career.personality.teamwork / 32;
+  modifiers.squadRelations += career.personality.teamwork / 22;
+  modifiers.transferInterest += career.personality.ambition / 22 + career.personality.mediaStyle / 28 - career.personality.loyalty / 35;
+  modifiers.morale += career.familyBond < 35 ? -4 : career.familyBond >= 82 ? 2 : 0;
+  modifiers.performance += career.squadRelations >= 82 ? 1.5 : career.squadRelations < 38 ? -2.5 : 0;
+
+  return {
+    performance: clamp(Number(modifiers.performance.toFixed(1)), -12, 12),
+    fatigue: clamp(Math.round(modifiers.fatigue), -18, 24),
+    injuryRisk: clamp(Math.round(modifiers.injuryRisk), -30, 45),
+    cardRisk: clamp(Math.round(modifiers.cardRisk), -28, 38),
+    coachTrust: clamp(Math.round(modifiers.coachTrust), -18, 18),
+    squadRelations: clamp(Math.round(modifiers.squadRelations), -18, 18),
+    reputation: clamp(Math.round(modifiers.reputation), -12, 16),
+    transferInterest: clamp(Math.round(modifiers.transferInterest), -18, 24),
+    morale: clamp(Math.round(modifiers.morale), -12, 12),
+    income: Math.round(modifiers.income),
+  };
+}
+
+export function advanceCareerConsequences(career: CareerState) {
+  const resolved = career.activeConsequences
+    .filter((consequence) => consequence.remainingMatches <= 1)
+    .map((consequence) => ({ ...consequence, remainingMatches: 0 }));
+  const activeConsequences = career.activeConsequences
+    .filter((consequence) => consequence.remainingMatches > 1)
+    .map((consequence) => ({ ...consequence, remainingMatches: consequence.remainingMatches - 1 }));
+  const triggeredEvent = resolved.find((consequence) => consequence.resolutionEvent)?.resolutionEvent ?? "";
+  return {
+    activeConsequences,
+    resolved,
+    consequenceHistory: [...resolved, ...career.consequenceHistory].slice(0, 40),
+    triggeredEvent,
+  };
+}
+
 function uniqueMinutes(rng: () => number, count: number, minimum = 3, maximum = 88) {
   const result = new Set<number>();
   while (result.size < count) result.add(minimum + Math.floor(rng() * (maximum - minimum + 1)));
@@ -1275,6 +1379,10 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
 
 export function generateMatchPlan(career: CareerState, fixture = createFixture(career), showcase = false): MatchPlan {
   const rng = makeRng(fixture.seed ^ hashText(`${career.position}:${career.archetype}`));
+  const consequenceModifiers = getConsequenceModifiers(career);
+  const consequenceNarratives = career.activeConsequences
+    .slice(0, 3)
+    .map((consequence) => `${consequence.title}: ${consequence.description}`);
   const previousMeetings = career.matchHistory.filter((match) => match.opponentId === fixture.opponent.id);
   const tacticIndex = (hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) + previousMeetings.length * 5) % opponentTactics.length;
   const opponentTactic = opponentTactics[tacticIndex];
@@ -1288,8 +1396,9 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
   const exploitableKinds = opponentTactic.exposedKinds.filter((kind) => positionKinds[career.position].includes(kind));
   const preparedBonus = career.weeklyAction === "Treino tático" || career.preparationLog.includes("Treino tático") ? 5 : 0;
   const skillMatch = exploitableKinds.length * 4 + preparedBonus;
-  const physicalPenalty = Math.max(0, opponentTactic.pressing - career.energy) / 7;
-  const tacticalAdvantage = clamp(Math.round(skillMatch - physicalPenalty + (career.adaptation - 70) / 15), -14, 18);
+  const effectiveEnergy = clamp(career.energy - consequenceModifiers.fatigue, 10, 100);
+  const physicalPenalty = Math.max(0, opponentTactic.pressing - effectiveEnergy) / 7;
+  const tacticalAdvantage = clamp(Math.round(skillMatch - physicalPenalty + (career.adaptation - 70) / 15 + consequenceModifiers.performance / 2), -16, 20);
   const instructionKind = exploitableKinds[0] ?? opponentTactic.exposedKinds[0];
   const tacticalInstruction = {
     pass: "circule rápido e encontre o lado oposto antes do encaixe",
@@ -1302,10 +1411,15 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     counter: "acelere imediatamente no espaço deixado pela linha",
     aerial: "ataque a segunda trave e domine o duelo físico",
   }[instructionKind];
-  const rivalryLevel = clamp(previousMeetings.length * 18 + (fixture.competitionType !== "league" ? 16 : 0), 0, 100);
+  const rivalryConsequence = career.activeConsequences.some((consequence) => consequence.key === "duelo-pessoal" || consequence.key === "holofotes") ? 18 : 0;
+  const rivalryLevel = clamp(previousMeetings.length * 18 + (fixture.competitionType !== "league" ? 16 : 0) + rivalryConsequence, 0, 100);
   const overall = Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6;
-  const fatigueReadiness = (career.energy - 72) / 210;
-  const playerStrength = career.clubStrength + (overall - 68) * .075 + career.formBoost * .22 + (career.morale - 70) * .023;
+  const fatigueReadiness = (effectiveEnergy - 72) / 210;
+  const playerStrength = career.clubStrength
+    + (overall - 68) * .075
+    + career.formBoost * .22
+    + (career.morale + consequenceModifiers.morale - 70) * .023
+    + consequenceModifiers.performance * .055;
   const strengthGap = playerStrength - fixture.opponent.strength;
   const homeEffect = fixture.home ? .13 : -.1;
   const difficultyEffect = career.difficulty === "Lenda" ? -.1 : career.difficulty === "Promessa" ? .07 : 0;
@@ -1365,7 +1479,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
   };
   const yellowCount = 1 + Math.floor(opponentTactic.aggression / 28) + Math.floor(rng() * 3);
   for (let index = 0; index < yellowCount && specialIndex < specialMinutes.length; index += 1) {
-    const affectsPlayer = playerAvailable && rng() < Math.max(.06, (100 - career.discipline + opponentTactic.aggression * .12) / 160);
+    const affectsPlayer = playerAvailable && rng() < Math.max(.035, (100 - career.discipline + opponentTactic.aggression * .12 + consequenceModifiers.cardRisk) / 160);
     const side = affectsPlayer ? "player" : rng() > .46 ? "opponent" : "player";
     addSpecialEvent({
       kind: "yellow-card",
@@ -1376,8 +1490,8 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
         : `${side === "opponent" ? fixture.opponent.name : career.clubName} interrompe a transição com falta. Cartão amarelo.`,
     });
   }
-  if (specialIndex < specialMinutes.length && rng() < .055 + opponentTactic.aggression / 1_350 + (100 - career.discipline) / 1_050) {
-    const affectsPlayer = playerAvailable && rng() < Math.max(.035, (100 - career.discipline) / 310);
+  if (specialIndex < specialMinutes.length && rng() < .055 + opponentTactic.aggression / 1_350 + (100 - career.discipline + consequenceModifiers.cardRisk) / 1_050) {
+    const affectsPlayer = playerAvailable && rng() < Math.max(.02, (100 - career.discipline + consequenceModifiers.cardRisk) / 310);
     const side = affectsPlayer ? "player" : rng() > .5 ? "opponent" : "player";
     addSpecialEvent({
       kind: "red-card",
@@ -1417,7 +1531,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
         : "Os dois bancos se movimentam e renovam a intensidade para o trecho final.",
     });
   }
-  if (specialIndex < specialMinutes.length && rng() < .018 + career.injuryRisk / 600 + opponentTactic.aggression / 2_400) {
+  if (specialIndex < specialMinutes.length && rng() < .018 + Math.max(0, career.injuryRisk + consequenceModifiers.injuryRisk) / 600 + opponentTactic.aggression / 2_400) {
     const affectsPlayer = playerAvailable && rng() < .42;
     addSpecialEvent({
       kind: "injury",
@@ -1519,6 +1633,8 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     tacticalAdvantage,
     tacticalInstruction,
     rivalryLevel,
+    consequenceModifiers,
+    consequenceNarratives,
   };
 }
 
@@ -1810,11 +1926,13 @@ function getCareerSquadRole(overall: number, teamStrength: number): CareerSquadR
 
 export function getCareerTransferOffers(career: CareerState): CareerTransferOffer[] {
   const overall = getOverall(career);
+  const consequenceModifiers = getConsequenceModifiers(career);
   const cycle = Math.floor(Math.max(0, career.seasonRound - 1) / 4);
   const profileLevel = overall
-    + (career.reputation - 30) / 12
+    + (career.reputation + consequenceModifiers.reputation - 30) / 12
     + (career.rating - 6.8) * 2.2
-    + Math.min(4, career.matches / 18);
+    + Math.min(4, career.matches / 18)
+    + consequenceModifiers.transferInterest / 8;
   const candidates = TEAMS
     .filter((team) => team.id !== career.clubId)
     .map((team) => {
@@ -1829,6 +1947,8 @@ export function getCareerTransferOffers(career: CareerState): CareerTransferOffe
         + (career.reputation - requiredReputation) * .55
         + (career.rating - requiredRating) * 11
         + Math.min(8, career.matches / 5)
+        + consequenceModifiers.transferInterest
+        + consequenceModifiers.reputation * .5
         + (seed % 13) - 6,
       ), 18, 98);
       const role = getCareerSquadRole(overall, team.strength);
@@ -1859,6 +1979,7 @@ export function getCareerTransferOffers(career: CareerState): CareerTransferOffe
         - Math.abs(team.strength - profileLevel) * 9
         + (team.division === 1 ? 16 : 0)
         + (team.countryId !== career.countryId ? 7 : 0)
+        + consequenceModifiers.transferInterest
         + seed % 47;
       return {
         score,
@@ -1910,7 +2031,9 @@ export function getCareerTransferOffers(career: CareerState): CareerTransferOffe
 export function getContractRenewal(career: CareerState): ContractRenewal {
   const overall = getOverall(career);
   const role = getCareerSquadRole(overall, career.clubStrength);
-  const available = career.matches >= 3 && career.coachTrust >= 52;
+  const consequenceModifiers = getConsequenceModifiers(career);
+  const effectiveTrust = clamp(career.coachTrust + consequenceModifiers.coachTrust, 0, 100);
+  const available = career.matches >= 3 && effectiveTrust >= 52;
   const salaryBase = getSalary(career.countryId, career.division, career.reputation);
   const salary = Math.round(Math.max(career.salary * 1.08, salaryBase * (1 + Math.max(0, career.clubStrength - 65) / 80)) / 100) * 100;
   return {
@@ -1920,7 +2043,7 @@ export function getContractRenewal(career: CareerState): ContractRenewal {
     contractUntilSeason: career.season + (role === "Projeto" ? 4 : role === "Estrela" ? 2 : 3),
     releaseClause: Math.round(Math.max(career.marketValue * 2.5, overall * overall * 16_000) / 100_000) * 100_000,
     role,
-    requirement: career.matches < 3 ? "complete 3 partidas" : career.coachTrust < 52 ? "confiança do treinador 52" : "renovação disponível",
+    requirement: career.matches < 3 ? "complete 3 partidas" : effectiveTrust < 52 ? "confiança do treinador 52" : "renovação disponível",
   };
 }
 
@@ -1975,6 +2098,22 @@ export function completeCareerTransfer(career: CareerState, offer: CareerTransfe
       language: destinationCountry.language,
       languageLevel: sameLanguage ? Math.max(career.languageLevel, 80) : 18,
       adaptation: sameCountry ? career.adaptation : 42,
+      activeConsequences: sameCountry
+        ? career.activeConsequences
+        : [{
+          id: `adaptacao-${arrivalSeason}-${offer.teamId}`,
+          key: "adaptacao-novo-pais",
+          source: "Transferência internacional",
+          title: "Adaptação ao novo país",
+          description: `Idioma, moradia e distância da família afetam a rotina no ${offer.countryName}.`,
+          tone: "mixed" as const,
+          createdMatch: career.matches,
+          remainingMatches: 6,
+          totalMatches: 6,
+          effects: { performance: -3, fatigue: 5, morale: -2, transferInterest: 2 },
+          resolutionEvent: "adaptacao-cultural",
+          resolutionText: "O primeiro ciclo de adaptação internacional foi concluído.",
+        }, ...career.activeConsequences.filter((consequence) => consequence.key !== "adaptacao-novo-pais")],
       coachTrust: offer.role === "Estrela" ? 72 : offer.role === "Titular" ? 60 : offer.role === "Rotação" ? 48 : 38,
       contractMatches: getLeagueDefinition(offer.countryId, offer.division).format.rounds,
       contractUntilSeason: offer.contractUntilSeason,
@@ -2172,6 +2311,7 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
   const careerOffer = getCareerTransferOffers(career).find((offer) => offer.available);
   const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
   const rivalryMeetings = career.matchHistory.filter((match) => match.opponentId === fixture.opponent.id);
+  const leadingConsequence = career.activeConsequences[0];
   const objective = career.division === 2 ? "acesso" : playerPosition >= 10 ? "permanência" : "título";
   return [
     {
@@ -2210,6 +2350,8 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
         ? `${career.name} cumpre suspensão`
         : career.injuryMatchesRemaining
           ? `Departamento médico projeta retorno em ${career.injuryMatchesRemaining} jogo(s)`
+          : leadingConsequence
+            ? `${leadingConsequence.title} ainda repercute`
           : rivalryMeetings.length >= 2
             ? `Confronto com o ${fixture.opponent.name} ganha clima de rivalidade`
             : "Comissão prepara briefing individual",
@@ -2217,6 +2359,8 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
         ? `A equipe terá de adaptar a função de ${career.position} enquanto o atleta fica fora por ${career.suspensionMatches} rodada(s).`
         : career.injuryMatchesRemaining
           ? `${career.injuryStatus}. Energia, tratamento e risco serão reavaliados antes do retorno.`
+          : leadingConsequence
+            ? `${leadingConsequence.description} O efeito permanece por ${leadingConsequence.remainingMatches} partida(s).`
           : rivalryMeetings.length >= 2
             ? `${rivalryMeetings.length} encontros anteriores fazem o adversário ajustar o plano especificamente para ${career.name}.`
             : `O próximo relatório cruzará posição, forma, fadiga e o estilo tático do adversário.`,
@@ -2268,7 +2412,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     : createInitialWorldPlayers(careerSeed, input?.season ?? 2026);
   const worldPlayers = normalizeWorldPlayers(rawWorldPlayers, input?.saveVersion ?? 0);
   return {
-    saveVersion: 7,
+    saveVersion: 8,
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
     position,
@@ -2354,8 +2498,25 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     suspensionMatches: input?.suspensionMatches ?? 0,
     socialProject: input?.socialProject ?? "Nenhum",
     pendingLifeEvent: input?.pendingLifeEvent ?? "primeira-entrevista",
+    queuedLifeEvents: input?.queuedLifeEvents ?? [],
     lifeEventHistory: input?.lifeEventHistory ?? [],
     lifeFlags: input?.lifeFlags ?? [],
+    personality: {
+      professionalism: input?.personality?.professionalism ?? clamp(((input?.discipline ?? 82) - 70) * 2, -100, 100),
+      loyalty: input?.personality?.loyalty ?? (origin === "Clube de bairro" || origin === "Projeto social" ? 24 : 8),
+      mediaStyle: input?.personality?.mediaStyle ?? (archetype === "Velocista" ? 12 : -4),
+      teamwork: input?.personality?.teamwork ?? (archetype === "Operário" || archetype === "Maestro" ? 20 : 4),
+      ambition: input?.personality?.ambition ?? (input?.difficulty === "Lenda" ? 28 : 14),
+    },
+    activeConsequences: (input?.activeConsequences ?? []).map((consequence) => ({
+      ...consequence,
+      remainingMatches: Math.max(1, consequence.remainingMatches ?? 1),
+      totalMatches: Math.max(consequence.remainingMatches ?? 1, consequence.totalMatches ?? consequence.remainingMatches ?? 1),
+      effects: consequence.effects ?? {},
+      resolutionEvent: consequence.resolutionEvent ?? "",
+      resolutionText: consequence.resolutionText ?? consequence.description,
+    })),
+    consequenceHistory: (input?.consequenceHistory ?? []).slice(0, 40),
     individualAwards: input?.individualAwards ?? [],
     historicalRecords: input?.historicalRecords ?? [],
     futurePath: input?.futurePath ?? "Indefinido",
@@ -2365,7 +2526,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     releaseClause: input?.releaseClause ?? Math.round((input?.marketValue ?? league.salaryBase * 22) * 2.5 / 100_000) * 100_000,
     pendingTransfer: input?.pendingTransfer ?? null,
     careerTransferHistory: input?.careerTransferHistory ?? [],
-    matchHistory: (input?.matchHistory ?? []).map((match) => ({ ...match, approach: match.approach ?? "Equilibrado" })),
+    matchHistory: (input?.matchHistory ?? []).map((match) => ({ ...match, approach: match.approach ?? "Equilibrado", consequenceImpact: match.consequenceImpact ?? [] })),
     promotions: input?.promotions ?? 0,
     relegations: input?.relegations ?? 0,
     lastSeasonSummary: input?.lastSeasonSummary ?? "Primeira temporada em andamento",

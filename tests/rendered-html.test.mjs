@@ -30,9 +30,9 @@ test("server-renders the Legado FC 0.4.3 application shell", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC 0\.4\.3 — Universo em Campo<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.4\.3 — Consequências<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
-  assert.match(html, /og-v6\.png/i);
+  assert.match(html, /og-v7\.png/i);
 });
 
 test("keeps the completed 0.4.x systems in the production source", async () => {
@@ -42,7 +42,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /0\.4\.3 · UNIVERSO EM CAMPO/);
+  assert.match(page, /0\.4\.3 · CONSEQUÊNCIAS/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
@@ -64,6 +64,11 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(page, /tactical-history-card/);
   assert.match(page, /injuryMatchesRemaining/);
   assert.match(page, /matchHistory/);
+  assert.match(page, /consequence-command-center/);
+  assert.match(page, /PERSONALIDADE DINÂMICA/);
+  assert.match(page, /queuedLifeEvents/);
+  assert.match(page, /consequencePerformance/);
+  assert.match(page, /event-apologize-coach/);
   assert.match(page, /suspensionMatches/);
   assert.match(page, /getCareerTransferOffers/);
   assert.match(page, /completeCareerTransfer/);
@@ -86,6 +91,10 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(engine, /tacticalAdvantage/);
   assert.match(engine, /rivalryLevel/);
   assert.match(engine, /CareerMatchRecord/);
+  assert.match(engine, /CareerConsequence/);
+  assert.match(engine, /getConsequenceModifiers/);
+  assert.match(engine, /advanceCareerConsequences/);
+  assert.match(engine, /consequenceNarratives/);
   assert.match(engine, /yellow-card/);
   assert.match(engine, /red-card/);
   assert.match(engine, /offside/);
@@ -116,6 +125,9 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(css, /approach-grid/);
   assert.match(css, /tactical-history-card/);
   assert.match(css, /stat-comparison-row/);
+  assert.match(css, /consequence-command-center/);
+  assert.match(css, /personality-axis-list/);
+  assert.match(css, /result-consequence-report/);
   assert.match(css, /pending-transfer-banner/);
-  await access(new URL("../public/og-v6.png", import.meta.url));
+  await access(new URL("../public/og-v7.png", import.meta.url));
 });

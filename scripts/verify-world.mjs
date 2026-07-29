@@ -1,12 +1,16 @@
 import {
   COUNTRIES,
   WORLD_TEAMS,
+  advanceCareerConsequences,
   advanceWorldSeason,
   completeCareerTransfer,
+  createFixture,
   createInitialWorldPlayers,
   getCareerTransferOffers,
+  getConsequenceModifiers,
   getContractRenewal,
   getWorldRanking,
+  generateMatchPlan,
   migrateCareer,
 } from "../app/game-engine.ts";
 
@@ -56,15 +60,58 @@ const legacyCareer = migrateCareer({
   season: 2026,
   careerSeed: 4012026,
 });
-if (legacyCareer.saveVersion !== 7 || legacyCareer.worldPlayers.length !== expectedPlayers) {
+if (legacyCareer.saveVersion !== 8 || legacyCareer.worldPlayers.length !== expectedPlayers) {
   throw new Error("A migração da 0.3.3 não criou o universo persistente");
 }
 if (legacyCareer.contractUntilSeason <= legacyCareer.season
   || legacyCareer.releaseClause <= 0
   || legacyCareer.pendingTransfer !== null
   || legacyCareer.injuryMatchesRemaining !== 0
-  || legacyCareer.matchHistory.length !== 0) {
-  throw new Error("A migração não criou os novos dados de contrato da 0.4.3");
+  || legacyCareer.matchHistory.length !== 0
+  || !legacyCareer.personality
+  || legacyCareer.activeConsequences.length !== 0
+  || legacyCareer.consequenceHistory.length !== 0
+  || legacyCareer.queuedLifeEvents.length !== 0) {
+  throw new Error("A migração não criou os novos dados de consequências da 0.4.3");
+}
+
+const consequenceBase = migrateCareer({
+  ...legacyCareer,
+  id: "consequence-engine-043",
+  activeConsequences: [{
+    id: "test-pressure",
+    key: "pressao-teste",
+    source: "Teste",
+    title: "Pressão persistente",
+    description: "Efeito controlado para validar o motor.",
+    tone: "mixed",
+    createdMatch: 0,
+    remainingMatches: 2,
+    totalMatches: 2,
+    effects: { performance: 6, fatigue: 8, injuryRisk: 20, cardRisk: 12, coachTrust: -6, transferInterest: 10, income: 5000 },
+    resolutionEvent: "conversa-treinador",
+    resolutionText: "A pressão de teste foi resolvida.",
+  }],
+});
+const consequenceModifiers = getConsequenceModifiers(consequenceBase);
+if (consequenceModifiers.performance < 6 || consequenceModifiers.fatigue !== 8 || consequenceModifiers.transferInterest < 10) {
+  throw new Error("Os efeitos persistentes não foram agregados ao estado da carreira");
+}
+const consequencePlan = generateMatchPlan(consequenceBase, createFixture(consequenceBase));
+if (!consequencePlan.consequenceNarratives.length || consequencePlan.consequenceModifiers.injuryRisk !== 20) {
+  throw new Error("A partida não recebeu as consequências ativas");
+}
+const firstConsequenceTick = advanceCareerConsequences(consequenceBase);
+const secondConsequenceTick = advanceCareerConsequences(migrateCareer({
+  ...consequenceBase,
+  activeConsequences: firstConsequenceTick.activeConsequences,
+  consequenceHistory: firstConsequenceTick.consequenceHistory,
+}));
+if (firstConsequenceTick.activeConsequences[0]?.remainingMatches !== 1
+  || secondConsequenceTick.activeConsequences.length !== 0
+  || secondConsequenceTick.resolved[0]?.resolutionEvent !== "conversa-treinador"
+  || secondConsequenceTick.consequenceHistory[0]?.remainingMatches !== 0) {
+  throw new Error("A duração, resolução ou memória das consequências é inválida");
 }
 const eliteCareer = migrateCareer({
   ...legacyCareer,
@@ -96,6 +143,47 @@ if (careerOffers.length !== 5 || new Set(careerOffers.map((offer) => offer.teamI
 }
 if (JSON.stringify(careerOffers) !== JSON.stringify(repeatedOffers)) {
   throw new Error("As propostas mudaram sem avanço do ciclo de mercado");
+}
+const marketWithBuzz = migrateCareer({
+  ...marketCareer,
+  id: "market-buzz-043",
+  activeConsequences: [{
+    id: "market-buzz",
+    key: "campanha-nacional",
+    source: "Teste",
+    title: "Campanha nacional",
+    description: "Exposição positiva controlada.",
+    tone: "positive",
+    createdMatch: marketCareer.matches,
+    remainingMatches: 4,
+    totalMatches: 4,
+    effects: { transferInterest: 20, reputation: 6 },
+    resolutionEvent: "",
+    resolutionText: "Campanha concluída.",
+  }],
+});
+const marketUnderConflict = migrateCareer({
+  ...marketCareer,
+  id: "market-conflict-043",
+  activeConsequences: [{
+    id: "market-conflict",
+    key: "atrito-patrocinador",
+    source: "Teste",
+    title: "Atrito comercial",
+    description: "Repercussão negativa controlada.",
+    tone: "negative",
+    createdMatch: marketCareer.matches,
+    remainingMatches: 4,
+    totalMatches: 4,
+    effects: { transferInterest: -18, reputation: -6 },
+    resolutionEvent: "",
+    resolutionText: "Atrito concluído.",
+  }],
+});
+const buzzInterest = getCareerTransferOffers(marketWithBuzz).reduce((total, offer) => total + offer.interest, 0);
+const conflictInterest = getCareerTransferOffers(marketUnderConflict).reduce((total, offer) => total + offer.interest, 0);
+if (buzzInterest <= conflictInterest) {
+  throw new Error("As consequências públicas não alteraram o interesse do mercado");
 }
 const acceptedOffer = careerOffers.find((offer) => offer.available);
 if (!acceptedOffer || acceptedOffer.teamId === marketCareer.clubId || acceptedOffer.salary <= 0 || acceptedOffer.transferFee <= 0) {
@@ -208,5 +296,8 @@ console.log(JSON.stringify({
   availableCareerOffers: careerOffers.filter((offer) => offer.available).length,
   superstarOfferFloor: Math.min(...superstarOffers.map((offer) => offer.teamStrength)),
   renewalUntil: renewal.contractUntilSeason,
+  consequencePerformance: consequenceModifiers.performance,
+  consequenceResolution: secondConsequenceTick.resolved[0]?.resolutionEvent,
+  marketConsequenceInterestGap: buzzInterest - conflictInterest,
   serializedBytes,
 }));

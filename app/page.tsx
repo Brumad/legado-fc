@@ -3,6 +3,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Archetype,
+  CareerConsequence,
   CareerMatchRecord,
   CareerState,
   CareerTransferOffer,
@@ -23,6 +24,7 @@ import {
   TEAMS,
   WORLD_TEAMS,
   addDaysToDate,
+  advanceCareerConsequences,
   advanceWorldSeason,
   buildCareerNews,
   completeCareerTransfer,
@@ -33,6 +35,7 @@ import {
   getContractRenewal,
   getCountry,
   getCareerTransferOffers,
+  getConsequenceModifiers,
   getDaysToNextMatch,
   getLeagueDefinition,
   getOverall,
@@ -67,6 +70,8 @@ type MatchResult = {
   minutesPlayed: number;
   energySpent: number;
   approach: MatchApproach;
+  consequenceImpact: string[];
+  consequencePerformance: number;
 };
 type GameSettings = {
   matchSpeed: "1x" | "2x" | "3x";
@@ -112,6 +117,8 @@ const emptyResult: MatchResult = {
   minutesPlayed: 90,
   energySpent: 0,
   approach: "Equilibrado",
+  consequenceImpact: [],
+  consequencePerformance: 0,
 };
 
 function compactNumber(value: number) {
@@ -158,7 +165,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.4.3 · UNIVERSO EM CAMPO</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.4.3 · CONSEQUÊNCIAS</small></div></div>;
 }
 
 function Lobby({
@@ -543,6 +550,11 @@ function Dashboard({
         <div className="condition-chip"><span className={!unavailableReason && career.energy > 70 ? "good" : "warn"} /><div><small>STATUS DO ATLETA</small><strong>{unavailableReason || (career.energy > 78 ? "Pronto para jogar" : career.energy > 60 ? "Atenção à fadiga" : "Recuperação indicada")}</strong></div></div>
       </section>
 
+      {career.activeConsequences.length > 0 && <button className="dashboard-consequence-alert" onClick={() => onNavigate("life")}>
+        <div><span className="overline">CONSEQUÊNCIA ATIVA</span><strong>{career.activeConsequences[0].title}</strong><small>{career.activeConsequences[0].description}</small></div>
+        <div><span>{career.activeConsequences[0].remainingMatches} JOGO(S)</span><b>{matchPreview.consequenceModifiers.performance >= 0 ? "+" : ""}{matchPreview.consequenceModifiers.performance} desempenho</b><em>VER TODAS →</em></div>
+      </button>}
+
       <section className="matchday-hero">
         <div className="matchday-atmosphere" style={{ "--away": fixture.opponent.color } as React.CSSProperties} />
         <div className="matchday-copy">
@@ -794,6 +806,62 @@ function PlayerView({ career }: { career: CareerState }) {
   );
 }
 
+type ConsequenceDraft = {
+  key: string;
+  source: string;
+  title: string;
+  description: string;
+  tone: CareerConsequence["tone"];
+  duration: number;
+  effects: CareerConsequence["effects"];
+  resolutionEvent?: string;
+  resolutionText?: string;
+};
+
+function installConsequence(career: CareerState, draft: ConsequenceDraft) {
+  const consequence: CareerConsequence = {
+    id: `${draft.key}-${career.matches}-${hashText(`${career.careerSeed}:${career.matches}:${draft.key}:${career.updatedAt}`).toString(36)}`,
+    key: draft.key,
+    source: draft.source,
+    title: draft.title,
+    description: draft.description,
+    tone: draft.tone,
+    createdMatch: career.matches,
+    remainingMatches: draft.duration,
+    totalMatches: draft.duration,
+    effects: draft.effects,
+    resolutionEvent: draft.resolutionEvent ?? "",
+    resolutionText: draft.resolutionText ?? draft.description,
+  };
+  return [consequence, ...career.activeConsequences.filter((item) => item.key !== draft.key)].slice(0, 12);
+}
+
+function shiftPersonality(career: CareerState, changes: Partial<CareerState["personality"]>) {
+  return Object.fromEntries(Object.entries(career.personality).map(([key, value]) => [
+    key,
+    Math.max(-100, Math.min(100, value + (changes[key as keyof CareerState["personality"]] ?? 0))),
+  ])) as CareerState["personality"];
+}
+
+const consequenceEffectLabels: Array<[keyof CareerConsequence["effects"], string]> = [
+  ["performance", "desempenho"],
+  ["fatigue", "fadiga"],
+  ["injuryRisk", "risco médico"],
+  ["cardRisk", "risco de cartão"],
+  ["coachTrust", "treinador"],
+  ["squadRelations", "elenco"],
+  ["reputation", "reputação"],
+  ["transferInterest", "mercado"],
+  ["morale", "moral"],
+  ["income", "renda/jogo"],
+];
+
+function consequenceEffectText(consequence: CareerConsequence) {
+  return consequenceEffectLabels
+    .filter(([key]) => consequence.effects[key])
+    .map(([key, label]) => `${Number(consequence.effects[key]) > 0 ? "+" : ""}${consequence.effects[key]} ${label}`);
+}
+
 const lifeEventContent: Record<string, { title: string; text: string; choices: Array<{ id: string; label: string; hint: string }> }> = {
   "primeira-entrevista": {
     title: "A primeira grande entrevista",
@@ -843,16 +911,110 @@ const lifeEventContent: Record<string, { title: string; text: string; choices: A
       { id: "event-refuse-sponsor", label: "Preservar a imagem", hint: "+reputação social" },
     ],
   },
+  "conversa-treinador": {
+    title: "A comissão cobra uma resposta",
+    text: "A repercussão da sua rotina chegou ao treinador. Ele exige uma mudança clara de comportamento antes de devolver toda a confiança.",
+    choices: [
+      { id: "event-apologize-coach", label: "Reconhecer o erro", hint: "+confiança · compromisso futuro" },
+      { id: "event-confront-coach", label: "Contestar a cobrança", hint: "+exposição · risco de perder espaço" },
+    ],
+  },
+  "cobranca-patrocinador": {
+    title: "O patrocinador cobra presença",
+    text: "Uma obrigação comercial coincide com a preparação de uma rodada importante. A decisão afetará dinheiro, energia e sua imagem.",
+    choices: [
+      { id: "event-fulfill-sponsor", label: "Cumprir a agenda", hint: "+dinheiro · +fadiga" },
+      { id: "event-break-sponsor", label: "Priorizar o clube", hint: "+preparo · -imagem pública" },
+    ],
+  },
+  "cobranca-familiar": {
+    title: "A distância virou cobrança",
+    text: "Sua família sente que a carreira sempre vence. Agora será preciso investir tempo na relação ou aceitar uma crise mais longa.",
+    choices: [
+      { id: "event-repair-family", label: "Reorganizar a rotina", hint: "+família · -foco imediato" },
+      { id: "event-delay-family", label: "Adiar novamente", hint: "+forma · crise emocional" },
+    ],
+  },
+  "repercussao-rival": {
+    title: "A rivalidade saiu do controle",
+    text: "A imprensa transformou o duelo pessoal em manchete. O adversário promete marcação especial no próximo encontro.",
+    choices: [
+      { id: "event-cool-rivalry", label: "Encerrar a provocação", hint: "+disciplina · menos cartões" },
+      { id: "event-embrace-rivalry", label: "Assumir o duelo", hint: "+mercado · mais pressão" },
+    ],
+  },
+  "consequencia-medica": {
+    title: "O corpo cobra a escolha",
+    text: "O tratamento acelerado permitiu jogar, mas os exames mostram sobrecarga. A próxima decisão define o risco das semanas seguintes.",
+    choices: [
+      { id: "event-rehab-cycle", label: "Fazer reabilitação", hint: "+saúde · menos desempenho imediato" },
+      { id: "event-keep-playing-hurt", label: "Continuar no limite", hint: "+presença · grande risco de lesão" },
+    ],
+  },
+  "adaptacao-cultural": {
+    title: "A nova casa começa a parecer familiar",
+    text: "Depois das primeiras semanas no exterior, você precisa decidir se mergulha na cultura local ou mantém toda a rotina ligada ao país de origem.",
+    choices: [
+      { id: "event-embrace-country", label: "Abraçar o novo país", hint: "+idioma · +adaptação" },
+      { id: "event-stay-close-home", label: "Preservar suas raízes", hint: "+família · adaptação mais lenta" },
+    ],
+  },
 };
 
 function LifeView({ career, onAction }: { career: CareerState; onAction: (action: string) => void }) {
   const event = lifeEventContent[career.pendingLifeEvent];
   const netWorth = career.bankBalance + career.investments + career.retirementFund - career.debt;
+  const consequenceModifiers = getConsequenceModifiers(career);
+  const personalityRows: Array<[keyof CareerState["personality"], string, string, string]> = [
+    ["professionalism", "Profissionalismo", "Impulsivo", "Profissional"],
+    ["loyalty", "Lealdade", "Oportunista", "Leal"],
+    ["mediaStyle", "Exposição", "Reservado", "Midiático"],
+    ["teamwork", "Coletividade", "Individualista", "Coletivo"],
+    ["ambition", "Ambição", "Acomodado", "Ambicioso"],
+  ];
   return (
     <main className="career-content inner-view">
-      <section className="view-heading"><div><span className="overline">VIDA E LEGADO · 0.3.3</span><h1>O jogador termina. O legado fica.</h1><p>Administre dinheiro, saúde, relações e a imagem que acompanhará sua carreira depois do último jogo.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
+      <section className="view-heading"><div><span className="overline">0.4.3 · CONSEQUÊNCIAS</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
 
-      {event && <section className="life-story-event"><span className="overline">EVENTO ENCADEADO</span><h2>{event.title}</h2><p>{event.text}</p><div>{event.choices.map((choice) => <button onClick={() => onAction(choice.id)} key={choice.id}><strong>{choice.label}</strong><small>{choice.hint}</small></button>)}</div></section>}
+      {event && <section className="life-story-event"><span className="overline">EVENTO ENCADEADO · {career.queuedLifeEvents.length} NA FILA</span><h2>{event.title}</h2><p>{event.text}</p><div>{event.choices.map((choice) => <button onClick={() => onAction(choice.id)} key={choice.id}><strong>{choice.label}</strong><small>{choice.hint}</small></button>)}</div></section>}
+
+      <section className="consequence-command-center">
+        <div className="consequence-heading">
+          <div><span className="overline">MEMÓRIA DA CARREIRA</span><h2>Consequências ativas</h2><p>Os efeitos são aplicados de verdade até o contador chegar a zero.</p></div>
+          <div className="consequence-total"><strong>{career.activeConsequences.length}</strong><span>EM ANDAMENTO</span></div>
+        </div>
+        {career.activeConsequences.length ? <div className="consequence-card-grid">
+          {career.activeConsequences.map((consequence) => <article className={`consequence-card ${consequence.tone}`} key={consequence.id}>
+            <div><span>{consequence.source}</span><b>{consequence.remainingMatches} jogo(s)</b></div>
+            <h3>{consequence.title}</h3>
+            <p>{consequence.description}</p>
+            <div className="consequence-effects">{consequenceEffectText(consequence).map((effect) => <small key={effect}>{effect}</small>)}</div>
+            <i><em style={{ width: `${Math.round((consequence.remainingMatches / consequence.totalMatches) * 100)}%` }} /></i>
+          </article>)}
+        </div> : <div className="empty-consequence"><strong>Nenhuma consequência ativa</strong><span>Suas próximas decisões podem mudar este painel.</span></div>}
+        <div className="consequence-modifier-strip">
+          <span>JOGO <b>{consequenceModifiers.performance >= 0 ? "+" : ""}{consequenceModifiers.performance}</b></span>
+          <span>FADIGA <b>{consequenceModifiers.fatigue >= 0 ? "+" : ""}{consequenceModifiers.fatigue}</b></span>
+          <span>LESÃO <b>{consequenceModifiers.injuryRisk >= 0 ? "+" : ""}{consequenceModifiers.injuryRisk}</b></span>
+          <span>CARTÕES <b>{consequenceModifiers.cardRisk >= 0 ? "+" : ""}{consequenceModifiers.cardRisk}</b></span>
+          <span>MERCADO <b>{consequenceModifiers.transferInterest >= 0 ? "+" : ""}{consequenceModifiers.transferInterest}</b></span>
+        </div>
+      </section>
+
+      <section className="consequence-profile-grid">
+        <article className="hud-card personality-card">
+          <div className="card-heading"><div><span className="overline">PERSONALIDADE DINÂMICA</span><h3>Quem suas escolhas estão formando</h3></div></div>
+          <div className="personality-axis-list">{personalityRows.map(([key, label, low, high]) => {
+            const value = career.personality[key];
+            return <div key={key}><span><b>{low}</b><strong>{label}</strong><b>{high}</b></span><i><em style={{ left: `${(value + 100) / 2}%` }} /></i><small>{value > 20 ? high : value < -20 ? low : "Equilibrado"} · {value > 0 ? "+" : ""}{value}</small></div>;
+          })}</div>
+        </article>
+        <article className="hud-card consequence-history-card">
+          <div className="card-heading"><div><span className="overline">EFEITOS ENCERRADOS</span><h3>O que já virou história</h3></div><span className="status-tag">{career.consequenceHistory.length}</span></div>
+          <div className="consequence-history-list">{career.consequenceHistory.slice(0, 5).map((consequence) => <div key={consequence.id}><span className={consequence.tone} /><div><strong>{consequence.title}</strong><small>{consequence.resolutionText}</small></div><b>após {consequence.totalMatches} jogo(s)</b></div>)}</div>
+          {!career.consequenceHistory.length && <div className="empty-history">As consequências concluídas serão registradas aqui.</div>}
+        </article>
+      </section>
 
       <section className="life-dashboard-grid">
         <article className="hud-card life-module finance-module"><div className="card-heading"><div><span className="overline">PLANEJAMENTO FINANCEIRO</span><h3>Dinheiro e futuro</h3></div><span className="status-tag">{money(career.monthlyExpenses)}/mês</span></div><div className="life-metric-grid"><div><span>SALDO</span><strong>{money(career.bankBalance)}</strong></div><div><span>INVESTIDO</span><strong>{money(career.investments)}</strong></div><div><span>DÍVIDA</span><strong>{money(career.debt)}</strong></div><div><span>APOSENTADORIA</span><strong>{money(career.retirementFund)}</strong></div></div><div className="life-action-list"><button disabled={career.bankBalance < 50_000} onClick={() => onAction("invest")}><span>Investir R$ 50 mil</span><small>Cria patrimônio de longo prazo</small></button><button disabled={career.bankBalance < 25_000} onClick={() => onAction("retirement")}><span>Guardar R$ 25 mil</span><small>Fundo para depois dos gramados</small></button><button disabled={!career.debt || career.bankBalance < 20_000} onClick={() => onAction("pay-debt")}><span>Amortizar dívida</span><small>Até R$ 20 mil</small></button></div></article>
@@ -938,7 +1100,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   const format = getLeagueDefinition(career.countryId, career.division).format;
   return (
     <aside className="developer-panel">
-      <div><span>DEV 0.4.3</span><strong>Laboratório Universo em Campo</strong><small>Alterações são aplicadas somente a este slot.</small></div>
+      <div><span>DEV 0.4.3</span><strong>Laboratório de Consequências</strong><small>Alterações são aplicadas somente a este slot.</small></div>
       <section>
         <button onClick={() => onAction("unlock")}>LIBERAR TUDO</button>
         <button onClick={() => onAction("max-player")}>MAXIMIZAR ATLETA</button>
@@ -949,6 +1111,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
         <button onClick={() => onAction("reset-week")}>LIBERAR PREPARAÇÕES</button>
         <button onClick={() => onAction("injury")}>TESTAR LESÃO</button>
         <button onClick={() => onAction("suspension")}>TESTAR SUSPENSÃO</button>
+        <button onClick={() => onAction("consequences")}>TESTAR CONSEQUÊNCIAS</button>
         <button onClick={() => onAction("market-ready")}>LIBERAR MERCADO</button>
         <button onClick={() => onAction("legacy")}>TESTAR PÓS-CARREIRA</button>
         <button onClick={() => onAction("world-five")}>MUNDO +5 TEMPORADAS</button>
@@ -1073,7 +1236,7 @@ function MatchScreen({
   const [toast, setToast] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const interval = settings.matchSpeed === "1x" ? 280 : settings.matchSpeed === "2x" ? 165 : 92;
-  const liveEnergy = Math.max(8, career.energy - Math.round(minute * .43) - fatigueLoad);
+  const liveEnergy = Math.max(8, career.energy - plan.consequenceModifiers.fatigue - Math.round(minute * .43) - fatigueLoad);
   const opponentPosture = score[1] > score[0] && minute >= 62
     ? "Protegendo a vantagem"
     : score[1] < score[0] && minute >= 58
@@ -1125,6 +1288,7 @@ function MatchScreen({
         if (event.kind === "substitution" && event.affectsPlayer) {
           const coachMakesChange = liveEnergy <= 42
             || rating < 6.15
+            || (career.coachTrust + plan.consequenceModifiers.coachTrust < 42 && event.minute >= 58)
             || (score[0] > score[1] && event.minute >= 70)
             || (event.minute >= 76 && plan.opponentTactic.tempo >= 78);
           if (coachMakesChange) {
@@ -1152,7 +1316,7 @@ function MatchScreen({
       setFeed((current) => [...current, { minute, text: `${moment.title}. Agora a decisão é sua.`, tone: "chance" }]);
     }
     if (minute === 90) setPlaying(false);
-  }, [minute, approach, career.name, completed, fixture.seed, liveEnergy, plan, processedEvents, rating, score, sentOff, subbedOut]);
+  }, [minute, approach, career.coachTrust, career.name, completed, fixture.seed, liveEnergy, plan, processedEvents, rating, score, sentOff, subbedOut]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -1174,7 +1338,17 @@ function MatchScreen({
         : approach === "Disciplinado"
           ? .012
           : 0;
-    const skill = .58 + career.level * .009 + career.morale / 2400 + career.formBoost / 180 + chasingGameBoost + approachSkill + plan.tacticalAdvantage / 1_100 - fatigue - difficultyPenalty - opponentAdjustment;
+    const skill = .58
+      + career.level * .009
+      + (career.morale + plan.consequenceModifiers.morale) / 2400
+      + career.formBoost / 180
+      + chasingGameBoost
+      + approachSkill
+      + plan.tacticalAdvantage / 1_100
+      + plan.consequenceModifiers.performance / 420
+      - fatigue
+      - difficultyPenalty
+      - opponentAdjustment;
     const success = settings.developerMode || target.roll < skill - target.risk;
     const secondaryRoll = (target.roll * 997.37) % 1;
     const canCreateGoal = settings.developerMode || goals + assists === 0;
@@ -1193,7 +1367,7 @@ function MatchScreen({
       (activeMoment.kind === "dribble" && target.risk > .3 && secondaryRoll < .08) ||
       (activeMoment.kind === "counter" && target.risk > .25 && secondaryRoll < .12)
     );
-    const assist = canCreateGoal && success && ["pass", "corner", "counter"].includes(activeMoment.kind) && secondaryRoll < .14 + target.risk * .2 + (approach === "Criativo" ? .04 : 0);
+    const assist = canCreateGoal && success && ["pass", "corner", "counter"].includes(activeMoment.kind) && secondaryRoll < .14 + target.risk * .2 + (approach === "Criativo" ? .04 : 0) + plan.consequenceModifiers.squadRelations / 900;
     const defensiveError = !success && activeMoment.kind === "defense" && secondaryRoll > .82;
     const earned = success ? target.reward : 3;
     const fatigueMultiplier = approach === "Disciplinado" ? .72 : approach === "Agressivo" ? 1.3 : approach === "Criativo" ? 1.08 : 1;
@@ -1259,6 +1433,8 @@ function MatchScreen({
       minutesPlayed: plan.playerAvailable ? exitMinute || 90 : 0,
       energySpent: Math.max(0, career.energy - liveEnergy),
       approach: approach ?? "Equilibrado",
+      consequenceImpact: plan.consequenceNarratives,
+      consequencePerformance: plan.consequenceModifiers.performance,
     });
   }
 
@@ -1306,6 +1482,7 @@ function MatchScreen({
                 <div><span>VULNERABILIDADES</span>{plan.opponentTactic.weaknesses.map((item) => <b key={item}>→ {item}</b>)}</div>
                 <div><span>SUA INSTRUÇÃO</span><strong>{plan.tacticalInstruction}</strong><small>Vantagem tática {plan.tacticalAdvantage >= 0 ? "+" : ""}{plan.tacticalAdvantage} · rivalidade {plan.rivalryLevel}%</small></div>
               </div>
+              {plan.consequenceNarratives.length > 0 && <div className="briefing-consequences"><span>O QUE VOCÊ CARREGA PARA O JOGO</span>{plan.consequenceNarratives.map((item) => <b key={item}>◆ {item}</b>)}<small>Impacto combinado no desempenho: {plan.consequenceModifiers.performance >= 0 ? "+" : ""}{plan.consequenceModifiers.performance}</small></div>}
               {plan.playerAvailable ? <div className="approach-grid">{matchApproaches.map((item) => <button onClick={() => chooseApproach(item.id)} key={item.id}><span>{item.icon}</span><strong>{item.title}</strong><small>{item.description}</small><em>{item.effect}</em></button>)}</div> : <button className="watch-match-button" onClick={() => chooseApproach("Equilibrado")}>ACOMPANHAR SIMULAÇÃO · {plan.unavailableReason}</button>}
             </div>}
             {activeMoment?.targets.map((target) => <button className="decision-target" style={{ left: `${target.x}%`, top: `${target.y}%` }} onClick={() => resolveMoment(target)} aria-label={`${target.label}: ${target.hint}`} key={target.id}><span>{momentIcon(activeMoment.kind)}</span><strong>{target.label}</strong><small>{target.hint} · +{target.reward} XP</small></button>)}
@@ -1342,6 +1519,7 @@ function ResultScreen({ career, result, fixture, onContinue }: { career: CareerS
         <div className="result-player-v2"><PlayerAvatar career={career} /><div><small>{career.position.toUpperCase()} · {result.minutesPlayed} MINUTOS · {result.approach.toUpperCase()}</small><strong>{career.name}</strong><span>{result.goals} gol(s) · {result.assists} assistência(s){result.redCard ? " · expulso" : result.injuryStatus ? ` · ${result.injuryStatus} (${result.injuryMatches} jogo(s))` : result.wasSubstituted ? " · substituído" : ""}</span></div><div className="result-rating"><small>NOTA</small><strong>{result.rating.toFixed(1)}</strong></div></div>
         <section className="match-report-2">
           <div className="report-tactic"><span>LEITURA TÁTICA DO RIVAL</span><strong>{result.tacticFormation} · {result.tacticName} × {result.approach}</strong><small>{result.unionGoals > result.opponentGoals ? "Seu time encontrou respostas para o plano adversário." : result.unionGoals === result.opponentGoals ? "Os dois planos se neutralizaram durante boa parte do jogo." : "O adversário conseguiu impor seu plano nos momentos decisivos."}</small></div>
+          {result.consequenceImpact.length > 0 && <div className="result-consequence-report"><span>CONSEQUÊNCIAS EM CAMPO</span><strong>{result.consequencePerformance >= 0 ? "+" : ""}{result.consequencePerformance} no modificador de atuação</strong>{result.consequenceImpact.map((item) => <small key={item}>{item}</small>)}</div>}
           <div className="possession-report"><span>{result.statistics.playerTeam.possession}%</span><i><em style={{ width: `${result.statistics.playerTeam.possession}%` }} /></i><span>{result.statistics.opponent.possession}%</span></div>
           <div className="stat-comparison-head"><span>{career.clubShort}</span><b>ESTATÍSTICAS</b><span>{fixture.opponent.short}</span></div>
           {[
@@ -1433,7 +1611,7 @@ export default function Home() {
     if (!target) return;
     const blob = new Blob([JSON.stringify({
       product: "Legado FC",
-      saveVersion: 7,
+      saveVersion: 8,
       exportedAt: new Date().toISOString(),
       career: target,
     })], { type: "application/json" });
@@ -1571,6 +1749,7 @@ export default function Home() {
   function handleLifeAction(action: string) {
     updateCareer((current) => {
       const history = (text: string) => [text, ...current.lifeEventHistory].slice(0, 20);
+      const consequences = (draft: ConsequenceDraft) => installConsequence(current, draft);
       if (action === "invest" && current.bankBalance >= 50_000) return { ...current, bankBalance: current.bankBalance - 50_000, investments: current.investments + 50_000, lifeEventHistory: history("Separou R$ 50 mil para investimentos."), updatedAt: Date.now() };
       if (action === "retirement" && current.bankBalance >= 25_000) return { ...current, bankBalance: current.bankBalance - 25_000, retirementFund: current.retirementFund + 25_000, lifeEventHistory: history("Começou a construir o fundo de aposentadoria."), updatedAt: Date.now() };
       if (action === "pay-debt" && current.debt > 0 && current.bankBalance >= 20_000) {
@@ -1583,11 +1762,11 @@ export default function Home() {
       if (action === "leisure" && current.bankBalance >= 2_000) return { ...current, bankBalance: current.bankBalance - 2_000, morale: Math.min(100, current.morale + 8), familyBond: Math.min(100, current.familyBond + 4), updatedAt: Date.now() };
       if (action === "social-post") return { ...current, socialFollowers: current.socialFollowers + 900 + (hashText(`${current.matches}:post`) % 1800), socialReputation: Math.max(10, Math.min(100, current.socialReputation + ((hashText(`${current.matches}:tone`) % 7) - 2))), updatedAt: Date.now() };
       if (action === "interview") return { ...current, pendingLifeEvent: "primeira-entrevista", updatedAt: Date.now() };
-      if (action === "sponsor" && current.reputation >= 25 && current.sponsorship === "Sem patrocinador") return { ...current, sponsorship: "Vértice Sports", bankBalance: current.bankBalance + 120_000, socialFollowers: current.socialFollowers + 12_000, lifeEventHistory: history("Assinou o primeiro patrocínio pessoal."), updatedAt: Date.now() };
-      if (action === "social-project" && current.socialProject === "Nenhum" && current.bankBalance >= 40_000) return { ...current, bankBalance: current.bankBalance - 40_000, socialProject: `Instituto ${current.name.split(" ")[0]}`, reputation: Math.min(100, current.reputation + 5), socialReputation: Math.min(100, current.socialReputation + 12), lifeEventHistory: history(`Fundou um projeto social ligado ao ${current.clubName}.`), updatedAt: Date.now() };
-      if (action === "meet-partner" && current.relationshipStatus === "Solteiro") return { ...current, relationshipStatus: "Namorando", partnerName: current.countryId === "BR" ? "Marina Alves" : current.countryId === "JP" ? "Aiko Mori" : "Sofia Laurent", morale: Math.min(100, current.morale + 8), lifeEventHistory: history("Começou um relacionamento amoroso."), updatedAt: Date.now() };
-      if (action === "marry" && current.relationshipStatus === "Namorando" && current.bankBalance >= 60_000) return { ...current, relationshipStatus: "Casado", bankBalance: current.bankBalance - 60_000, familyBond: Math.min(100, current.familyBond + 15), monthlyExpenses: current.monthlyExpenses + 2500, lifeEventHistory: history(`Casou-se com ${current.partnerName}.`), updatedAt: Date.now() };
-      if (action === "child" && current.relationshipStatus === "Casado") return { ...current, children: current.children + 1, monthlyExpenses: current.monthlyExpenses + 3000, familyBond: Math.min(100, current.familyBond + 12), lifeEventHistory: history("A família cresceu com a chegada de um filho."), updatedAt: Date.now() };
+      if (action === "sponsor" && current.reputation >= 25 && current.sponsorship === "Sem patrocinador") return { ...current, sponsorship: "Vértice Sports", bankBalance: current.bankBalance + 120_000, socialFollowers: current.socialFollowers + 12_000, activeConsequences: consequences({ key: "agenda-publicitaria", source: "Patrocínio", title: "Agenda comercial", description: "A marca aumenta sua exposição e ocupa parte da recuperação entre partidas.", tone: "mixed", duration: 6, effects: { fatigue: 4, transferInterest: 7, reputation: 3, income: 5000 }, resolutionEvent: "cobranca-patrocinador", resolutionText: "O contrato chegou ao primeiro ponto de revisão." }), lifeEventHistory: history("Assinou o primeiro patrocínio pessoal."), updatedAt: Date.now() };
+      if (action === "social-project" && current.socialProject === "Nenhum" && current.bankBalance >= 40_000) return { ...current, bankBalance: current.bankBalance - 40_000, socialProject: `Instituto ${current.name.split(" ")[0]}`, reputation: Math.min(100, current.reputation + 5), socialReputation: Math.min(100, current.socialReputation + 12), personality: shiftPersonality(current, { loyalty: 10, teamwork: 6 }), activeConsequences: consequences({ key: "idolo-comunitario", source: "Projeto social", title: "Ídolo comunitário", description: "O projeto aproxima torcida, marcas e clube de origem da sua carreira.", tone: "positive", duration: 8, effects: { reputation: 4, transferInterest: 5, morale: 2 }, resolutionText: "O primeiro ciclo do projeto consolidou sua imagem fora de campo." }), lifeEventHistory: history(`Fundou um projeto social ligado ao ${current.clubName}.`), updatedAt: Date.now() };
+      if (action === "meet-partner" && current.relationshipStatus === "Solteiro") return { ...current, relationshipStatus: "Namorando", partnerName: current.countryId === "BR" ? "Marina Alves" : current.countryId === "JP" ? "Aiko Mori" : "Sofia Laurent", morale: Math.min(100, current.morale + 8), activeConsequences: consequences({ key: "novo-relacionamento", source: "Vida pessoal", title: "Nova estabilidade emocional", description: "O relacionamento melhora a moral, mas pede espaço na agenda.", tone: "positive", duration: 4, effects: { morale: 3, performance: 1, fatigue: 1 }, resolutionText: "A nova relação encontrou espaço na rotina da carreira." }), lifeEventHistory: history("Começou um relacionamento amoroso."), updatedAt: Date.now() };
+      if (action === "marry" && current.relationshipStatus === "Namorando" && current.bankBalance >= 60_000) return { ...current, relationshipStatus: "Casado", bankBalance: current.bankBalance - 60_000, familyBond: Math.min(100, current.familyBond + 15), monthlyExpenses: current.monthlyExpenses + 2500, personality: shiftPersonality(current, { loyalty: 10 }), activeConsequences: consequences({ key: "estabilidade-familiar", source: "Casamento", title: "Base familiar", description: "A estabilidade em casa protege a moral durante semanas difíceis.", tone: "positive", duration: 8, effects: { morale: 4, performance: 2, fatigue: -2 }, resolutionText: "A família se adaptou à nova rotina." }), lifeEventHistory: history(`Casou-se com ${current.partnerName}.`), updatedAt: Date.now() };
+      if (action === "child" && current.relationshipStatus === "Casado") return { ...current, children: current.children + 1, monthlyExpenses: current.monthlyExpenses + 3000, familyBond: Math.min(100, current.familyBond + 12), activeConsequences: consequences({ key: "nova-paternidade", source: "Família", title: "Noites curtas, motivação enorme", description: "A chegada de um filho aumenta a motivação e também o cansaço da rotina.", tone: "mixed", duration: 6, effects: { morale: 5, fatigue: 7, performance: 1 }, resolutionText: "A nova rotina familiar encontrou equilíbrio." }), lifeEventHistory: history("A família cresceu com a chegada de um filho."), updatedAt: Date.now() };
       if (action === "family-time") return { ...current, bankBalance: Math.max(0, current.bankBalance - 2500), familyBond: Math.min(100, current.familyBond + 10), morale: Math.min(100, current.morale + 4), updatedAt: Date.now() };
       if (action === "squad-dinner") return { ...current, bankBalance: Math.max(0, current.bankBalance - 4500), squadRelations: Math.min(100, current.squadRelations + 10), coachTrust: Math.min(100, current.coachTrust + 2), updatedAt: Date.now() };
       if (action === "treatment" && current.injuryStatus !== "Apto" && current.bankBalance >= 18_000) return { ...current, bankBalance: current.bankBalance - 18_000, injuryStatus: "Apto", injuryMatchesRemaining: 0, injuryRisk: Math.max(5, current.injuryRisk - 20), energy: Math.min(100, current.energy + 15), updatedAt: Date.now() };
@@ -1595,18 +1774,31 @@ export default function Home() {
       if (action === "future-coach") return { ...current, futurePath: "Treinador", coachTrust: Math.min(100, current.coachTrust + 4), lifeEventHistory: history("Começou a estudar para se tornar treinador."), updatedAt: Date.now() };
       if (action === "future-agent") return { ...current, futurePath: "Empresário", socialReputation: Math.min(100, current.socialReputation + 4), lifeEventHistory: history("Começou a construir uma rede para virar empresário."), updatedAt: Date.now() };
 
-      if (action === "event-humble") return { ...current, squadRelations: Math.min(100, current.squadRelations + 8), discipline: Math.min(100, current.discipline + 5), pendingLifeEvent: "convite-festa", lifeEventHistory: history("Dividiu os méritos com o elenco em uma entrevista."), updatedAt: Date.now() };
-      if (action === "event-bold") return { ...current, socialFollowers: current.socialFollowers + 5000, socialReputation: Math.min(100, current.socialReputation + 6), lifeFlags: [...new Set([...current.lifeFlags, "rivalidade-publica"])], pendingLifeEvent: "rival-provocou", lifeEventHistory: history("Assumiu publicamente o papel de protagonista."), updatedAt: Date.now() };
-      if (action === "event-party") return { ...current, morale: Math.min(100, current.morale + 10), energy: Math.max(25, current.energy - 15), discipline: Math.max(10, current.discipline - 12), injuryRisk: Math.min(90, current.injuryRisk + 8), pendingLifeEvent: "decisao-medica", lifeFlags: [...new Set([...current.lifeFlags, "noite-indisciplinada"])], lifeEventHistory: history("Foi a uma festa antes do treino e chegou abaixo do ideal."), updatedAt: Date.now() };
-      if (action === "event-skip-party") return { ...current, coachTrust: Math.min(100, current.coachTrust + 5), squadRelations: Math.max(20, current.squadRelations - 5), pendingLifeEvent: "familia-distante", lifeEventHistory: history("Recusou uma festa para preservar a preparação."), updatedAt: Date.now() };
-      if (action === "event-reply-rival") return { ...current, socialFollowers: current.socialFollowers + 3500, morale: Math.min(100, current.morale + 4), discipline: Math.max(10, current.discipline - 5), pendingLifeEvent: "familia-distante", lifeEventHistory: history("Respondeu a um rival e aumentou a tensão do confronto."), updatedAt: Date.now() };
-      if (action === "event-ignore-rival") return { ...current, discipline: Math.min(100, current.discipline + 6), pendingLifeEvent: "familia-distante", lifeEventHistory: history("Ignorou uma provocação pública."), updatedAt: Date.now() };
-      if (action === "event-visit-family") return { ...current, bankBalance: Math.max(0, current.bankBalance - 8000), familyBond: Math.min(100, current.familyBond + 20), pendingLifeEvent: "proposta-publicitaria", lifeEventHistory: history("Interrompeu a rotina para visitar a família."), updatedAt: Date.now() };
-      if (action === "event-focus-career") return { ...current, formBoost: Math.min(10, current.formBoost + 2), familyBond: Math.max(10, current.familyBond - 15), pendingLifeEvent: "decisao-medica", lifeEventHistory: history("Priorizou a carreira e se afastou da família."), updatedAt: Date.now() };
-      if (action === "event-rest") return { ...current, injuryStatus: "Apto", injuryMatchesRemaining: 0, injuryRisk: 5, energy: Math.min(100, current.energy + 20), pendingLifeEvent: "proposta-publicitaria", lifeEventHistory: history("Respeitou o repouso indicado pelo departamento médico."), updatedAt: Date.now() };
-      if (action === "event-injection") return { ...current, injuryStatus: "Jogando com dor", injuryMatchesRemaining: 0, injuryRisk: Math.min(95, current.injuryRisk + 25), formBoost: Math.min(10, current.formBoost + 2), pendingLifeEvent: "proposta-publicitaria", lifeEventHistory: history("Aceitou tratamento acelerado para continuar jogando."), updatedAt: Date.now() };
-      if (action === "event-sign-sponsor") return { ...current, sponsorship: "Vértice Sports", bankBalance: current.bankBalance + 180_000, socialFollowers: current.socialFollowers + 25_000, pendingLifeEvent: "", lifeEventHistory: history("Aceitou uma grande campanha publicitária."), updatedAt: Date.now() };
-      if (action === "event-refuse-sponsor") return { ...current, socialReputation: Math.min(100, current.socialReputation + 10), pendingLifeEvent: "", lifeEventHistory: history("Recusou uma campanha para proteger sua imagem."), updatedAt: Date.now() };
+      if (action === "event-humble") return { ...current, squadRelations: Math.min(100, current.squadRelations + 8), discipline: Math.min(100, current.discipline + 5), personality: shiftPersonality(current, { teamwork: 12, mediaStyle: -5 }), activeConsequences: consequences({ key: "vestiario-unido", source: "Entrevista", title: "Vestiário unido", description: "Os companheiros procuram mais combinações com você nos momentos decisivos.", tone: "positive", duration: 4, effects: { performance: 2, squadRelations: 5, coachTrust: 2 }, resolutionText: "O gesto coletivo virou parte da sua imagem no elenco." }), pendingLifeEvent: "convite-festa", lifeEventHistory: history("Dividiu os méritos com o elenco em uma entrevista."), updatedAt: Date.now() };
+      if (action === "event-bold") return { ...current, socialFollowers: current.socialFollowers + 5000, socialReputation: Math.min(100, current.socialReputation + 6), personality: shiftPersonality(current, { ambition: 12, mediaStyle: 10, teamwork: -5 }), activeConsequences: consequences({ key: "holofotes", source: "Entrevista", title: "Holofotes sobre você", description: "A declaração aumenta o interesse do mercado, a pressão e a atenção dos marcadores.", tone: "mixed", duration: 4, effects: { performance: 2, cardRisk: 4, transferInterest: 7, reputation: 3 }, resolutionEvent: "repercussao-rival", resolutionText: "A provocação pública chegou a um novo capítulo." }), lifeFlags: [...new Set([...current.lifeFlags, "rivalidade-publica"])], pendingLifeEvent: "", lifeEventHistory: history("Assumiu publicamente o papel de protagonista."), updatedAt: Date.now() };
+      if (action === "event-party") return { ...current, morale: Math.min(100, current.morale + 10), energy: Math.max(25, current.energy - 15), discipline: Math.max(10, current.discipline - 12), injuryRisk: Math.min(90, current.injuryRisk + 8), personality: shiftPersonality(current, { professionalism: -16, teamwork: 4 }), activeConsequences: consequences({ key: "noite-indisciplinada", source: "Vida social", title: "Noite indisciplinada", description: "O treino ruim gera desconfiança da comissão e deixa o corpo mais vulnerável.", tone: "negative", duration: 3, effects: { performance: -4, fatigue: 8, injuryRisk: 16, coachTrust: -6, cardRisk: 8 }, resolutionEvent: "conversa-treinador", resolutionText: "A comissão decidiu cobrar formalmente sua conduta." }), lifeFlags: [...new Set([...current.lifeFlags, "noite-indisciplinada"])], pendingLifeEvent: "", lifeEventHistory: history("Foi a uma festa antes do treino e chegou abaixo do ideal."), updatedAt: Date.now() };
+      if (action === "event-skip-party") return { ...current, coachTrust: Math.min(100, current.coachTrust + 5), squadRelations: Math.max(20, current.squadRelations - 5), personality: shiftPersonality(current, { professionalism: 12, teamwork: -3 }), activeConsequences: consequences({ key: "foco-profissional", source: "Rotina", title: "Preparação exemplar", description: "A comissão percebe sua escolha e oferece mais liberdade tática.", tone: "positive", duration: 3, effects: { performance: 2, coachTrust: 5, injuryRisk: -5 }, resolutionText: "A boa impressão foi incorporada à confiança do treinador." }), pendingLifeEvent: "familia-distante", lifeEventHistory: history("Recusou uma festa para preservar a preparação."), updatedAt: Date.now() };
+      if (action === "event-reply-rival") return { ...current, socialFollowers: current.socialFollowers + 3500, morale: Math.min(100, current.morale + 4), discipline: Math.max(10, current.discipline - 5), personality: shiftPersonality(current, { mediaStyle: 9, ambition: 5, professionalism: -5 }), activeConsequences: consequences({ key: "duelo-pessoal", source: "Rivalidade", title: "Duelo pessoal", description: "O próximo adversário entra mais agressivo, enquanto olheiros acompanham sua resposta.", tone: "mixed", duration: 4, effects: { performance: 3, cardRisk: 13, transferInterest: 6, reputation: 2 }, resolutionEvent: "repercussao-rival", resolutionText: "A rivalidade voltou ao centro das manchetes." }), pendingLifeEvent: "", lifeEventHistory: history("Respondeu a um rival e aumentou a tensão do confronto."), updatedAt: Date.now() };
+      if (action === "event-ignore-rival") return { ...current, discipline: Math.min(100, current.discipline + 6), personality: shiftPersonality(current, { professionalism: 7, mediaStyle: -7 }), activeConsequences: consequences({ key: "foco-silencioso", source: "Rivalidade", title: "Foco silencioso", description: "A ausência de provocação reduz contatos desnecessários e mantém o plano sob controle.", tone: "positive", duration: 3, effects: { performance: 2, cardRisk: -10, coachTrust: 2 }, resolutionText: "A rivalidade esfriou sem prejudicar a preparação." }), pendingLifeEvent: "familia-distante", lifeEventHistory: history("Ignorou uma provocação pública."), updatedAt: Date.now() };
+      if (action === "event-visit-family") return { ...current, bankBalance: Math.max(0, current.bankBalance - 8000), familyBond: Math.min(100, current.familyBond + 20), personality: shiftPersonality(current, { loyalty: 12, ambition: -2 }), activeConsequences: consequences({ key: "base-emocional", source: "Família", title: "Base emocional renovada", description: "O apoio familiar protege sua moral quando o resultado não aparece.", tone: "positive", duration: 4, effects: { performance: 2, fatigue: -4, morale: 4 }, resolutionText: "A visita recuperou um vínculo importante da carreira." }), pendingLifeEvent: "proposta-publicitaria", lifeEventHistory: history("Interrompeu a rotina para visitar a família."), updatedAt: Date.now() };
+      if (action === "event-focus-career") return { ...current, formBoost: Math.min(10, current.formBoost + 2), familyBond: Math.max(10, current.familyBond - 15), personality: shiftPersonality(current, { ambition: 12, loyalty: -8 }), activeConsequences: consequences({ key: "distancia-familiar", source: "Família", title: "Distância familiar", description: "O foco melhora a forma agora, mas a tensão emocional começa a crescer.", tone: "mixed", duration: 5, effects: { performance: 2, morale: -5, transferInterest: 3 }, resolutionEvent: "cobranca-familiar", resolutionText: "A família decidiu que não pode mais adiar a conversa." }), pendingLifeEvent: "", lifeEventHistory: history("Priorizou a carreira e se afastou da família."), updatedAt: Date.now() };
+      if (action === "event-rest") return { ...current, injuryStatus: "Apto", injuryMatchesRemaining: 0, injuryRisk: 5, energy: Math.min(100, current.energy + 20), personality: shiftPersonality(current, { professionalism: 8 }), activeConsequences: consequences({ key: "recuperacao-responsavel", source: "Departamento médico", title: "Recuperação responsável", description: "O corpo responde ao descanso e a comissão reduz a carga preventiva.", tone: "positive", duration: 3, effects: { injuryRisk: -18, fatigue: -5, coachTrust: 2 }, resolutionText: "O ciclo médico terminou sem recaída." }), pendingLifeEvent: "proposta-publicitaria", lifeEventHistory: history("Respeitou o repouso indicado pelo departamento médico."), updatedAt: Date.now() };
+      if (action === "event-injection") return { ...current, injuryStatus: "Jogando com dor", injuryMatchesRemaining: 0, injuryRisk: Math.min(95, current.injuryRisk + 25), formBoost: Math.min(10, current.formBoost + 2), personality: shiftPersonality(current, { ambition: 8, professionalism: -5 }), activeConsequences: consequences({ key: "jogando-no-limite", source: "Decisão médica", title: "Jogando no limite", description: "Você segue disponível, mas fadiga e risco de lesão aumentam a cada partida.", tone: "negative", duration: 4, effects: { performance: 3, injuryRisk: 34, fatigue: 7 }, resolutionEvent: "consequencia-medica", resolutionText: "A sobrecarga voltou a exigir uma decisão médica." }), pendingLifeEvent: "", lifeEventHistory: history("Aceitou tratamento acelerado para continuar jogando."), updatedAt: Date.now() };
+      if (action === "event-sign-sponsor") return { ...current, sponsorship: "Vértice Sports", bankBalance: current.bankBalance + 180_000, socialFollowers: current.socialFollowers + 25_000, personality: shiftPersonality(current, { mediaStyle: 12, ambition: 5 }), activeConsequences: consequences({ key: "agenda-publicitaria", source: "Patrocínio", title: "Agenda comercial intensa", description: "A campanha aumenta sua projeção e reduz parte do tempo de recuperação.", tone: "mixed", duration: 6, effects: { fatigue: 5, transferInterest: 9, reputation: 4, income: 7000 }, resolutionEvent: "cobranca-patrocinador", resolutionText: "A marca pediu uma nova contrapartida antes de renovar." }), pendingLifeEvent: "", lifeEventHistory: history("Aceitou uma grande campanha publicitária."), updatedAt: Date.now() };
+      if (action === "event-refuse-sponsor") return { ...current, socialReputation: Math.min(100, current.socialReputation + 10), personality: shiftPersonality(current, { mediaStyle: -8, loyalty: 4 }), activeConsequences: consequences({ key: "imagem-preservada", source: "Imagem pública", title: "Imagem preservada", description: "A decisão reduz exposição e reforça a percepção de foco esportivo.", tone: "positive", duration: 3, effects: { coachTrust: 2, reputation: 2, fatigue: -3 }, resolutionText: "A recusa foi entendida como coerência de imagem." }), pendingLifeEvent: "", lifeEventHistory: history("Recusou uma campanha para proteger sua imagem."), updatedAt: Date.now() };
+
+      if (action === "event-apologize-coach") return { ...current, coachTrust: Math.min(100, current.coachTrust + 10), discipline: Math.min(100, current.discipline + 8), personality: shiftPersonality(current, { professionalism: 14, ambition: -2 }), activeConsequences: consequences({ key: "reconquista-treinador", source: "Comissão técnica", title: "Confiança em reconstrução", description: "O treinador acompanhará sua resposta nos próximos jogos.", tone: "positive", duration: 4, effects: { coachTrust: 8, performance: 1, cardRisk: -5 }, resolutionText: "A resposta em campo encerrou a cobrança interna." }), pendingLifeEvent: "", lifeEventHistory: history("Reconheceu o erro e iniciou uma reconquista da comissão."), updatedAt: Date.now() };
+      if (action === "event-confront-coach") return { ...current, coachTrust: Math.max(10, current.coachTrust - 14), socialFollowers: current.socialFollowers + 6000, personality: shiftPersonality(current, { ambition: 10, mediaStyle: 10, professionalism: -12 }), activeConsequences: consequences({ key: "conflito-treinador", source: "Comissão técnica", title: "Conflito com o treinador", description: "Sua liberdade diminui e uma substituição passa a ser mais provável.", tone: "negative", duration: 6, effects: { coachTrust: -14, performance: -2, transferInterest: 5 }, resolutionText: "O conflito perdeu força, mas ficou registrado no clube." }), pendingLifeEvent: "", lifeEventHistory: history("Contestou publicamente a cobrança do treinador."), updatedAt: Date.now() };
+      if (action === "event-fulfill-sponsor") return { ...current, bankBalance: current.bankBalance + 60_000, energy: Math.max(25, current.energy - 12), socialFollowers: current.socialFollowers + 9000, activeConsequences: consequences({ key: "campanha-nacional", source: "Patrocínio", title: "Campanha nacional", description: "A exposição amplia mercado e renda, com custo físico durante a agenda.", tone: "mixed", duration: 4, effects: { fatigue: 7, transferInterest: 8, reputation: 4, income: 9000 }, resolutionText: "A campanha terminou com alta exposição." }), pendingLifeEvent: "", lifeEventHistory: history("Cumpriu uma agenda comercial durante uma semana decisiva."), updatedAt: Date.now() };
+      if (action === "event-break-sponsor") return { ...current, sponsorship: "Contrato em revisão", socialReputation: Math.max(10, current.socialReputation - 12), coachTrust: Math.min(100, current.coachTrust + 5), personality: shiftPersonality(current, { professionalism: 6, mediaStyle: -10 }), activeConsequences: consequences({ key: "atrito-patrocinador", source: "Patrocínio", title: "Atrito comercial", description: "A marca reduz pagamentos e acompanha sua imagem antes de decidir o contrato.", tone: "negative", duration: 5, effects: { income: -5000, reputation: -3, transferInterest: -2, fatigue: -2 }, resolutionText: "O atrito comercial deixou de afetar a rotina." }), pendingLifeEvent: "", lifeEventHistory: history("Quebrou uma obrigação comercial para priorizar o clube."), updatedAt: Date.now() };
+      if (action === "event-repair-family") return { ...current, bankBalance: Math.max(0, current.bankBalance - 12000), familyBond: Math.min(100, current.familyBond + 28), energy: Math.max(30, current.energy - 6), personality: shiftPersonality(current, { loyalty: 14, ambition: -3 }), activeConsequences: consequences({ key: "reconciliacao-familiar", source: "Família", title: "Reconciliação familiar", description: "A conversa reduz a pressão emocional e recupera sua base fora do campo.", tone: "positive", duration: 5, effects: { morale: 6, performance: 2, fatigue: -2 }, resolutionText: "A relação familiar voltou a uma rotina saudável." }), pendingLifeEvent: "", lifeEventHistory: history("Reorganizou a agenda para reconstruir o vínculo familiar."), updatedAt: Date.now() };
+      if (action === "event-delay-family") return { ...current, familyBond: Math.max(5, current.familyBond - 20), relationshipStatus: current.relationshipStatus === "Casado" ? "Em crise" : current.relationshipStatus, formBoost: Math.min(10, current.formBoost + 2), personality: shiftPersonality(current, { ambition: 12, loyalty: -14 }), activeConsequences: consequences({ key: "crise-familiar", source: "Família", title: "Crise familiar", description: "A preocupação reduz moral e recuperação, mesmo quando a forma esportiva cresce.", tone: "negative", duration: 8, effects: { morale: -8, performance: -3, fatigue: 6 }, resolutionText: "A crise perdeu intensidade, mas a relação não voltou ao ponto anterior." }), pendingLifeEvent: "", lifeEventHistory: history("Adiou novamente a conversa com a família."), updatedAt: Date.now() };
+      if (action === "event-cool-rivalry") return { ...current, discipline: Math.min(100, current.discipline + 9), personality: shiftPersonality(current, { professionalism: 8, mediaStyle: -7 }), activeConsequences: consequences({ key: "rivalidade-controlada", source: "Rivalidade", title: "Rivalidade controlada", description: "Você mantém a intensidade esportiva sem alimentar o risco disciplinar.", tone: "positive", duration: 4, effects: { performance: 2, cardRisk: -14, coachTrust: 3 }, resolutionText: "O confronto voltou a ser decidido apenas no campo." }), pendingLifeEvent: "", lifeEventHistory: history("Encerrou publicamente a troca de provocações."), updatedAt: Date.now() };
+      if (action === "event-embrace-rivalry") return { ...current, socialFollowers: current.socialFollowers + 10000, personality: shiftPersonality(current, { ambition: 10, mediaStyle: 12, professionalism: -5 }), activeConsequences: consequences({ key: "rivalidade-total", source: "Rivalidade", title: "Rivalidade total", description: "Marcação especial, pressão da torcida e olheiros transformam cada duelo.", tone: "mixed", duration: 6, effects: { performance: 4, cardRisk: 18, transferInterest: 9, reputation: 4 }, resolutionText: "A rivalidade virou parte permanente da narrativa da carreira." }), pendingLifeEvent: "", lifeEventHistory: history("Assumiu a rivalidade como parte da própria imagem."), updatedAt: Date.now() };
+      if (action === "event-rehab-cycle") return { ...current, injuryStatus: "Recuperação preventiva", injuryMatchesRemaining: Math.max(1, current.injuryMatchesRemaining), injuryRisk: 8, energy: Math.min(100, current.energy + 12), personality: shiftPersonality(current, { professionalism: 10 }), activeConsequences: consequences({ key: "reabilitacao", source: "Departamento médico", title: "Reabilitação controlada", description: "Você perde ritmo imediato para reduzir drasticamente o risco de recaída.", tone: "mixed", duration: 3, effects: { performance: -3, injuryRisk: -28, fatigue: -8 }, resolutionText: "A reabilitação devolveu segurança física." }), pendingLifeEvent: "", lifeEventHistory: history("Aceitou um ciclo completo de reabilitação."), updatedAt: Date.now() };
+      if (action === "event-keep-playing-hurt") return { ...current, injuryStatus: "Jogando com dor", injuryMatchesRemaining: 0, injuryRisk: Math.min(98, current.injuryRisk + 25), personality: shiftPersonality(current, { ambition: 10, professionalism: -8 }), activeConsequences: consequences({ key: "risco-extremo", source: "Decisão médica", title: "Risco médico extremo", description: "A presença está garantida, mas uma recaída pode afastá-lo por várias rodadas.", tone: "negative", duration: 5, effects: { performance: 2, injuryRisk: 45, fatigue: 10 }, resolutionText: "O período de risco extremo chegou ao fim." }), pendingLifeEvent: "", lifeEventHistory: history("Decidiu continuar jogando apesar da sobrecarga."), updatedAt: Date.now() };
+      if (action === "event-embrace-country") return { ...current, languageLevel: Math.min(100, current.languageLevel + 22), adaptation: Math.min(100, current.adaptation + 25), familyBond: Math.max(20, current.familyBond - 4), personality: shiftPersonality(current, { ambition: 5, loyalty: -2 }), activeConsequences: consequences({ key: "integracao-cultural", source: "Mudança de país", title: "Integração cultural", description: "Idioma e rotina local deixam de atrapalhar sua leitura de jogo.", tone: "positive", duration: 5, effects: { performance: 3, fatigue: -4, coachTrust: 3 }, resolutionText: "Você passou a se sentir em casa no novo país." }), pendingLifeEvent: "", lifeEventHistory: history("Mergulhou no idioma e na cultura do novo país."), updatedAt: Date.now() };
+      if (action === "event-stay-close-home") return { ...current, familyBond: Math.min(100, current.familyBond + 15), adaptation: Math.min(100, current.adaptation + 8), activeConsequences: consequences({ key: "saudade-de-casa", source: "Mudança de país", title: "Raízes preservadas", description: "A família protege sua moral, embora a adaptação esportiva siga mais lenta.", tone: "mixed", duration: 5, effects: { morale: 5, performance: -1, fatigue: 2 }, resolutionText: "A rotina encontrou um equilíbrio entre os dois países." }), pendingLifeEvent: "", lifeEventHistory: history("Manteve a rotina próxima da família e do país de origem."), updatedAt: Date.now() };
       return current;
     });
   }
@@ -1681,6 +1873,7 @@ export default function Home() {
         familyBond: 92,
         squadRelations: 92,
         discipline: 90,
+        personality: { professionalism: 75, loyalty: 35, mediaStyle: 55, teamwork: 70, ambition: 82 },
         socialProject: `Instituto ${current.name.split(" ")[0]}`,
         pendingLifeEvent: "primeira-entrevista",
         lifeFlags: ["rivalidade-publica", "noite-indisciplinada", "contrato-global"],
@@ -1692,6 +1885,16 @@ export default function Home() {
       if (action === "reset-week") return { ...current, preparationActionsAllowed: 6, preparationActionsUsed: 0, preparationLog: [], preparedForMatch: false, energy: 100, updatedAt: Date.now() };
       if (action === "injury") return { ...current, injuryStatus: "Lesão muscular moderada", injuryMatchesRemaining: 3, injuryRisk: 78, pendingLifeEvent: "decisao-medica", energy: 45, updatedAt: Date.now() };
       if (action === "suspension") return { ...current, yellowCards: 4, redCards: current.redCards + 1, suspensionMatches: 1, updatedAt: Date.now() };
+      if (action === "consequences") return {
+        ...current,
+        pendingLifeEvent: "conversa-treinador",
+        queuedLifeEvents: ["cobranca-patrocinador", "cobranca-familiar", "repercussao-rival", "consequencia-medica", "adaptacao-cultural"],
+        activeConsequences: [
+          ...installConsequence(current, { key: "rivalidade-total", source: "Rivalidade", title: "Rivalidade total", description: "Pressão, cartões e olheiros acompanham o próximo ciclo.", tone: "mixed", duration: 6, effects: { performance: 4, cardRisk: 18, transferInterest: 9, reputation: 4 }, resolutionEvent: "repercussao-rival" }),
+          ...installConsequence(current, { key: "crise-familiar", source: "Família", title: "Crise familiar", description: "A tensão fora do campo pesa na moral e na recuperação.", tone: "negative", duration: 5, effects: { morale: -8, performance: -3, fatigue: 6 }, resolutionEvent: "cobranca-familiar" }),
+        ].filter((item, index, items) => items.findIndex((candidate) => candidate.key === item.key) === index).slice(0, 12),
+        updatedAt: Date.now(),
+      };
       if (action === "market-ready") return migrateCareer({ ...current, reputation: Math.max(80, current.reputation), rating: Math.max(8.1, current.rating), matches: Math.max(18, current.matches), coachTrust: Math.max(80, current.coachTrust), updatedAt: Date.now() });
       if (action === "legacy") return { ...current, age: 36, matches: Math.max(650, current.matches), goals: Math.max(220, current.goals), assists: Math.max(160, current.assists), retirementFund: Math.max(12_000_000, current.retirementFund), individualAwards: ["Lenda da liga", "Melhor jogador da temporada", ...current.individualAwards], historicalRecords: ["650 jogos profissionais", "220 gols na carreira", ...current.historicalRecords], futurePath: current.futurePath === "Indefinido" ? "Treinador" : current.futurePath, updatedAt: Date.now() };
       if (action === "world-five") {
@@ -1714,6 +1917,8 @@ export default function Home() {
 
   function continueCareer() {
     if (!career || !fixture) return;
+    const consequenceModifiers = getConsequenceModifiers(career);
+    const consequenceProgress = advanceCareerConsequences(career);
     const nextXp = career.xp + lastResult.xp;
     const won = lastResult.unionGoals > lastResult.opponentGoals;
     const draw = lastResult.unionGoals === lastResult.opponentGoals;
@@ -1763,6 +1968,7 @@ export default function Home() {
       redCard: lastResult.redCard,
       injuryStatus: lastResult.injuryStatus,
       signature: lastResult.signature,
+      consequenceImpact: lastResult.consequenceImpact,
     };
     const roundSimulation = leagueMatch
       ? simulateFullRound(career, {
@@ -1821,19 +2027,20 @@ export default function Home() {
         worldLastUpdatedSeason: career.worldLastUpdatedSeason,
       };
     const transferCompletion = seasonEnded && career.pendingTransfer
-      ? completeCareerTransfer(migrateCareer({ ...career, lastSeasonSummary }), career.pendingTransfer, career.season + 1)
+      ? completeCareerTransfer(migrateCareer({ ...career, lastSeasonSummary, activeConsequences: consequenceProgress.activeConsequences, consequenceHistory: consequenceProgress.consequenceHistory }), career.pendingTransfer, career.season + 1)
       : null;
     const destinationCountryId = transferCompletion?.careerPatch.countryId ?? career.countryId;
     const destinationDivision = transferCompletion?.careerPatch.division ?? nextDivision;
     const nextLeague = getLeagueDefinition(destinationCountryId, destinationDivision);
-    const nextReputation = Math.min(100, career.reputation + reputationGain);
+    const nextReputation = Math.max(0, Math.min(100, career.reputation + reputationGain + Math.round(consequenceModifiers.reputation / 3)));
     const nextCurrentDate = career.nextMatchDate;
     const nextGap = getDaysToNextMatch(career.careerSeed, career.matches + 1, destinationCountryId);
     const nextMatchDate = addDaysToDate(nextCurrentDate, nextGap);
-    const matchIncome = Math.round(career.salary / 4);
+    const matchIncome = Math.max(0, Math.round(career.salary / 4) + consequenceModifiers.income);
     const periodExpenses = Math.round(career.monthlyExpenses * nextGap / 30);
     const injuryRoll = hashText(`${career.careerSeed}:${career.matches}:medical`) % 100;
-    const sufferedInjury = playerTookPart && injuryRoll < Math.max(2, Math.round(career.injuryRisk / 5));
+    const effectiveInjuryRisk = Math.max(0, career.injuryRisk + consequenceModifiers.injuryRisk);
+    const sufferedInjury = playerTookPart && injuryRoll < Math.max(2, Math.round(effectiveInjuryRisk / 5));
     const accumulatedYellowCards = career.yellowCards + lastResult.yellowCards;
     const yellowSuspension = accumulatedYellowCards >= 5;
     const redSuspension = lastResult.redCard ? 1 + (hashText(`${career.careerSeed}:${career.matches}:red-card`) % 2) : 0;
@@ -1850,7 +2057,13 @@ export default function Home() {
         : career.injuryMatchesRemaining;
     const nextInjuryStatus = lastResult.injuryStatus
       || (sufferedInjury ? "Lesão muscular leve" : servedInjury && nextInjuryMatches === 0 ? "Apto" : career.injuryStatus);
-    const nextPendingEvent = career.pendingLifeEvent || ((career.matches + 1) % 3 === 0
+    const queuedLifeEvents = [
+      ...career.queuedLifeEvents,
+      ...consequenceProgress.resolved.map((consequence) => consequence.resolutionEvent).filter(Boolean),
+    ];
+    const medicalEventRequired = Boolean(lastResult.injuryStatus || sufferedInjury);
+    const consequenceEvent = !career.pendingLifeEvent && !medicalEventRequired ? queuedLifeEvents.shift() ?? "" : "";
+    const nextPendingEvent = career.pendingLifeEvent || consequenceEvent || ((career.matches + 1) % 3 === 0
       ? ["convite-festa", "familia-distante", "decisao-medica", "proposta-publicitaria"][hashText(`${career.careerSeed}:${career.matches}:life`) % 4]
       : "");
     const individualAwards = seasonEnded && finalPosition === 1 && lastResult.rating >= 7.2
@@ -1876,7 +2089,7 @@ export default function Home() {
       energy: playerTookPart
         ? Math.max(25, Math.min(100, career.energy - Math.max(12, lastResult.energySpent) + 8 + fatigueVariance))
         : Math.min(100, career.energy + 8),
-      morale: Math.max(30, Math.min(100, career.morale + (won ? 7 : draw ? 1 : -5))),
+      morale: Math.max(20, Math.min(100, career.morale + (won ? 7 : draw ? 1 : -5) + Math.round(consequenceModifiers.morale / 3))),
       recentResults: seasonEnded ? [] : recentResults,
       countryId: destinationCountryId,
       countryName: getCountry(destinationCountryId).name,
@@ -1909,7 +2122,8 @@ export default function Home() {
       salary: seasonEnded ? getSalary(destinationCountryId, destinationDivision, nextReputation) : career.salary,
       languageLevel: Math.min(100, career.languageLevel + (career.languageLevel < 100 ? 1 : 0)),
       adaptation: Math.min(100, career.adaptation + 2),
-      coachTrust: Math.max(15, Math.min(100, career.coachTrust + (lastResult.redCard ? -8 : !playerTookPart ? -1 : lastResult.rating >= 7.5 ? 4 : won ? 2 : lastResult.rating < 6 ? -4 : -1))),
+      coachTrust: Math.max(8, Math.min(100, career.coachTrust + (lastResult.redCard ? -8 : !playerTookPart ? -1 : lastResult.rating >= 7.5 ? 4 : won ? 2 : lastResult.rating < 6 ? -4 : -1) + Math.round(consequenceModifiers.coachTrust / 3))),
+      squadRelations: Math.max(5, Math.min(100, career.squadRelations + Math.round(consequenceModifiers.squadRelations / 3) + (lastResult.assists ? 1 : 0))),
       socialFollowers: career.socialFollowers + newFans * 2,
       investments: Math.round(career.investments * 1.0012),
       retirementFund: Math.round(career.retirementFund * 1.0008),
@@ -1919,7 +2133,20 @@ export default function Home() {
       yellowCards: nextYellowCards,
       redCards: career.redCards + (lastResult.redCard ? 1 : 0),
       suspensionMatches: nextSuspensionMatches,
-      pendingLifeEvent: lastResult.injuryStatus || sufferedInjury ? "decisao-medica" : nextPendingEvent,
+      pendingLifeEvent: medicalEventRequired ? "decisao-medica" : nextPendingEvent,
+      queuedLifeEvents,
+      activeConsequences: consequenceProgress.activeConsequences,
+      consequenceHistory: consequenceProgress.consequenceHistory,
+      lifeEventHistory: consequenceProgress.resolved.length
+        ? [...consequenceProgress.resolved.map((consequence) => consequence.resolutionText), ...career.lifeEventHistory].slice(0, 20)
+        : career.lifeEventHistory,
+      personality: shiftPersonality(career, lastResult.approach === "Disciplinado"
+        ? { professionalism: 2 }
+        : lastResult.approach === "Agressivo"
+          ? { ambition: 2, professionalism: lastResult.redCard ? -4 : -1 }
+          : lastResult.approach === "Criativo"
+            ? { ambition: 1, mediaStyle: 1 }
+            : {}),
       individualAwards,
       historicalRecords,
       matchHistory: [matchRecord, ...career.matchHistory].slice(0, 40),

@@ -6,7 +6,7 @@ persistente que continua mudando a cada temporada.
 
 ## Versão atual
 
-`0.4.3 — Universo em Campo`
+`0.4.3 — Consequências`
 
 Principais recursos:
 
@@ -20,6 +20,12 @@ Principais recursos:
 - relatório com posse, finalizações, chances, xG, faltas e disciplina;
 - caderno tático que preserva os últimos 40 relatórios da carreira;
 - lesões com tempo real de recuperação e substituições ligadas a nota, energia e placar;
+- motor persistente de consequências com duração em partidas e efeitos reais;
+- decisões que alteram desempenho, fadiga, lesões, cartões, treinador, elenco, reputação, renda e mercado;
+- personalidade dinâmica em cinco eixos, construída pelas escolhas repetidas;
+- eventos atrasados que retornam como cobranças médicas, familiares, comerciais e disciplinares;
+- central de consequências ativas, histórico de efeitos encerrados e fila narrativa;
+- mudanças internacionais com adaptação cultural, idioma e impacto esportivo;
 - rodadas, classificações, acessos e rebaixamentos;
 - 12 países, 24 divisões e 505 clubes;
 - mercado mundial, aposentadorias e novos talentos;

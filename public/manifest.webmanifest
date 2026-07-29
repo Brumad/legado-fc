@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Legado FC 0.4.3: doze táticas, briefing jogável, abordagens do atleta, rivais adaptativos, histórico completo e universo persistente.",
+  "description": "Legado FC 0.4.3: personalidade dinâmica, consequências persistentes, eventos futuros e decisões que mudam toda a carreira.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d2018",

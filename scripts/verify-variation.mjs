@@ -272,6 +272,7 @@ const adaptiveHistory = Array.from({ length: 3 }, (_, index) => ({
   redCard: false,
   injuryStatus: "",
   signature: `H-${index}`,
+  consequenceImpact: [],
 }));
 const adaptiveCareer = migrateCareer({ ...showcaseCareer, matchHistory: adaptiveHistory });
 const adaptiveFixture = createFixture(adaptiveCareer);
