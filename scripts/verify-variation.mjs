@@ -16,6 +16,9 @@ const signatures = new Set();
 const scorelines = new Set();
 const momentPatterns = new Set();
 const momentKinds = new Set();
+const eventKinds = new Set();
+const tactics = new Set();
+const positionFocuses = new Set();
 let victories = 0;
 let draws = 0;
 let losses = 0;
@@ -34,7 +37,21 @@ for (let index = 0; index < 1000; index += 1) {
   signatures.add(plan.signature);
   scorelines.add(`${plan.baseHomeGoals}-${plan.baseAwayGoals}`);
   momentPatterns.add(plan.moments.map((moment) => `${moment.minute}:${moment.kind}`).join("|"));
-  plan.moments.forEach((moment) => momentKinds.add(moment.kind));
+  plan.moments.forEach((moment) => {
+    momentKinds.add(moment.kind);
+    positionFocuses.add(moment.positionFocus);
+    if (["dribble", "freeKick", "corner", "counter"].includes(moment.kind) && moment.targets.length < 4) {
+      throw new Error(`${moment.kind} não recebeu opções extras na Partidas 2.0`);
+    }
+  });
+  plan.events.forEach((event) => eventKinds.add(event.kind));
+  tactics.add(plan.opponentTactic.id);
+  if (plan.statistics.playerTeam.possession + plan.statistics.opponent.possession !== 100) {
+    throw new Error("A posse da partida não fecha em 100%");
+  }
+  if (plan.statistics.playerTeam.shotsOnTarget > plan.statistics.playerTeam.shots || plan.statistics.opponent.shotsOnTarget > plan.statistics.opponent.shots) {
+    throw new Error("Finalizações no alvo superaram o total de chutes");
+  }
   totalGoals += plan.baseHomeGoals + plan.baseAwayGoals;
   if (plan.baseHomeGoals > plan.baseAwayGoals) victories += 1;
   else if (plan.baseHomeGoals === plan.baseAwayGoals) draws += 1;
@@ -58,6 +75,17 @@ if (unusualScorelines > 45) throw new Error(`Placares com seis ou mais gols: ${u
 
 for (const kind of ["dribble", "freeKick", "corner", "penalty", "counter", "aerial"]) {
   if (!momentKinds.has(kind)) throw new Error(`Tipo de lance não apareceu nas simulações: ${kind}`);
+}
+for (const kind of ["yellow-card", "red-card", "offside", "substitution", "injury", "tactical"]) {
+  if (!eventKinds.has(kind)) throw new Error(`Evento da Partidas 2.0 não apareceu: ${kind}`);
+}
+if (tactics.size !== 5) throw new Error(`Estilos táticos encontrados: ${tactics.size}/5`);
+if (![...positionFocuses].some((focus) => focus.includes("atacante"))
+  || ![...positionFocuses].some((focus) => focus.includes("ponta"))
+  || ![...positionFocuses].some((focus) => focus.includes("meia"))
+  || ![...positionFocuses].some((focus) => focus.includes("lateral"))
+  || ![...positionFocuses].some((focus) => focus.includes("zagueiro"))) {
+  throw new Error("Os cinco grupos de lances posicionais não apareceram");
 }
 
 if (COUNTRIES.length !== 12) throw new Error(`Países disponíveis: ${COUNTRIES.length}/12`);
@@ -180,6 +208,11 @@ const showcaseKinds = new Set(showcase.moments.map((moment) => moment.kind));
 if (showcase.moments.length !== 9 || showcaseKinds.size !== 9) {
   throw new Error(`Modo dev incompleto: ${showcase.moments.length} lances, ${showcaseKinds.size} tipos`);
 }
+const suspendedCareer = migrateCareer({ ...showcaseCareer, suspensionMatches: 1 });
+const suspendedPlan = generateMatchPlan(suspendedCareer, createFixture(suspendedCareer));
+if (suspendedPlan.playerAvailable || suspendedPlan.moments.length || !suspendedPlan.unavailableReason.includes("Suspenso")) {
+  throw new Error("A suspensão não retirou o jogador da partida");
+}
 
 const standingsCareer = migrateCareer({
   seasonMatches: 8,
@@ -199,6 +232,9 @@ console.log(JSON.stringify({
   uniqueSignatures: signatures.size,
   uniqueMomentPatterns: momentPatterns.size,
   momentKinds: [...momentKinds].sort(),
+  eventKinds: [...eventKinds].sort(),
+  tacticalStyles: tactics.size,
+  positionalContexts: positionFocuses.size,
   distinctScorelines: scorelines.size,
   winRate: Number(winRate.toFixed(3)),
   drawRate: Number(drawRate.toFixed(3)),

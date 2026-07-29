@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v6.png`;
 
   return {
-    title: "Legado FC — O Mundo Continua",
+    title: "Legado FC — Partidas 2.0",
     description:
-      "Um universo persistente com 2.750 jogadores da IA evoluindo, transferindo-se, envelhecendo e construindo uma história temporada após temporada.",
+      "Partidas táticas e dinâmicas com cartões, impedimentos, substituições, lesões, fadiga, estatísticas completas e um mercado de carreira vivo.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — O Mundo Continua",
+      title: "Legado FC — Partidas 2.0",
       description:
-        "A atualização 0.4.1 cria um mundo vivo: transferências, promessas, aposentadorias, campeões globais e arquivo permanente.",
+        "A atualização 0.4.2 transforma cada jogo com estilos táticos, postura pelo placar, disciplina, fadiga e lances próprios para cada posição.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — O Mundo Continua" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Partidas 2.0" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — O Mundo Continua",
-      description: "Doze países. 2.750 atletas. Um mundo que continua sem esperar.",
+      title: "Legado FC — Partidas 2.0",
+      description: "Tática, contexto, disciplina e decisões: mil partidas, mil histórias diferentes.",
       images: [imageUrl],
     },
   };

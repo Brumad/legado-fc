@@ -2,7 +2,10 @@ import {
   COUNTRIES,
   WORLD_TEAMS,
   advanceWorldSeason,
+  completeCareerTransfer,
   createInitialWorldPlayers,
+  getCareerTransferOffers,
+  getContractRenewal,
   getWorldRanking,
   migrateCareer,
 } from "../app/game-engine.ts";
@@ -53,8 +56,11 @@ const legacyCareer = migrateCareer({
   season: 2026,
   careerSeed: 4012026,
 });
-if (legacyCareer.saveVersion !== 5 || legacyCareer.worldPlayers.length !== expectedPlayers) {
+if (legacyCareer.saveVersion !== 6 || legacyCareer.worldPlayers.length !== expectedPlayers) {
   throw new Error("A migração da 0.3.3 não criou o universo persistente");
+}
+if (legacyCareer.contractUntilSeason <= legacyCareer.season || legacyCareer.releaseClause <= 0 || legacyCareer.pendingTransfer !== null) {
+  throw new Error("A migração não criou os novos dados de contrato da 0.4.2");
 }
 const eliteCareer = migrateCareer({
   ...legacyCareer,
@@ -65,6 +71,42 @@ const eliteCareer = migrateCareer({
 const eliteRanking = getWorldRanking(eliteCareer);
 if (eliteRanking[0]?.id !== `career-player-${eliteCareer.id}` || eliteRanking[0].nationality !== "Portugal") {
   throw new Error("O atleta da carreira com overall 95 não liderou o ranking mundial com sua nacionalidade");
+}
+
+const marketCareer = migrateCareer({
+  ...legacyCareer,
+  id: "market-042",
+  name: "Atleta no Mercado",
+  matches: 32,
+  rating: 8.2,
+  reputation: 82,
+  coachTrust: 86,
+  marketValue: 48_000_000,
+  salary: 180_000,
+  attributes: { pace: 84, shooting: 84, passing: 84, dribbling: 84, defending: 84, physical: 84 },
+});
+const careerOffers = getCareerTransferOffers(marketCareer);
+const repeatedOffers = getCareerTransferOffers(marketCareer);
+if (careerOffers.length !== 5 || new Set(careerOffers.map((offer) => offer.teamId)).size !== 5) {
+  throw new Error("A central de mercado não gerou cinco projetos únicos");
+}
+if (JSON.stringify(careerOffers) !== JSON.stringify(repeatedOffers)) {
+  throw new Error("As propostas mudaram sem avanço do ciclo de mercado");
+}
+const acceptedOffer = careerOffers.find((offer) => offer.available);
+if (!acceptedOffer || acceptedOffer.teamId === marketCareer.clubId || acceptedOffer.salary <= 0 || acceptedOffer.transferFee <= 0) {
+  throw new Error("Nenhuma proposta concreta e financeiramente válida foi gerada");
+}
+const completedMove = completeCareerTransfer({ ...marketCareer, pendingTransfer: acceptedOffer }, acceptedOffer, marketCareer.season + 1);
+if (completedMove.careerPatch.clubId !== acceptedOffer.teamId
+  || completedMove.careerPatch.pendingTransfer !== null
+  || completedMove.careerPatch.careerTransferHistory?.[0]?.toTeamName !== acceptedOffer.teamName
+  || completedMove.worldTransfer.playerId !== `career-player-${marketCareer.id}`) {
+  throw new Error("A transferência do jogador não foi integrada ao mundo e ao histórico");
+}
+const renewal = getContractRenewal(marketCareer);
+if (!renewal.available || renewal.salary <= marketCareer.salary || renewal.contractUntilSeason <= marketCareer.season) {
+  throw new Error("A proposta de renovação da 0.4.2 é inválida");
 }
 
 const firstAdvance = advanceWorldSeason(legacyCareer, 5, "2026: permanência na divisão");
@@ -136,5 +178,8 @@ console.log(JSON.stringify({
   strongestLowerClubPlayer,
   strongestUpperClubPlayer,
   eliteCareerRank: 1,
+  careerOffers: careerOffers.length,
+  availableCareerOffers: careerOffers.filter((offer) => offer.available).length,
+  renewalUntil: renewal.contractUntilSeason,
   serializedBytes,
 }));

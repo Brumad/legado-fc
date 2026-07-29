@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Simulador de carreira com universo persistente, evolução da IA, mercado mundial, histórico de temporadas e vida fora de campo.",
+  "description": "Legado FC 0.4.2: partidas táticas e reativas, evolução dos atletas, mercado de carreira, universo persistente e vida fora de campo.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d2018",

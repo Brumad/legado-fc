@@ -77,6 +77,55 @@ export type WorldTransfer = {
   fee: number;
 };
 
+export type CareerSquadRole = "Projeto" | "Rotação" | "Titular" | "Estrela";
+
+export type CareerTransferOffer = {
+  id: string;
+  generatedSeason: number;
+  generatedRound: number;
+  teamId: string;
+  teamName: string;
+  teamShort: string;
+  teamColor: string;
+  teamStrength: number;
+  countryId: CountryId;
+  countryName: string;
+  division: DivisionLevel;
+  leagueId: string;
+  leagueName: string;
+  interest: number;
+  transferFee: number;
+  salary: number;
+  signingBonus: number;
+  contractUntilSeason: number;
+  releaseClause: number;
+  role: CareerSquadRole;
+  available: boolean;
+  requirement: string;
+};
+
+export type CareerTransferRecord = {
+  id: string;
+  season: number;
+  fromTeamName: string;
+  toTeamName: string;
+  fromCountryId: CountryId;
+  toCountryId: CountryId;
+  fee: number;
+  salary: number;
+  role: CareerSquadRole;
+};
+
+export type ContractRenewal = {
+  available: boolean;
+  salary: number;
+  signingBonus: number;
+  contractUntilSeason: number;
+  releaseClause: number;
+  role: CareerSquadRole;
+  requirement: string;
+};
+
 export type WorldChampion = {
   countryId: CountryId;
   countryName: string;
@@ -202,6 +251,9 @@ export type CareerState = {
   discipline: number;
   injuryStatus: string;
   injuryRisk: number;
+  yellowCards: number;
+  redCards: number;
+  suspensionMatches: number;
   socialProject: string;
   pendingLifeEvent: string;
   lifeEventHistory: string[];
@@ -210,6 +262,11 @@ export type CareerState = {
   historicalRecords: string[];
   futurePath: string;
   contractMatches: number;
+  contractUntilSeason: number;
+  contractRole: CareerSquadRole;
+  releaseClause: number;
+  pendingTransfer: CareerTransferOffer | null;
+  careerTransferHistory: CareerTransferRecord[];
   promotions: number;
   relegations: number;
   lastSeasonSummary: string;
@@ -291,8 +348,10 @@ export type Fixture = {
 
 export type MatchEvent = {
   minute: number;
-  kind: "normal" | "chance" | "home-goal" | "away-goal" | "card" | "injury";
+  kind: "normal" | "chance" | "home-goal" | "away-goal" | "yellow-card" | "red-card" | "offside" | "substitution" | "injury" | "tactical";
   text: string;
+  side?: "player" | "opponent" | "neutral";
+  affectsPlayer?: boolean;
 };
 
 export type MatchTarget = {
@@ -313,7 +372,36 @@ export type MatchMoment = {
   prompt: string;
   kind: MomentKind;
   pressure: "baixa" | "média" | "alta";
+  positionFocus: string;
   targets: MatchTarget[];
+};
+
+export type OpponentTactic = {
+  id: "pressao-alta" | "bloco-baixo" | "transicao" | "posse" | "jogo-direto";
+  name: string;
+  formation: string;
+  description: string;
+  pressing: number;
+  tempo: number;
+  defensiveLine: number;
+};
+
+export type TeamMatchStatistics = {
+  possession: number;
+  shots: number;
+  shotsOnTarget: number;
+  bigChances: number;
+  corners: number;
+  fouls: number;
+  offsides: number;
+  yellowCards: number;
+  redCards: number;
+  expectedGoals: number;
+};
+
+export type MatchStatistics = {
+  playerTeam: TeamMatchStatistics;
+  opponent: TeamMatchStatistics;
 };
 
 export type MatchPlan = {
@@ -326,6 +414,11 @@ export type MatchPlan = {
   expectedHomeGoals: number;
   expectedAwayGoals: number;
   intensity: number;
+  importance: number;
+  opponentTactic: OpponentTactic;
+  statistics: MatchStatistics;
+  playerAvailable: boolean;
+  unavailableReason: string;
 };
 
 export type StandingRow = {
@@ -717,6 +810,54 @@ const venuesByCountry: Record<CountryId, string[]> = {
   JP: ["Sakura Stadium", "Mirai Arena", "Fuji Park", "Hikari Field"],
 };
 
+const opponentTactics: OpponentTactic[] = [
+  {
+    id: "pressao-alta",
+    name: "Pressão sufocante",
+    formation: "4-3-3",
+    description: "Marca a saída, força decisões rápidas e deixa espaço nas costas.",
+    pressing: 92,
+    tempo: 82,
+    defensiveLine: 86,
+  },
+  {
+    id: "bloco-baixo",
+    name: "Bloco compacto",
+    formation: "5-4-1",
+    description: "Protege a área, reduz espaços centrais e tenta sobreviver no contra-ataque.",
+    pressing: 38,
+    tempo: 44,
+    defensiveLine: 32,
+  },
+  {
+    id: "transicao",
+    name: "Transição vertical",
+    formation: "4-2-3-1",
+    description: "Recupera e acelera pelos lados antes que a defesa consiga se reorganizar.",
+    pressing: 66,
+    tempo: 91,
+    defensiveLine: 58,
+  },
+  {
+    id: "posse",
+    name: "Posse paciente",
+    formation: "4-1-4-1",
+    description: "Controla o ritmo, atrai a pressão e encontra o passe entre as linhas.",
+    pressing: 57,
+    tempo: 52,
+    defensiveLine: 69,
+  },
+  {
+    id: "jogo-direto",
+    name: "Jogo direto",
+    formation: "4-4-2",
+    description: "Busca duelos, segunda bola e cruzamentos constantes para a área.",
+    pressing: 71,
+    tempo: 77,
+    defensiveLine: 51,
+  },
+];
+
 export function makeRng(seed: number) {
   let value = seed >>> 0;
   return () => {
@@ -803,28 +944,61 @@ function narration(rng: () => number, fixture: Fixture, minute: number): MatchEv
     "Pressão após a perda recupera a posse ainda no campo ofensivo.",
     `${star} tenta o passe vertical e força uma defesa difícil.`,
     "O banco se levanta: a próxima disputa pode mudar o roteiro.",
+    "A defesa quebra a primeira linha e conduz até o meio-campo.",
+    "O volante gira sob pressão e muda completamente o lado da jogada.",
+    "O goleiro segura a bola e pede calma antes de reiniciar.",
+    "Uma cobertura perfeita evita o duelo dentro da área.",
+    "A torcida vaia a troca de passes e exige mais velocidade.",
+    "O lateral chega ao fundo, mas o cruzamento é bloqueado.",
+    "A segunda bola fica viva e transforma o lance em um ataque perigoso.",
+    "O árbitro conversa com os capitães depois de uma disputa mais quente.",
+    "A marcação encaixa por alguns segundos e não deixa opção de passe.",
+    `O ${fixture.opponent.name} tenta atrair a pressão para atacar o espaço vazio.`,
+    minute > 75 ? "Os jogadores sentem o desgaste; cada corrida agora custa mais." : "As duas equipes ainda procuram entender onde está o espaço.",
   ];
-  const kinds: MatchEvent["kind"][] = ["normal", "normal", "normal", "chance", "normal", "card"];
+  const kinds: MatchEvent["kind"][] = ["normal", "normal", "normal", "chance", "normal"];
   return { minute, text: pick(rng, templates), kind: pick(rng, kinds) };
 }
 
 function momentTemplates(position: Position, rng: () => number, star: string, forcedKind?: MomentKind) {
   const common: Array<Omit<MatchMoment, "id" | "minute" | "targets">> = [
-    { title: "Quebre a pressão", prompt: "A marcação saltou. Escolha a saída antes que o espaço desapareça.", kind: "pass", pressure: "média" },
-    { title: "Ataque o corredor", prompt: "Há campo livre e dois defensores desalinhados.", kind: "dribble", pressure: "média" },
-    { title: "Drible em espaço curto", prompt: "Dois marcadores fecham a linha lateral. Escolha como escapar.", kind: "dribble", pressure: "alta" },
-    { title: "A bola do jogo", prompt: "O goleiro deu um passo. Escolha canto e força.", kind: "shot", pressure: "alta" },
-    { title: `Pare ${star}`, prompt: "O craque adversário acelera em direção à área. Antecipe a jogada.", kind: "defense", pressure: "alta" },
-    { title: "Último passe", prompt: "Três companheiros atacam a área por caminhos diferentes.", kind: "pass", pressure: "alta" },
-    { title: "Segunda bola", prompt: "O rebote cai na entrada da área e a defesa ainda está desorganizada.", kind: "shot", pressure: "média" },
-    { title: "Saída sob risco", prompt: "Um passe seguro mantém a posse; um passe vertical desmonta o bloco.", kind: "pass", pressure: "baixa" },
-    { title: "Um contra um", prompt: "Você ficou isolado contra o marcador. Decida antes da cobertura.", kind: "dribble", pressure: "alta" },
-    { title: "Falta na entrada da área", prompt: "A barreira está montada. Escolha a trajetória da cobrança.", kind: "freeKick", pressure: "alta" },
-    { title: "Escanteio decisivo", prompt: "A defesa alterna entre zona e marcação individual. Escolha a jogada ensaiada.", kind: "corner", pressure: "média" },
-    { title: "Pênalti sob pressão", prompt: "O goleiro tenta antecipar sua escolha. Defina canto e estilo da batida.", kind: "penalty", pressure: "alta" },
-    { title: "Contra-ataque aberto", prompt: "Três contra três e muito campo pela frente. Escolha o ritmo da transição.", kind: "counter", pressure: "alta" },
-    { title: "Duelo pelo alto", prompt: "O cruzamento vem forte entre zagueiro e goleiro. Ataque o espaço certo.", kind: "aerial", pressure: "média" },
+    { title: "Quebre a pressão", prompt: "A marcação saltou. Escolha a saída antes que o espaço desapareça.", kind: "pass", pressure: "média", positionFocus: "Leitura coletiva" },
+    { title: "Ataque o corredor", prompt: "Há campo livre e dois defensores desalinhados.", kind: "dribble", pressure: "média", positionFocus: "Condução vertical" },
+    { title: "Drible em espaço curto", prompt: "Dois marcadores fecham a linha lateral. Escolha como escapar.", kind: "dribble", pressure: "alta", positionFocus: "Controle sob pressão" },
+    { title: "A bola do jogo", prompt: "O goleiro deu um passo. Escolha canto e força.", kind: "shot", pressure: "alta", positionFocus: "Finalização" },
+    { title: `Pare ${star}`, prompt: "O craque adversário acelera em direção à área. Antecipe a jogada.", kind: "defense", pressure: "alta", positionFocus: "Duelo defensivo" },
+    { title: "Último passe", prompt: "Três companheiros atacam a área por caminhos diferentes.", kind: "pass", pressure: "alta", positionFocus: "Criação" },
+    { title: "Segunda bola", prompt: "O rebote cai na entrada da área e a defesa ainda está desorganizada.", kind: "shot", pressure: "média", positionFocus: "Reação" },
+    { title: "Saída sob risco", prompt: "Um passe seguro mantém a posse; um passe vertical desmonta o bloco.", kind: "pass", pressure: "baixa", positionFocus: "Construção" },
+    { title: "Um contra um", prompt: "Você ficou isolado contra o marcador. Decida antes da cobertura.", kind: "dribble", pressure: "alta", positionFocus: "Improviso" },
+    { title: "Falta na entrada da área", prompt: "A barreira está montada. Escolha a trajetória da cobrança.", kind: "freeKick", pressure: "alta", positionFocus: "Bola parada" },
+    { title: "Escanteio decisivo", prompt: "A defesa alterna entre zona e marcação individual. Escolha a jogada ensaiada.", kind: "corner", pressure: "média", positionFocus: "Bola parada" },
+    { title: "Pênalti sob pressão", prompt: "O goleiro tenta antecipar sua escolha. Defina canto e estilo da batida.", kind: "penalty", pressure: "alta", positionFocus: "Frieza" },
+    { title: "Contra-ataque aberto", prompt: "Três contra três e muito campo pela frente. Escolha o ritmo da transição.", kind: "counter", pressure: "alta", positionFocus: "Transição" },
+    { title: "Duelo pelo alto", prompt: "O cruzamento vem forte entre zagueiro e goleiro. Ataque o espaço certo.", kind: "aerial", pressure: "média", positionFocus: "Jogo aéreo" },
   ];
+  const positional: Record<Position, Array<Omit<MatchMoment, "id" | "minute" | "targets">>> = {
+    Atacante: [
+      { title: "Ataque a última linha", prompt: "O zagueiro olha para a bola. Escolha o momento da ruptura sem cair em impedimento.", kind: "shot", pressure: "alta", positionFocus: "Movimento de atacante" },
+      { title: "Pivô na entrada da área", prompt: "O contato vem por trás e dois companheiros se aproximam.", kind: "pass", pressure: "média", positionFocus: "Pivô de atacante" },
+    ],
+    Ponta: [
+      { title: "Isole o lateral", prompt: "Você recebe aberto, com campo para cortar por dentro ou ganhar a linha de fundo.", kind: "dribble", pressure: "alta", positionFocus: "Duelo de ponta" },
+      { title: "Diagonal nas costas", prompt: "A defesa acompanha a bola e abre o corredor entre lateral e zagueiro.", kind: "counter", pressure: "alta", positionFocus: "Diagonal de ponta" },
+    ],
+    Meia: [
+      { title: "Controle o ritmo", prompt: "O bloco rival está indeciso. Acelere, atraia ou encontre a ruptura.", kind: "pass", pressure: "média", positionFocus: "Visão de meia" },
+      { title: "Entre linhas", prompt: "Você recebe de costas no espaço mais disputado do campo.", kind: "dribble", pressure: "alta", positionFocus: "Giro de meia" },
+    ],
+    Lateral: [
+      { title: "Dois contra um no corredor", prompt: "O ponta rival recebe apoio e tenta criar superioridade.", kind: "defense", pressure: "alta", positionFocus: "Cobertura de lateral" },
+      { title: "Ultrapassagem surpresa", prompt: "A ponta prende o marcador e libera o corredor até a área.", kind: "corner", pressure: "média", positionFocus: "Apoio de lateral" },
+    ],
+    Zagueiro: [
+      { title: "Proteja a profundidade", prompt: "O atacante ameaça correr nas costas. Escolha entre antecipar e recuar.", kind: "defense", pressure: "alta", positionFocus: "Leitura de zagueiro" },
+      { title: "Saída do primeiro passe", prompt: "A pressão fecha o volante e obriga você a iniciar a construção.", kind: "pass", pressure: "média", positionFocus: "Construção de zagueiro" },
+    ],
+  };
   const preferred: Record<Position, MomentKind[]> = {
     Atacante: ["shot", "dribble", "aerial", "penalty", "counter", "freeKick"],
     Ponta: ["dribble", "corner", "counter", "pass", "freeKick", "shot"],
@@ -833,7 +1007,8 @@ function momentTemplates(position: Position, rng: () => number, star: string, fo
     Zagueiro: ["defense", "aerial", "pass", "defense", "corner", "counter"],
   };
   const kind = forcedKind ?? pick(rng, preferred[position]);
-  return pick(rng, common.filter((item) => item.kind === kind));
+  const pool = [...positional[position], ...common].filter((item) => item.kind === kind);
+  return pick(rng, pool.length ? pool : common.filter((item) => item.kind === kind));
 }
 
 function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
@@ -852,6 +1027,7 @@ function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
       { label: "Proteger", hint: "esperar apoio", x: 42, y: 67, risk: .1, reward: 9 },
       { label: "Cortar para dentro", hint: "ganhar o centro", x: 65, y: 43, risk: .29, reward: 19 },
       { label: "Partir para cima", hint: "eliminar dois", x: 75, y: 72, risk: .45, reward: 30 },
+      { label: "Caneta e aceleração", hint: "surpreender no primeiro toque", x: 72, y: 24, risk: .52, reward: 35 },
     ],
     defense: [
       { label: "Conter", hint: "fechar o ângulo", x: 61, y: 56, risk: .09, reward: 10 },
@@ -862,11 +1038,13 @@ function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
       { label: "Por cima da barreira", hint: "curva no ângulo", x: 91, y: 29, risk: .36, reward: 31 },
       { label: "Forte no canto", hint: "surpreender o goleiro", x: 93, y: 67, risk: .3, reward: 27 },
       { label: "Jogada ensaiada", hint: "passe por baixo", x: 76, y: 52, risk: .18, reward: 19 },
+      { label: "Folha seca", hint: "queda atrás da barreira", x: 87, y: 45, risk: .48, reward: 36 },
     ],
     corner: [
       { label: "Primeiro pau", hint: "desvio rápido", x: 86, y: 29, risk: .24, reward: 22 },
       { label: "Marca do pênalti", hint: "buscar o cabeceador", x: 78, y: 51, risk: .31, reward: 26 },
       { label: "Curto", hint: "criar novo ângulo", x: 69, y: 76, risk: .12, reward: 14 },
+      { label: "Segunda trave", hint: "atacar o lado cego", x: 91, y: 68, risk: .39, reward: 31 },
     ],
     penalty: [
       { label: "Canto esquerdo", hint: "batida colocada", x: 91, y: 67, risk: .24, reward: 28 },
@@ -877,6 +1055,7 @@ function targetsFor(kind: MomentKind, rng: () => number): MatchTarget[] {
       { label: "Acelerar", hint: "atacar antes da cobertura", x: 75, y: 46, risk: .32, reward: 27 },
       { label: "Abrir na ponta", hint: "alongar a defesa", x: 66, y: 22, risk: .18, reward: 18 },
       { label: "Prender e esperar", hint: "garantir a posse", x: 48, y: 68, risk: .08, reward: 10 },
+      { label: "Passe de primeira", hint: "romper sem dominar", x: 82, y: 69, risk: .46, reward: 34 },
     ],
     aerial: [
       { label: "Testar firme", hint: "buscar o chão", x: 89, y: 56, risk: .29, reward: 26 },
@@ -908,26 +1087,43 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
 
 export function generateMatchPlan(career: CareerState, fixture = createFixture(career), showcase = false): MatchPlan {
   const rng = makeRng(fixture.seed ^ hashText(`${career.position}:${career.archetype}`));
+  const opponentTactic = opponentTactics[hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) % opponentTactics.length];
   const overall = Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6;
-  const playerStrength = career.clubStrength + (overall - 68) * .08 + career.formBoost * .25 + (career.morale - 70) * .025;
+  const fatigueReadiness = (career.energy - 72) / 210;
+  const playerStrength = career.clubStrength + (overall - 68) * .075 + career.formBoost * .22 + (career.morale - 70) * .023;
   const strengthGap = playerStrength - fixture.opponent.strength;
-  const homeEffect = fixture.home ? .16 : -.12;
-  const difficultyEffect = career.difficulty === "Lenda" ? -.12 : career.difficulty === "Promessa" ? .09 : 0;
-  const energyEffect = (career.energy - 75) / 240;
-  const expectedFor = clamp(1.08 + strengthGap * .026 + homeEffect + difficultyEffect + energyEffect, .3, 2.25);
-  const expectedAgainst = clamp(1.1 - strengthGap * .024 - homeEffect * .75 - difficultyEffect * .45 - energyEffect * .35, .32, 2.3);
+  const homeEffect = fixture.home ? .13 : -.1;
+  const difficultyEffect = career.difficulty === "Lenda" ? -.1 : career.difficulty === "Promessa" ? .07 : 0;
+  const importance = clamp(
+    .54
+      + (fixture.competitionType === "continental" ? .26 : fixture.competitionType === "cup" ? .18 : 0)
+      + (Math.abs(strengthGap) <= 4 ? .12 : 0)
+      + (fixture.pressure.includes("liderança") || fixture.pressure.includes("permanência") ? .1 : 0),
+    .5,
+    1,
+  );
+  const tacticForEffect = opponentTactic.id === "bloco-baixo" ? -.1 : opponentTactic.id === "pressao-alta" ? .06 : opponentTactic.id === "jogo-direto" ? .03 : 0;
+  const tacticAgainstEffect = opponentTactic.id === "transicao" ? .12 : opponentTactic.id === "posse" ? .07 : opponentTactic.id === "bloco-baixo" ? -.08 : 0;
+  const expectedFor = clamp(.99 + strengthGap * .024 + homeEffect + difficultyEffect + fatigueReadiness + tacticForEffect, .28, 2.12);
+  const expectedAgainst = clamp(1.12 - strengthGap * .023 - homeEffect * .72 - difficultyEffect * .38 - fatigueReadiness * .3 + tacticAgainstEffect, .34, 2.2);
   const baseHomeGoals = samplePoisson(rng, expectedFor);
   const baseAwayGoals = samplePoisson(rng, expectedAgainst);
-  const intensity = .72 + rng() * .56;
-  const eventCount = 13 + Math.floor(rng() * 8);
-  const momentCount = showcase ? 9 : 4 + Math.floor(rng() * 3);
+  const intensity = .66 + rng() * .48 + importance * .2;
+  const unavailableReason = career.suspensionMatches > 0
+    ? `Suspenso por ${career.suspensionMatches} partida(s)`
+    : career.injuryStatus.includes("moderada")
+      ? career.injuryStatus
+      : "";
+  const playerAvailable = !unavailableReason;
+  const eventCount = 14 + Math.floor(rng() * 9);
+  const momentCount = playerAvailable ? (showcase ? 9 : 5 + Math.floor(rng() * 3)) : 0;
   const eventMinutes = uniqueMinutes(rng, eventCount);
   const momentMinutes = uniqueMinutes(rng, momentCount, 8, 86);
 
   const goalMinutesFor = new Set(uniqueMinutes(rng, baseHomeGoals, 5, 88));
   const goalMinutesAgainst = new Set(uniqueMinutes(rng, baseAwayGoals, 5, 88));
   const allEventMinutes = [...new Set([...eventMinutes, ...goalMinutesFor, ...goalMinutesAgainst])].sort((a, b) => a - b);
-  const events = allEventMinutes.map((minute) => {
+  const events: MatchEvent[] = allEventMinutes.map((minute) => {
     if (goalMinutesFor.has(minute)) {
       return { minute, kind: "home-goal" as const, text: pick(rng, [
         `GOL DO ${career.clubName.toUpperCase()}! A jogada nasce numa recuperação alta.`,
@@ -943,15 +1139,98 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     return narration(rng, fixture, minute);
   });
 
+  const specialCount = 7 + Math.floor(rng() * 7);
+  const specialMinutes = uniqueMinutes(rng, specialCount, 7, 87);
+  let specialIndex = 0;
+  const addSpecialEvent = (event: Omit<MatchEvent, "minute">) => {
+    const minute = specialMinutes[specialIndex];
+    specialIndex += 1;
+    if (minute !== undefined) events.push({ minute, ...event });
+  };
+  const yellowCount = 2 + Math.floor(rng() * 4);
+  for (let index = 0; index < yellowCount && specialIndex < specialMinutes.length; index += 1) {
+    const affectsPlayer = playerAvailable && rng() < Math.max(.07, (100 - career.discipline) / 145);
+    const side = affectsPlayer ? "player" : rng() > .46 ? "opponent" : "player";
+    addSpecialEvent({
+      kind: "yellow-card",
+      side,
+      affectsPlayer,
+      text: affectsPlayer
+        ? `${career.name} chega atrasado na disputa e recebe cartão amarelo.`
+        : `${side === "opponent" ? fixture.opponent.name : career.clubName} interrompe a transição com falta. Cartão amarelo.`,
+    });
+  }
+  if (specialIndex < specialMinutes.length && rng() < .1 + (100 - career.discipline) / 850) {
+    const affectsPlayer = playerAvailable && rng() < Math.max(.035, (100 - career.discipline) / 310);
+    const side = affectsPlayer ? "player" : rng() > .5 ? "opponent" : "player";
+    addSpecialEvent({
+      kind: "red-card",
+      side,
+      affectsPlayer,
+      text: affectsPlayer
+        ? `${career.name} é expulso depois de uma entrada perigosa.`
+        : `Cartão vermelho! ${side === "opponent" ? fixture.opponent.name : career.clubName} fica com dez jogadores.`,
+    });
+  }
+  const offsideCount = 1 + Math.floor(rng() * 3);
+  for (let index = 0; index < offsideCount && specialIndex < specialMinutes.length; index += 1) {
+    const side = rng() > .5 ? "opponent" : "player";
+    addSpecialEvent({
+      kind: "offside",
+      side,
+      text: side === "player"
+        ? `Impedimento marcado. A última linha do ${fixture.opponent.name} sobe no instante certo.`
+        : `${fixture.opponent.name} balança a rede, mas o assistente já marcava impedimento.`,
+    });
+  }
+  if (specialIndex < specialMinutes.length) {
+    addSpecialEvent({
+      kind: "tactical",
+      side: "opponent",
+      text: `${fixture.opponent.name} ajusta o ${opponentTactic.formation} e muda a altura da marcação.`,
+    });
+  }
+  if (specialIndex < specialMinutes.length) {
+    const affectsPlayer = playerAvailable && rng() < .32;
+    addSpecialEvent({
+      kind: "substitution",
+      side: affectsPlayer ? "player" : "neutral",
+      affectsPlayer,
+      text: affectsPlayer
+        ? `O treinador chama ${career.name}. A intensidade e a condição física pesaram na substituição.`
+        : "Os dois bancos se movimentam e renovam a intensidade para o trecho final.",
+    });
+  }
+  if (specialIndex < specialMinutes.length && rng() < .025 + career.injuryRisk / 520) {
+    const affectsPlayer = playerAvailable && rng() < .42;
+    addSpecialEvent({
+      kind: "injury",
+      side: affectsPlayer ? "player" : "opponent",
+      affectsPlayer,
+      text: affectsPlayer
+        ? `${career.name} sente a musculatura e pede atendimento imediatamente.`
+        : `O jogo para para atendimento médico. ${fixture.opponent.name} prepara uma substituição.`,
+    });
+  }
+  events.sort((a, b) => a.minute - b.minute || a.kind.localeCompare(b.kind));
+
   const moments = momentMinutes.map((minute, index) => {
     const showcaseKinds: MomentKind[] = ["pass", "dribble", "shot", "defense", "freeKick", "corner", "penalty", "counter", "aerial"];
     const template = momentTemplates(career.position, rng, pick(rng, fixture.opponent.stars), showcase ? showcaseKinds[index] : undefined);
+    const latePressure = minute >= 75;
+    const context = latePressure
+      ? " O placar está aberto e o rival vai alterar a postura depois desta decisão."
+      : minute <= 20
+        ? " O jogo ainda procura um dono e a primeira vantagem pode mudar o plano tático."
+        : " O posicionamento do adversário já revela onde a partida pode ser decidida.";
     const targets = targetsFor(template.kind, rng).map((target) => ({
       ...target,
-      roll: Math.max(0, target.roll - attributeForMoment(career, template.kind)),
+      roll: Math.max(0, target.roll - attributeForMoment(career, template.kind) + (latePressure ? .015 : 0)),
     }));
     return {
       ...template,
+      prompt: `${template.prompt}${context}`,
+      pressure: latePressure || importance >= .86 ? "alta" as const : template.pressure,
       id: `${fixture.id}-m${index}-${minute}`,
       minute,
       targets,
@@ -963,7 +1242,45 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     a: career.archetype,
     e: events.map((event) => [event.minute, event.kind]),
     m: moments.map((moment) => [moment.minute, moment.kind, moment.targets.map((target) => target.roll.toFixed(5))]),
+    t: opponentTactic.id,
+    i: importance.toFixed(3),
   })).toString(36);
+
+  const possession = clamp(Math.round(50 + strengthGap * .42 + (opponentTactic.id === "posse" ? -8 : opponentTactic.id === "bloco-baixo" ? 7 : 0) + (rng() - .5) * 9), 31, 69);
+  const playerShots = Math.max(baseHomeGoals + 2, Math.round(5 + expectedFor * 4.3 + rng() * 4));
+  const opponentShots = Math.max(baseAwayGoals + 2, Math.round(5 + expectedAgainst * 4.4 + rng() * 4));
+  const playerOnTarget = clamp(Math.round(playerShots * (.31 + rng() * .18)), baseHomeGoals, playerShots);
+  const opponentOnTarget = clamp(Math.round(opponentShots * (.3 + rng() * .18)), baseAwayGoals, opponentShots);
+  const playerYellowCards = events.filter((event) => event.kind === "yellow-card" && event.side === "player").length;
+  const opponentYellowCards = events.filter((event) => event.kind === "yellow-card" && event.side === "opponent").length;
+  const playerRedCards = events.filter((event) => event.kind === "red-card" && event.side === "player").length;
+  const opponentRedCards = events.filter((event) => event.kind === "red-card" && event.side === "opponent").length;
+  const statistics: MatchStatistics = {
+    playerTeam: {
+      possession,
+      shots: playerShots,
+      shotsOnTarget: playerOnTarget,
+      bigChances: Math.max(baseHomeGoals, Math.round(expectedFor + rng() * 2)),
+      corners: Math.floor(2 + expectedFor * 1.6 + rng() * 4),
+      fouls: 8 + Math.floor(intensity * 4 + rng() * 6),
+      offsides: events.filter((event) => event.kind === "offside" && event.side === "player").length,
+      yellowCards: playerYellowCards,
+      redCards: playerRedCards,
+      expectedGoals: Number(expectedFor.toFixed(2)),
+    },
+    opponent: {
+      possession: 100 - possession,
+      shots: opponentShots,
+      shotsOnTarget: opponentOnTarget,
+      bigChances: Math.max(baseAwayGoals, Math.round(expectedAgainst + rng() * 2)),
+      corners: Math.floor(2 + expectedAgainst * 1.6 + rng() * 4),
+      fouls: 8 + Math.floor(intensity * 4 + rng() * 6),
+      offsides: events.filter((event) => event.kind === "offside" && event.side === "opponent").length,
+      yellowCards: opponentYellowCards,
+      redCards: opponentRedCards,
+      expectedGoals: Number(expectedAgainst.toFixed(2)),
+    },
+  };
 
   return {
     signature: `JOGO-${career.matches + 1}-${fingerprint.toUpperCase()}`,
@@ -975,6 +1292,11 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     expectedHomeGoals: expectedFor,
     expectedAwayGoals: expectedAgainst,
     intensity,
+    importance,
+    opponentTactic,
+    statistics,
+    playerAvailable,
+    unavailableReason,
   };
 }
 
@@ -1256,6 +1578,195 @@ export function getWorldRanking(career: CareerState) {
   ].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
 }
 
+function getCareerSquadRole(overall: number, teamStrength: number): CareerSquadRole {
+  const gap = overall - teamStrength;
+  if (gap >= 5) return "Estrela";
+  if (gap >= 0) return "Titular";
+  if (gap >= -4) return "Rotação";
+  return "Projeto";
+}
+
+export function getCareerTransferOffers(career: CareerState): CareerTransferOffer[] {
+  const overall = getOverall(career);
+  const cycle = Math.floor(Math.max(0, career.seasonRound - 1) / 4);
+  const profileLevel = overall
+    + (career.reputation - 30) / 12
+    + (career.rating - 6.8) * 2.2
+    + Math.min(4, career.matches / 18);
+  const candidates = TEAMS
+    .filter((team) => team.id !== career.clubId)
+    .map((team) => {
+      const league = getLeagueDefinition(team.countryId, team.division);
+      const seed = hashText(`career-market:${career.careerSeed}:${career.season}:${cycle}:${team.id}`);
+      const requiredReputation = clamp(Math.round((team.strength - 56) * 1.45 - Math.max(0, overall - team.strength) * .7), 10, 88);
+      const requiredRating = team.strength >= 84 ? 7.5 : team.strength >= 79 ? 7.2 : team.strength >= 73 ? 6.9 : 6.5;
+      const requiredMatches = team.division === 1 ? 6 : 3;
+      const interest = clamp(Math.round(
+        60
+        + (overall - team.strength) * 2.4
+        + (career.reputation - requiredReputation) * .55
+        + (career.rating - requiredRating) * 11
+        + Math.min(8, career.matches / 5)
+        + (seed % 13) - 6,
+      ), 18, 98);
+      const role = getCareerSquadRole(overall, team.strength);
+      const available = career.matches >= requiredMatches
+        && career.reputation >= requiredReputation
+        && career.rating >= requiredRating
+        && interest >= 58;
+      const requirement = career.matches < requiredMatches
+        ? `${requiredMatches} partidas profissionais`
+        : career.reputation < requiredReputation
+          ? `reputação ${requiredReputation}`
+          : career.rating < requiredRating
+            ? `nota média ${requiredRating.toFixed(1)}`
+            : interest < 58
+              ? "mais boas atuações"
+              : "proposta pronta";
+      const salaryBase = getSalary(team.countryId, team.division, Math.max(career.reputation, requiredReputation));
+      const salary = Math.round(Math.max(
+        salaryBase * (.9 + Math.max(0, team.strength - 60) / 72),
+        available ? career.salary * (team.strength >= career.clubStrength ? 1.08 : .92) : salaryBase,
+      ) / 100) * 100;
+      const transferFee = Math.round(Math.max(
+        career.marketValue * (.82 + Math.max(0, team.strength - career.clubStrength) / 55),
+        overall * overall * 5_800,
+      ) / 100_000) * 100_000;
+      const contractLength = role === "Projeto" ? 5 : role === "Estrela" ? 3 : 4;
+      const score = 240
+        - Math.abs(team.strength - profileLevel) * 9
+        + (team.division === 1 ? 16 : 0)
+        + (team.countryId !== career.countryId ? 7 : 0)
+        + seed % 47;
+      return {
+        score,
+        offer: {
+          id: `offer-${career.season}-${cycle}-${team.id}`,
+          generatedSeason: career.season,
+          generatedRound: career.seasonRound,
+          teamId: team.id,
+          teamName: team.name,
+          teamShort: team.short,
+          teamColor: team.color,
+          teamStrength: team.strength,
+          countryId: team.countryId,
+          countryName: team.country,
+          division: team.division,
+          leagueId: league.id,
+          leagueName: league.name,
+          interest,
+          transferFee,
+          salary,
+          signingBonus: Math.round(salary * (role === "Estrela" ? 3 : role === "Titular" ? 2 : 1.2) / 1_000) * 1_000,
+          contractUntilSeason: career.season + contractLength,
+          releaseClause: Math.round(transferFee * (role === "Projeto" ? 2.6 : 2.1) / 100_000) * 100_000,
+          role,
+          available,
+          requirement,
+        } satisfies CareerTransferOffer,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const selected: typeof candidates = [];
+  const addCandidate = (candidate: (typeof candidates)[number] | undefined) => {
+    if (candidate && !selected.some((item) => item.offer.teamId === candidate.offer.teamId)) selected.push(candidate);
+  };
+  candidates.filter((candidate) => candidate.offer.available).slice(0, 3).forEach(addCandidate);
+  addCandidate(candidates.find((candidate) => candidate.offer.countryId !== career.countryId && candidate.offer.available));
+  addCandidate(candidates.find((candidate) => !candidate.offer.available && candidate.offer.teamStrength > profileLevel));
+  candidates.forEach((candidate) => {
+    if (selected.length < 5) addCandidate(candidate);
+  });
+
+  return selected
+    .slice(0, 5)
+    .map((candidate) => candidate.offer)
+    .sort((a, b) => Number(b.available) - Number(a.available) || b.interest - a.interest);
+}
+
+export function getContractRenewal(career: CareerState): ContractRenewal {
+  const overall = getOverall(career);
+  const role = getCareerSquadRole(overall, career.clubStrength);
+  const available = career.matches >= 3 && career.coachTrust >= 52;
+  const salaryBase = getSalary(career.countryId, career.division, career.reputation);
+  const salary = Math.round(Math.max(career.salary * 1.08, salaryBase * (1 + Math.max(0, career.clubStrength - 65) / 80)) / 100) * 100;
+  return {
+    available,
+    salary,
+    signingBonus: Math.round(salary * 1.5 / 1_000) * 1_000,
+    contractUntilSeason: career.season + (role === "Projeto" ? 4 : role === "Estrela" ? 2 : 3),
+    releaseClause: Math.round(Math.max(career.marketValue * 2.5, overall * overall * 16_000) / 100_000) * 100_000,
+    role,
+    requirement: career.matches < 3 ? "complete 3 partidas" : career.coachTrust < 52 ? "confiança do treinador 52" : "renovação disponível",
+  };
+}
+
+export function completeCareerTransfer(career: CareerState, offer: CareerTransferOffer, arrivalSeason: number) {
+  const destination = TEAMS.find((team) => team.id === offer.teamId);
+  const destinationCountry = getCountry(offer.countryId);
+  const previousCountry = getCountry(career.countryId);
+  const sameCountry = career.countryId === offer.countryId;
+  const sameLanguage = previousCountry.language === destinationCountry.language;
+  const record: CareerTransferRecord = {
+    id: `career-move-${arrivalSeason}-${career.clubId}-${offer.teamId}`,
+    season: arrivalSeason,
+    fromTeamName: career.clubName,
+    toTeamName: offer.teamName,
+    fromCountryId: career.countryId,
+    toCountryId: offer.countryId,
+    fee: offer.transferFee,
+    salary: offer.salary,
+    role: offer.role,
+  };
+  const worldTransfer: WorldTransfer = {
+    id: `career-transfer-${arrivalSeason}-${career.id}-${offer.teamId}`,
+    season: arrivalSeason,
+    playerId: `career-player-${career.id}`,
+    playerName: career.name,
+    age: career.age + 1,
+    overall: getOverall(career),
+    fromTeamId: career.clubId,
+    fromTeamName: career.clubName,
+    toTeamId: offer.teamId,
+    toTeamName: offer.teamName,
+    fromCountryId: career.countryId,
+    toCountryId: offer.countryId,
+    fee: offer.transferFee,
+  };
+  return {
+    careerPatch: {
+      countryId: offer.countryId,
+      countryName: offer.countryName,
+      division: offer.division,
+      leagueId: offer.leagueId,
+      leagueName: offer.leagueName,
+      clubId: offer.teamId,
+      clubName: offer.teamName,
+      clubShort: offer.teamShort,
+      clubColor: offer.teamColor,
+      clubStrength: destination?.strength ?? offer.teamStrength,
+      salary: offer.salary,
+      bankBalance: career.bankBalance + offer.signingBonus,
+      monthlyExpenses: destinationCountry.costOfLiving,
+      housing: "Hotel do clube",
+      language: destinationCountry.language,
+      languageLevel: sameLanguage ? Math.max(career.languageLevel, 80) : 18,
+      adaptation: sameCountry ? career.adaptation : 42,
+      coachTrust: offer.role === "Estrela" ? 72 : offer.role === "Titular" ? 60 : offer.role === "Rotação" ? 48 : 38,
+      contractMatches: getLeagueDefinition(offer.countryId, offer.division).format.rounds,
+      contractUntilSeason: offer.contractUntilSeason,
+      contractRole: offer.role,
+      releaseClause: offer.releaseClause,
+      pendingTransfer: null,
+      careerTransferHistory: [record, ...career.careerTransferHistory].slice(0, 20),
+      lifeEventHistory: [`Chegou ao ${offer.teamName} em uma transferência de ${offer.countryName}.`, ...career.lifeEventHistory].slice(0, 30),
+      lastSeasonSummary: `${career.lastSeasonSummary} · transferido para o ${offer.teamName}`,
+    } satisfies Partial<CareerState>,
+    worldTransfer,
+  };
+}
+
 function createRegeneratedPlayer(retired: WorldPlayerState, season: number, index: number): WorldPlayerState {
   const pool = NAME_POOLS[retired.countryId];
   const seed = hashText(`regen:${season}:${retired.id}:${index}`);
@@ -1436,6 +1947,7 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
   const playerPosition = table.find((row) => row.isPlayerTeam)?.position ?? 1;
   const marketTeam = WORLD_TEAMS[(career.matches + career.careerSeed) % WORLD_TEAMS.length];
   const latestTransfer = career.worldTransfers[0];
+  const careerOffer = getCareerTransferOffers(career).find((offer) => offer.available);
   const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
   const objective = career.division === 2 ? "acesso" : playerPosition >= 10 ? "permanência" : "título";
   return [
@@ -1449,8 +1961,16 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
     {
       id: `market-${career.matches}`,
       category: "mercado",
-      title: latestTransfer ? `${latestTransfer.playerName} muda de clube` : `${marketTeam.name} envia observador`,
-      text: latestTransfer
+      title: career.pendingTransfer
+        ? `Acordo com o ${career.pendingTransfer.teamName} confirmado`
+        : careerOffer
+          ? `${careerOffer.teamName} prepara proposta`
+          : latestTransfer ? `${latestTransfer.playerName} muda de clube` : `${marketTeam.name} envia observador`,
+      text: career.pendingTransfer
+        ? `A transferência será concluída ao fim da temporada. O contrato promete função de ${career.pendingTransfer.role} e salário de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 }).format(career.pendingTransfer.salary)} por mês.`
+        : careerOffer
+          ? `O projeto oferece função de ${careerOffer.role}, interesse de ${careerOffer.interest}% e vínculo até ${careerOffer.contractUntilSeason}.`
+          : latestTransfer
         ? `${latestTransfer.fromTeamName} negocia o atleta com o ${latestTransfer.toTeamName} por ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 1 }).format(latestTransfer.fee)}.`
         : `O clube acompanha ${career.name}. Reputação ${career.reputation} e nota média ${career.rating.toFixed(1)} pesam no relatório.`,
     },
@@ -1507,7 +2027,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     : createInitialWorldPlayers(careerSeed, input?.season ?? 2026);
   const worldPlayers = normalizeWorldPlayers(rawWorldPlayers, input?.saveVersion ?? 0);
   return {
-    saveVersion: 5,
+    saveVersion: 6,
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
     position,
@@ -1587,6 +2107,9 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     discipline: input?.discipline ?? 82,
     injuryStatus: input?.injuryStatus ?? "Apto",
     injuryRisk: input?.injuryRisk ?? 12,
+    yellowCards: input?.yellowCards ?? 0,
+    redCards: input?.redCards ?? 0,
+    suspensionMatches: input?.suspensionMatches ?? 0,
     socialProject: input?.socialProject ?? "Nenhum",
     pendingLifeEvent: input?.pendingLifeEvent ?? "primeira-entrevista",
     lifeEventHistory: input?.lifeEventHistory ?? [],
@@ -1595,6 +2118,11 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     historicalRecords: input?.historicalRecords ?? [],
     futurePath: input?.futurePath ?? "Indefinido",
     contractMatches: input?.contractMatches ?? league.format.rounds,
+    contractUntilSeason: input?.contractUntilSeason ?? (input?.season ?? 2026) + 2,
+    contractRole: input?.contractRole ?? ((input?.rating ?? 6.8) >= 7.4 ? "Titular" : "Rotação"),
+    releaseClause: input?.releaseClause ?? Math.round((input?.marketValue ?? league.salaryBase * 22) * 2.5 / 100_000) * 100_000,
+    pendingTransfer: input?.pendingTransfer ?? null,
+    careerTransferHistory: input?.careerTransferHistory ?? [],
     promotions: input?.promotions ?? 0,
     relegations: input?.relegations ?? 0,
     lastSeasonSummary: input?.lastSeasonSummary ?? "Primeira temporada em andamento",
