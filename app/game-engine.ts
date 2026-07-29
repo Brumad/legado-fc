@@ -3,6 +3,7 @@ export type MomentKind = "shot" | "pass" | "dribble" | "defense" | "freeKick" | 
 export type Foot = "Direito" | "Esquerdo";
 export type Archetype = "Maestro" | "Finalizador" | "Velocista" | "Operário" | "Muralha";
 export type Difficulty = "Promessa" | "Profissional" | "Lenda";
+export type MatchApproach = "Disciplinado" | "Equilibrado" | "Agressivo" | "Criativo";
 export type CountryId = "BR" | "AR" | "PT" | "EN" | "ES" | "IT" | "DE" | "FR" | "NL" | "MX" | "US" | "JP";
 export type DivisionLevel = 1 | 2;
 export type OriginType = "Clube de bairro" | "Academia regional" | "Futebol escolar" | "Projeto social" | "Sem clube";
@@ -114,6 +115,34 @@ export type CareerTransferRecord = {
   fee: number;
   salary: number;
   role: CareerSquadRole;
+};
+
+export type CareerMatchRecord = {
+  id: string;
+  season: number;
+  round: number;
+  date: string;
+  competition: string;
+  opponentId: string;
+  opponentName: string;
+  opponentShort: string;
+  playerGoals: number;
+  opponentGoals: number;
+  goals: number;
+  assists: number;
+  rating: number;
+  minutesPlayed: number;
+  result: "V" | "E" | "D";
+  tacticName: string;
+  tacticFormation: string;
+  approach: MatchApproach;
+  possession: number;
+  shots: number;
+  shotsAgainst: number;
+  yellowCards: number;
+  redCard: boolean;
+  injuryStatus: string;
+  signature: string;
 };
 
 export type ContractRenewal = {
@@ -251,6 +280,7 @@ export type CareerState = {
   discipline: number;
   injuryStatus: string;
   injuryRisk: number;
+  injuryMatchesRemaining: number;
   yellowCards: number;
   redCards: number;
   suspensionMatches: number;
@@ -267,6 +297,7 @@ export type CareerState = {
   releaseClause: number;
   pendingTransfer: CareerTransferOffer | null;
   careerTransferHistory: CareerTransferRecord[];
+  matchHistory: CareerMatchRecord[];
   promotions: number;
   relegations: number;
   lastSeasonSummary: string;
@@ -377,13 +408,20 @@ export type MatchMoment = {
 };
 
 export type OpponentTactic = {
-  id: "pressao-alta" | "bloco-baixo" | "transicao" | "posse" | "jogo-direto";
+  id: "pressao-alta" | "bloco-baixo" | "transicao" | "posse" | "jogo-direto" | "gegenpress" | "amplitude" | "losango" | "falso-nove" | "marcacao-individual" | "linha-alta" | "catenaccio";
   name: string;
   formation: string;
   description: string;
   pressing: number;
   tempo: number;
   defensiveLine: number;
+  width: number;
+  aggression: number;
+  risk: number;
+  strengths: string[];
+  weaknesses: string[];
+  favoredKinds: MomentKind[];
+  exposedKinds: MomentKind[];
 };
 
 export type TeamMatchStatistics = {
@@ -419,6 +457,9 @@ export type MatchPlan = {
   statistics: MatchStatistics;
   playerAvailable: boolean;
   unavailableReason: string;
+  tacticalAdvantage: number;
+  tacticalInstruction: string;
+  rivalryLevel: number;
 };
 
 export type StandingRow = {
@@ -819,6 +860,13 @@ const opponentTactics: OpponentTactic[] = [
     pressing: 92,
     tempo: 82,
     defensiveLine: 86,
+    width: 68,
+    aggression: 82,
+    risk: 74,
+    strengths: ["recuperação no campo ofensivo", "volume depois da perda"],
+    weaknesses: ["bola longa nas costas", "fadiga no terço final"],
+    favoredKinds: ["defense", "counter"],
+    exposedKinds: ["pass", "aerial"],
   },
   {
     id: "bloco-baixo",
@@ -828,6 +876,13 @@ const opponentTactics: OpponentTactic[] = [
     pressing: 38,
     tempo: 44,
     defensiveLine: 32,
+    width: 45,
+    aggression: 54,
+    risk: 28,
+    strengths: ["proteção da área", "densidade pelo centro"],
+    weaknesses: ["chutes de média distância", "trocas rápidas de corredor"],
+    favoredKinds: ["defense", "aerial"],
+    exposedKinds: ["shot", "corner"],
   },
   {
     id: "transicao",
@@ -837,6 +892,13 @@ const opponentTactics: OpponentTactic[] = [
     pressing: 66,
     tempo: 91,
     defensiveLine: 58,
+    width: 76,
+    aggression: 69,
+    risk: 71,
+    strengths: ["ataque ao espaço", "velocidade após recuperar"],
+    weaknesses: ["posse prolongada", "perda da segunda bola"],
+    favoredKinds: ["counter", "dribble"],
+    exposedKinds: ["pass", "defense"],
   },
   {
     id: "posse",
@@ -846,6 +908,13 @@ const opponentTactics: OpponentTactic[] = [
     pressing: 57,
     tempo: 52,
     defensiveLine: 69,
+    width: 63,
+    aggression: 43,
+    risk: 46,
+    strengths: ["controle territorial", "superioridade entre linhas"],
+    weaknesses: ["transição defensiva", "duelos em velocidade"],
+    favoredKinds: ["pass", "dribble"],
+    exposedKinds: ["counter", "aerial"],
   },
   {
     id: "jogo-direto",
@@ -855,6 +924,125 @@ const opponentTactics: OpponentTactic[] = [
     pressing: 71,
     tempo: 77,
     defensiveLine: 51,
+    width: 79,
+    aggression: 78,
+    risk: 57,
+    strengths: ["segunda bola", "cruzamentos e duelos"],
+    weaknesses: ["espaço entre meio e defesa", "saída sob pressão"],
+    favoredKinds: ["aerial", "corner"],
+    exposedKinds: ["dribble", "pass"],
+  },
+  {
+    id: "gegenpress",
+    name: "Gegenpress coordenado",
+    formation: "4-2-2-2",
+    description: "Perde a bola e cerca imediatamente com quatro jogadores próximos.",
+    pressing: 96,
+    tempo: 88,
+    defensiveLine: 82,
+    width: 55,
+    aggression: 90,
+    risk: 81,
+    strengths: ["pressão após a perda", "ataques curtos e frequentes"],
+    weaknesses: ["inversão de jogo", "desgaste acelerado"],
+    favoredKinds: ["defense", "shot"],
+    exposedKinds: ["pass", "counter"],
+  },
+  {
+    id: "amplitude",
+    name: "Sobrecarga pelos lados",
+    formation: "3-4-3",
+    description: "Alarga o campo, cria dois contra um e ocupa a área com muitos jogadores.",
+    pressing: 64,
+    tempo: 75,
+    defensiveLine: 62,
+    width: 94,
+    aggression: 67,
+    risk: 68,
+    strengths: ["superioridade nos corredores", "cruzamento no lado oposto"],
+    weaknesses: ["espaço atrás dos alas", "inferioridade no centro"],
+    favoredKinds: ["corner", "aerial"],
+    exposedKinds: ["counter", "pass"],
+  },
+  {
+    id: "losango",
+    name: "Losango central",
+    formation: "4-3-1-2",
+    description: "Concentra jogadores por dentro, aproxima atacantes e domina segundas bolas.",
+    pressing: 72,
+    tempo: 69,
+    defensiveLine: 65,
+    width: 34,
+    aggression: 73,
+    risk: 55,
+    strengths: ["superioridade central", "tabelas curtas"],
+    weaknesses: ["amplitude defensiva", "troca de lado"],
+    favoredKinds: ["pass", "shot"],
+    exposedKinds: ["dribble", "corner"],
+  },
+  {
+    id: "falso-nove",
+    name: "Falso nove móvel",
+    formation: "4-3-3",
+    description: "O atacante recua, arrasta zagueiros e abre diagonais para os pontas.",
+    pressing: 61,
+    tempo: 64,
+    defensiveLine: 73,
+    width: 71,
+    aggression: 48,
+    risk: 62,
+    strengths: ["ocupação entre linhas", "movimentos sem referência"],
+    weaknesses: ["presença na área", "duelos contra bloco físico"],
+    favoredKinds: ["pass", "dribble"],
+    exposedKinds: ["defense", "aerial"],
+  },
+  {
+    id: "marcacao-individual",
+    name: "Encaixes individuais",
+    formation: "3-5-2",
+    description: "Cada recepção é perseguida, mesmo quando isso desmonta a estrutura original.",
+    pressing: 84,
+    tempo: 63,
+    defensiveLine: 67,
+    width: 58,
+    aggression: 91,
+    risk: 76,
+    strengths: ["negação de tempo ao craque", "duelos constantes"],
+    weaknesses: ["trocas de posição", "cartões e coberturas longas"],
+    favoredKinds: ["defense", "freeKick"],
+    exposedKinds: ["dribble", "pass"],
+  },
+  {
+    id: "linha-alta",
+    name: "Linha alta e impedimento",
+    formation: "4-2-4",
+    description: "Comprime o campo, arrisca a armadilha de impedimento e mantém muitos jogadores à frente.",
+    pressing: 87,
+    tempo: 86,
+    defensiveLine: 97,
+    width: 66,
+    aggression: 77,
+    risk: 92,
+    strengths: ["campo curto", "armadilha de impedimento"],
+    weaknesses: ["corridas em profundidade", "passe direto bem executado"],
+    favoredKinds: ["defense", "counter"],
+    exposedKinds: ["counter", "shot"],
+  },
+  {
+    id: "catenaccio",
+    name: "Catenaccio reativo",
+    formation: "5-3-2",
+    description: "Defende a área com sobra, aceita pouca posse e escolhe um momento para atacar.",
+    pressing: 31,
+    tempo: 58,
+    defensiveLine: 26,
+    width: 42,
+    aggression: 64,
+    risk: 24,
+    strengths: ["cobertura profunda", "proteção de vantagem"],
+    weaknesses: ["pressão territorial", "rebotes fora da área"],
+    favoredKinds: ["defense", "counter"],
+    exposedKinds: ["freeKick", "shot"],
   },
 ];
 
@@ -1087,7 +1275,34 @@ function attributeForMoment(career: CareerState, kind: MomentKind) {
 
 export function generateMatchPlan(career: CareerState, fixture = createFixture(career), showcase = false): MatchPlan {
   const rng = makeRng(fixture.seed ^ hashText(`${career.position}:${career.archetype}`));
-  const opponentTactic = opponentTactics[hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) % opponentTactics.length];
+  const previousMeetings = career.matchHistory.filter((match) => match.opponentId === fixture.opponent.id);
+  const tacticIndex = (hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) + previousMeetings.length * 5) % opponentTactics.length;
+  const opponentTactic = opponentTactics[tacticIndex];
+  const positionKinds: Record<Position, MomentKind[]> = {
+    Atacante: ["shot", "aerial", "counter"],
+    Ponta: ["dribble", "counter", "corner"],
+    Meia: ["pass", "freeKick", "corner"],
+    Lateral: ["defense", "pass", "corner"],
+    Zagueiro: ["defense", "aerial", "pass"],
+  };
+  const exploitableKinds = opponentTactic.exposedKinds.filter((kind) => positionKinds[career.position].includes(kind));
+  const preparedBonus = career.weeklyAction === "Treino tático" || career.preparationLog.includes("Treino tático") ? 5 : 0;
+  const skillMatch = exploitableKinds.length * 4 + preparedBonus;
+  const physicalPenalty = Math.max(0, opponentTactic.pressing - career.energy) / 7;
+  const tacticalAdvantage = clamp(Math.round(skillMatch - physicalPenalty + (career.adaptation - 70) / 15), -14, 18);
+  const instructionKind = exploitableKinds[0] ?? opponentTactic.exposedKinds[0];
+  const tacticalInstruction = {
+    pass: "circule rápido e encontre o lado oposto antes do encaixe",
+    shot: "ataque os rebotes e finalize antes de o bloco fechar",
+    dribble: "troque de posição e desafie o marcador fora de sua zona",
+    defense: "antecipe a referência e proteja a segunda bola",
+    freeKick: "force contatos perto da área e explore a bola parada",
+    corner: "ataque a zona mais distante da primeira cobertura",
+    penalty: "invada a área com conduções curtas e obrigue o bote",
+    counter: "acelere imediatamente no espaço deixado pela linha",
+    aerial: "ataque a segunda trave e domine o duelo físico",
+  }[instructionKind];
+  const rivalryLevel = clamp(previousMeetings.length * 18 + (fixture.competitionType !== "league" ? 16 : 0), 0, 100);
   const overall = Object.values(career.attributes).reduce((total, value) => total + value, 0) / 6;
   const fatigueReadiness = (career.energy - 72) / 210;
   const playerStrength = career.clubStrength + (overall - 68) * .075 + career.formBoost * .22 + (career.morale - 70) * .023;
@@ -1098,21 +1313,22 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     .54
       + (fixture.competitionType === "continental" ? .26 : fixture.competitionType === "cup" ? .18 : 0)
       + (Math.abs(strengthGap) <= 4 ? .12 : 0)
+      + rivalryLevel / 850
       + (fixture.pressure.includes("liderança") || fixture.pressure.includes("permanência") ? .1 : 0),
     .5,
     1,
   );
-  const tacticForEffect = opponentTactic.id === "bloco-baixo" ? -.1 : opponentTactic.id === "pressao-alta" ? .06 : opponentTactic.id === "jogo-direto" ? .03 : 0;
-  const tacticAgainstEffect = opponentTactic.id === "transicao" ? .12 : opponentTactic.id === "posse" ? .07 : opponentTactic.id === "bloco-baixo" ? -.08 : 0;
-  const expectedFor = clamp(.99 + strengthGap * .024 + homeEffect + difficultyEffect + fatigueReadiness + tacticForEffect, .28, 2.12);
-  const expectedAgainst = clamp(1.12 - strengthGap * .023 - homeEffect * .72 - difficultyEffect * .38 - fatigueReadiness * .3 + tacticAgainstEffect, .34, 2.2);
+  const tacticForEffect = (opponentTactic.risk - 55) / 320 + tacticalAdvantage / 125;
+  const tacticAgainstEffect = (opponentTactic.tempo + opponentTactic.aggression - 125) / 520 - tacticalAdvantage / 210;
+  const expectedFor = clamp(.99 + strengthGap * .024 + homeEffect + difficultyEffect + fatigueReadiness + tacticForEffect, .28, 2.16);
+  const expectedAgainst = clamp(1.12 - strengthGap * .023 - homeEffect * .72 - difficultyEffect * .38 - fatigueReadiness * .3 + tacticAgainstEffect, .34, 2.24);
   const baseHomeGoals = samplePoisson(rng, expectedFor);
   const baseAwayGoals = samplePoisson(rng, expectedAgainst);
   const intensity = .66 + rng() * .48 + importance * .2;
   const unavailableReason = career.suspensionMatches > 0
     ? `Suspenso por ${career.suspensionMatches} partida(s)`
-    : career.injuryStatus.includes("moderada")
-      ? career.injuryStatus
+    : career.injuryMatchesRemaining > 0
+      ? `${career.injuryStatus} · ${career.injuryMatchesRemaining} jogo(s) de recuperação`
       : "";
   const playerAvailable = !unavailableReason;
   const eventCount = 14 + Math.floor(rng() * 9);
@@ -1139,7 +1355,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     return narration(rng, fixture, minute);
   });
 
-  const specialCount = 7 + Math.floor(rng() * 7);
+  const specialCount = 8 + Math.floor(rng() * 7);
   const specialMinutes = uniqueMinutes(rng, specialCount, 7, 87);
   let specialIndex = 0;
   const addSpecialEvent = (event: Omit<MatchEvent, "minute">) => {
@@ -1147,9 +1363,9 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     specialIndex += 1;
     if (minute !== undefined) events.push({ minute, ...event });
   };
-  const yellowCount = 2 + Math.floor(rng() * 4);
+  const yellowCount = 1 + Math.floor(opponentTactic.aggression / 28) + Math.floor(rng() * 3);
   for (let index = 0; index < yellowCount && specialIndex < specialMinutes.length; index += 1) {
-    const affectsPlayer = playerAvailable && rng() < Math.max(.07, (100 - career.discipline) / 145);
+    const affectsPlayer = playerAvailable && rng() < Math.max(.06, (100 - career.discipline + opponentTactic.aggression * .12) / 160);
     const side = affectsPlayer ? "player" : rng() > .46 ? "opponent" : "player";
     addSpecialEvent({
       kind: "yellow-card",
@@ -1160,7 +1376,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
         : `${side === "opponent" ? fixture.opponent.name : career.clubName} interrompe a transição com falta. Cartão amarelo.`,
     });
   }
-  if (specialIndex < specialMinutes.length && rng() < .1 + (100 - career.discipline) / 850) {
+  if (specialIndex < specialMinutes.length && rng() < .055 + opponentTactic.aggression / 1_350 + (100 - career.discipline) / 1_050) {
     const affectsPlayer = playerAvailable && rng() < Math.max(.035, (100 - career.discipline) / 310);
     const side = affectsPlayer ? "player" : rng() > .5 ? "opponent" : "player";
     addSpecialEvent({
@@ -1172,7 +1388,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
         : `Cartão vermelho! ${side === "opponent" ? fixture.opponent.name : career.clubName} fica com dez jogadores.`,
     });
   }
-  const offsideCount = 1 + Math.floor(rng() * 3);
+  const offsideCount = 1 + Math.floor(opponentTactic.defensiveLine / 34) + Math.floor(rng() * 2);
   for (let index = 0; index < offsideCount && specialIndex < specialMinutes.length; index += 1) {
     const side = rng() > .5 ? "opponent" : "player";
     addSpecialEvent({
@@ -1187,7 +1403,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     addSpecialEvent({
       kind: "tactical",
       side: "opponent",
-      text: `${fixture.opponent.name} ajusta o ${opponentTactic.formation} e muda a altura da marcação.`,
+      text: `${fixture.opponent.name} ajusta o ${opponentTactic.formation}: ${opponentTactic.description}`,
     });
   }
   if (specialIndex < specialMinutes.length) {
@@ -1197,11 +1413,11 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
       side: affectsPlayer ? "player" : "neutral",
       affectsPlayer,
       text: affectsPlayer
-        ? `O treinador chama ${career.name}. A intensidade e a condição física pesaram na substituição.`
+        ? `O treinador conversa com o banco e avalia a condição de ${career.name}.`
         : "Os dois bancos se movimentam e renovam a intensidade para o trecho final.",
     });
   }
-  if (specialIndex < specialMinutes.length && rng() < .025 + career.injuryRisk / 520) {
+  if (specialIndex < specialMinutes.length && rng() < .018 + career.injuryRisk / 600 + opponentTactic.aggression / 2_400) {
     const affectsPlayer = playerAvailable && rng() < .42;
     addSpecialEvent({
       kind: "injury",
@@ -1216,7 +1432,10 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
 
   const moments = momentMinutes.map((minute, index) => {
     const showcaseKinds: MomentKind[] = ["pass", "dribble", "shot", "defense", "freeKick", "corner", "penalty", "counter", "aerial"];
-    const template = momentTemplates(career.position, rng, pick(rng, fixture.opponent.stars), showcase ? showcaseKinds[index] : undefined);
+    const matchupKind = rng() < .48
+      ? pick(rng, exploitableKinds.length ? exploitableKinds : opponentTactic.exposedKinds)
+      : undefined;
+    const template = momentTemplates(career.position, rng, pick(rng, fixture.opponent.stars), showcase ? showcaseKinds[index] : matchupKind);
     const latePressure = minute >= 75;
     const context = latePressure
       ? " O placar está aberto e o rival vai alterar a postura depois desta decisão."
@@ -1225,7 +1444,7 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
         : " O posicionamento do adversário já revela onde a partida pode ser decidida.";
     const targets = targetsFor(template.kind, rng).map((target) => ({
       ...target,
-      roll: Math.max(0, target.roll - attributeForMoment(career, template.kind) + (latePressure ? .015 : 0)),
+      roll: Math.max(0, target.roll - attributeForMoment(career, template.kind) - tacticalAdvantage / 900 + (latePressure ? .015 : 0)),
     }));
     return {
       ...template,
@@ -1297,6 +1516,9 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     statistics,
     playerAvailable,
     unavailableReason,
+    tacticalAdvantage,
+    tacticalInstruction,
+    rivalryLevel,
   };
 }
 
@@ -1949,6 +2171,7 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
   const latestTransfer = career.worldTransfers[0];
   const careerOffer = getCareerTransferOffers(career).find((offer) => offer.available);
   const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
+  const rivalryMeetings = career.matchHistory.filter((match) => match.opponentId === fixture.opponent.id);
   const objective = career.division === 2 ? "acesso" : playerPosition >= 10 ? "permanência" : "título";
   return [
     {
@@ -1979,6 +2202,24 @@ export function buildCareerNews(career: CareerState, fixture: Fixture): CareerNe
       category: "liga",
       title: `${opponentStar} é a ameaça da rodada`,
       text: `A comissão destaca a movimentação do principal nome do ${fixture.opponent.name}.`,
+    },
+    {
+      id: `personal-${career.matches}`,
+      category: "pessoal",
+      title: career.suspensionMatches
+        ? `${career.name} cumpre suspensão`
+        : career.injuryMatchesRemaining
+          ? `Departamento médico projeta retorno em ${career.injuryMatchesRemaining} jogo(s)`
+          : rivalryMeetings.length >= 2
+            ? `Confronto com o ${fixture.opponent.name} ganha clima de rivalidade`
+            : "Comissão prepara briefing individual",
+      text: career.suspensionMatches
+        ? `A equipe terá de adaptar a função de ${career.position} enquanto o atleta fica fora por ${career.suspensionMatches} rodada(s).`
+        : career.injuryMatchesRemaining
+          ? `${career.injuryStatus}. Energia, tratamento e risco serão reavaliados antes do retorno.`
+          : rivalryMeetings.length >= 2
+            ? `${rivalryMeetings.length} encontros anteriores fazem o adversário ajustar o plano especificamente para ${career.name}.`
+            : `O próximo relatório cruzará posição, forma, fadiga e o estilo tático do adversário.`,
     },
   ];
 }
@@ -2027,7 +2268,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     : createInitialWorldPlayers(careerSeed, input?.season ?? 2026);
   const worldPlayers = normalizeWorldPlayers(rawWorldPlayers, input?.saveVersion ?? 0);
   return {
-    saveVersion: 6,
+    saveVersion: 7,
     id: input?.id ?? `career-${hashText(`${input?.name ?? "Alex Silva"}:${now}`).toString(36)}`,
     name: input?.name ?? "Alex Silva",
     position,
@@ -2107,6 +2348,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     discipline: input?.discipline ?? 82,
     injuryStatus: input?.injuryStatus ?? "Apto",
     injuryRisk: input?.injuryRisk ?? 12,
+    injuryMatchesRemaining: input?.injuryMatchesRemaining ?? ((input?.injuryStatus ?? "Apto").includes("moderada") ? 2 : 0),
     yellowCards: input?.yellowCards ?? 0,
     redCards: input?.redCards ?? 0,
     suspensionMatches: input?.suspensionMatches ?? 0,
@@ -2123,6 +2365,7 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     releaseClause: input?.releaseClause ?? Math.round((input?.marketValue ?? league.salaryBase * 22) * 2.5 / 100_000) * 100_000,
     pendingTransfer: input?.pendingTransfer ?? null,
     careerTransferHistory: input?.careerTransferHistory ?? [],
+    matchHistory: (input?.matchHistory ?? []).map((match) => ({ ...match, approach: match.approach ?? "Equilibrado" })),
     promotions: input?.promotions ?? 0,
     relegations: input?.relegations ?? 0,
     lastSeasonSummary: input?.lastSeasonSummary ?? "Primeira temporada em andamento",

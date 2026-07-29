@@ -23,26 +23,26 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.4.2 application shell", async () => {
+test("server-renders the Legado FC 0.4.3 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC — Partidas 2\.0<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.4\.3 — Universo em Campo<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.match(html, /og-v6\.png/i);
 });
 
-test("keeps the Partidas 2.0 and career-market systems in the production source", async () => {
+test("keeps the completed 0.4.x systems in the production source", async () => {
   const [page, engine, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /PARTIDAS 2\.0 · 0\.4\.2/);
+  assert.match(page, /0\.4\.3 · UNIVERSO EM CAMPO/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
@@ -59,6 +59,11 @@ test("keeps the Partidas 2.0 and career-market systems in the production source"
   assert.match(page, /match-tactical-strip/);
   assert.match(page, /opponentPosture/);
   assert.match(page, /match-report-2/);
+  assert.match(page, /matchApproaches/);
+  assert.match(page, /match-briefing-panel/);
+  assert.match(page, /tactical-history-card/);
+  assert.match(page, /injuryMatchesRemaining/);
+  assert.match(page, /matchHistory/);
   assert.match(page, /suspensionMatches/);
   assert.match(page, /getCareerTransferOffers/);
   assert.match(page, /completeCareerTransfer/);
@@ -74,6 +79,13 @@ test("keeps the Partidas 2.0 and career-market systems in the production source"
   assert.match(engine, /aerial/);
   assert.match(engine, /samplePoisson/);
   assert.match(engine, /opponentTactics/);
+  assert.match(engine, /gegenpress/);
+  assert.match(engine, /catenaccio/);
+  assert.match(engine, /falso-nove/);
+  assert.match(engine, /marcacao-individual/);
+  assert.match(engine, /tacticalAdvantage/);
+  assert.match(engine, /rivalryLevel/);
+  assert.match(engine, /CareerMatchRecord/);
   assert.match(engine, /yellow-card/);
   assert.match(engine, /red-card/);
   assert.match(engine, /offside/);
@@ -100,6 +112,9 @@ test("keeps the Partidas 2.0 and career-market systems in the production source"
   assert.match(css, /world-dashboard-grid/);
   assert.match(css, /career-archive-card/);
   assert.match(css, /match-tactical-strip/);
+  assert.match(css, /match-briefing-panel/);
+  assert.match(css, /approach-grid/);
+  assert.match(css, /tactical-history-card/);
   assert.match(css, /stat-comparison-row/);
   assert.match(css, /pending-transfer-banner/);
   await access(new URL("../public/og-v6.png", import.meta.url));

@@ -19,20 +19,29 @@ const momentKinds = new Set();
 const eventKinds = new Set();
 const tactics = new Set();
 const positionFocuses = new Set();
+const tacticFrequency = new Map();
 let victories = 0;
 let draws = 0;
 let losses = 0;
 let totalGoals = 0;
 let unusualScorelines = 0;
+let totalYellowCards = 0;
+let totalRedCards = 0;
+let injuryEvents = 0;
+const simulatedMatches = 5000;
+const balanceBaseCareer = migrateCareer({
+  id: "balance-career",
+  name: "Teste de Variedade",
+  careerSeed: 741903,
+});
 
-for (let index = 0; index < 1000; index += 1) {
-  const career = migrateCareer({
-    id: "balance-career",
-    name: "Teste de Variedade",
+for (let index = 0; index < simulatedMatches; index += 1) {
+  const career = {
+    ...balanceBaseCareer,
     matches: index,
-    careerSeed: 741903,
+    seasonRound: (index % getLeagueDefinition(balanceBaseCareer.countryId, balanceBaseCareer.division).format.rounds) + 1,
     position: ["Atacante", "Ponta", "Meia", "Lateral", "Zagueiro"][index % 5],
-  });
+  };
   const plan = generateMatchPlan(career, createFixture(career));
   signatures.add(plan.signature);
   scorelines.add(`${plan.baseHomeGoals}-${plan.baseAwayGoals}`);
@@ -46,6 +55,13 @@ for (let index = 0; index < 1000; index += 1) {
   });
   plan.events.forEach((event) => eventKinds.add(event.kind));
   tactics.add(plan.opponentTactic.id);
+  tacticFrequency.set(plan.opponentTactic.id, (tacticFrequency.get(plan.opponentTactic.id) ?? 0) + 1);
+  totalYellowCards += plan.statistics.playerTeam.yellowCards + plan.statistics.opponent.yellowCards;
+  totalRedCards += plan.statistics.playerTeam.redCards + plan.statistics.opponent.redCards;
+  injuryEvents += plan.events.filter((event) => event.kind === "injury").length;
+  if (plan.opponentTactic.strengths.length < 2 || plan.opponentTactic.weaknesses.length < 2 || !plan.tacticalInstruction) {
+    throw new Error(`Briefing tático incompleto: ${plan.opponentTactic.name}`);
+  }
   if (plan.statistics.playerTeam.possession + plan.statistics.opponent.possession !== 100) {
     throw new Error("A posse da partida não fecha em 100%");
   }
@@ -59,19 +75,19 @@ for (let index = 0; index < 1000; index += 1) {
   if (plan.baseHomeGoals + plan.baseAwayGoals >= 6) unusualScorelines += 1;
 }
 
-if (signatures.size !== 1000) throw new Error(`Assinaturas únicas: ${signatures.size}/1000`);
-if (momentPatterns.size < 990) throw new Error(`Padrões de lance insuficientes: ${momentPatterns.size}/1000`);
+if (signatures.size !== simulatedMatches) throw new Error(`Assinaturas únicas: ${signatures.size}/${simulatedMatches}`);
+if (momentPatterns.size < simulatedMatches * .995) throw new Error(`Padrões de lance insuficientes: ${momentPatterns.size}/${simulatedMatches}`);
 if (scorelines.size < 12) throw new Error(`Pouca variedade de placares: ${scorelines.size}`);
 
-const winRate = victories / 1000;
-const drawRate = draws / 1000;
-const lossRate = losses / 1000;
-const averageGoals = totalGoals / 1000;
+const winRate = victories / simulatedMatches;
+const drawRate = draws / simulatedMatches;
+const lossRate = losses / simulatedMatches;
+const averageGoals = totalGoals / simulatedMatches;
 if (winRate < .2 || winRate > .55) throw new Error(`Taxa de vitórias fora da meta: ${winRate}`);
 if (drawRate < .18 || drawRate > .36) throw new Error(`Taxa de empates fora da meta: ${drawRate}`);
 if (lossRate < .2 || lossRate > .5) throw new Error(`Taxa de derrotas fora da meta: ${lossRate}`);
 if (averageGoals < 1.7 || averageGoals > 3.1) throw new Error(`Média de gols fora da meta: ${averageGoals}`);
-if (unusualScorelines > 45) throw new Error(`Placares com seis ou mais gols: ${unusualScorelines}/1000`);
+if (unusualScorelines > simulatedMatches * .05) throw new Error(`Placares com seis ou mais gols: ${unusualScorelines}/${simulatedMatches}`);
 
 for (const kind of ["dribble", "freeKick", "corner", "penalty", "counter", "aerial"]) {
   if (!momentKinds.has(kind)) throw new Error(`Tipo de lance não apareceu nas simulações: ${kind}`);
@@ -79,7 +95,16 @@ for (const kind of ["dribble", "freeKick", "corner", "penalty", "counter", "aeri
 for (const kind of ["yellow-card", "red-card", "offside", "substitution", "injury", "tactical"]) {
   if (!eventKinds.has(kind)) throw new Error(`Evento da Partidas 2.0 não apareceu: ${kind}`);
 }
-if (tactics.size !== 5) throw new Error(`Estilos táticos encontrados: ${tactics.size}/5`);
+if (tactics.size !== 12) throw new Error(`Estilos táticos encontrados: ${tactics.size}/12`);
+if ([...tacticFrequency.values()].some((count) => count < simulatedMatches * .035)) {
+  throw new Error(`Distribuição tática concentrada demais: ${JSON.stringify(Object.fromEntries(tacticFrequency))}`);
+}
+if (totalYellowCards / simulatedMatches < 1.5 || totalYellowCards / simulatedMatches > 7) {
+  throw new Error(`Média disciplinar fora do esperado: ${totalYellowCards / simulatedMatches}`);
+}
+if (totalRedCards / simulatedMatches > .35 || injuryEvents / simulatedMatches > .18) {
+  throw new Error("Expulsões ou lesões excessivas nas simulações");
+}
 if (![...positionFocuses].some((focus) => focus.includes("atacante"))
   || ![...positionFocuses].some((focus) => focus.includes("ponta"))
   || ![...positionFocuses].some((focus) => focus.includes("meia"))
@@ -120,17 +145,20 @@ for (const country of COUNTRIES) {
   for (const division of [1, 2]) {
     for (const origin of ORIGINS) {
       let scenarioWins = 0;
+      const scenarioBase = migrateCareer({
+        id: `scenario-${country.id}-${division}-${origin.id}`,
+        name: "Teste de Equilíbrio",
+        countryId: country.id,
+        division,
+        origin: origin.id,
+        careerSeed: 91357,
+      });
       for (let match = 0; match < 120; match += 1) {
-        const career = migrateCareer({
-          id: `scenario-${country.id}-${division}-${origin.id}`,
-          name: "Teste de Equilíbrio",
-          countryId: country.id,
-          division,
-          origin: origin.id,
+        const career = {
+          ...scenarioBase,
           matches: match,
           seasonRound: (match % getLeagueDefinition(country.id, division).format.rounds) + 1,
-          careerSeed: 91357,
-        });
+        };
         const plan = generateMatchPlan(career, createFixture(career));
         if (plan.baseHomeGoals > plan.baseAwayGoals) scenarioWins += 1;
       }
@@ -213,6 +241,44 @@ const suspendedPlan = generateMatchPlan(suspendedCareer, createFixture(suspended
 if (suspendedPlan.playerAvailable || suspendedPlan.moments.length || !suspendedPlan.unavailableReason.includes("Suspenso")) {
   throw new Error("A suspensão não retirou o jogador da partida");
 }
+const injuredCareer = migrateCareer({ ...showcaseCareer, injuryStatus: "Lesão muscular moderada", injuryMatchesRemaining: 2 });
+const injuredPlan = generateMatchPlan(injuredCareer, createFixture(injuredCareer));
+if (injuredPlan.playerAvailable || !injuredPlan.unavailableReason.includes("2 jogo(s)")) {
+  throw new Error("A recuperação médica não retirou o jogador da partida");
+}
+const adaptiveHistory = Array.from({ length: 3 }, (_, index) => ({
+  id: `history-${index}`,
+  season: 2026,
+  round: index + 1,
+  date: "2026-01-01",
+  competition: showcase.fixture.competition,
+  opponentId: showcase.fixture.opponent.id,
+  opponentName: showcase.fixture.opponent.name,
+  opponentShort: showcase.fixture.opponent.short,
+  playerGoals: 1,
+  opponentGoals: 1,
+  goals: 0,
+  assists: 0,
+  rating: 7,
+  minutesPlayed: 90,
+  result: "E",
+  tacticName: showcase.opponentTactic.name,
+  tacticFormation: showcase.opponentTactic.formation,
+  approach: "Equilibrado",
+  possession: 50,
+  shots: 10,
+  shotsAgainst: 10,
+  yellowCards: 0,
+  redCard: false,
+  injuryStatus: "",
+  signature: `H-${index}`,
+}));
+const adaptiveCareer = migrateCareer({ ...showcaseCareer, matchHistory: adaptiveHistory });
+const adaptiveFixture = createFixture(adaptiveCareer);
+const adaptivePlan = generateMatchPlan(adaptiveCareer, adaptiveFixture);
+if (adaptivePlan.rivalryLevel <= 0 || adaptivePlan.opponentTactic.id === showcase.opponentTactic.id) {
+  throw new Error("O adversário não adaptou sua tática ao histórico do confronto");
+}
 
 const standingsCareer = migrateCareer({
   seasonMatches: 8,
@@ -228,12 +294,13 @@ if (standings.length !== LEAGUE_TEAMS.length) throw new Error("Tabela da liga in
 if (!standings.some((row) => row.isPlayerTeam && row.points === 14)) throw new Error("Dados do clube do jogador ausentes");
 
 console.log(JSON.stringify({
-  simulatedMatches: 1000,
+  simulatedMatches,
   uniqueSignatures: signatures.size,
   uniqueMomentPatterns: momentPatterns.size,
   momentKinds: [...momentKinds].sort(),
   eventKinds: [...eventKinds].sort(),
   tacticalStyles: tactics.size,
+  tacticFrequency: Object.fromEntries([...tacticFrequency.entries()].sort()),
   positionalContexts: positionFocuses.size,
   distinctScorelines: scorelines.size,
   winRate: Number(winRate.toFixed(3)),
@@ -241,6 +308,9 @@ console.log(JSON.stringify({
   lossRate: Number(lossRate.toFixed(3)),
   averageGoals: Number(averageGoals.toFixed(2)),
   unusualScorelines,
+  averageYellowCards: Number((totalYellowCards / simulatedMatches).toFixed(2)),
+  redCardRate: Number((totalRedCards / simulatedMatches).toFixed(3)),
+  injuryEventRate: Number((injuryEvents / simulatedMatches).toFixed(3)),
   countries: COUNTRIES.length,
   totalClubs: TEAMS.length,
   firstDivisionPlayers,

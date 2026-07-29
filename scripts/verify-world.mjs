@@ -56,11 +56,15 @@ const legacyCareer = migrateCareer({
   season: 2026,
   careerSeed: 4012026,
 });
-if (legacyCareer.saveVersion !== 6 || legacyCareer.worldPlayers.length !== expectedPlayers) {
+if (legacyCareer.saveVersion !== 7 || legacyCareer.worldPlayers.length !== expectedPlayers) {
   throw new Error("A migração da 0.3.3 não criou o universo persistente");
 }
-if (legacyCareer.contractUntilSeason <= legacyCareer.season || legacyCareer.releaseClause <= 0 || legacyCareer.pendingTransfer !== null) {
-  throw new Error("A migração não criou os novos dados de contrato da 0.4.2");
+if (legacyCareer.contractUntilSeason <= legacyCareer.season
+  || legacyCareer.releaseClause <= 0
+  || legacyCareer.pendingTransfer !== null
+  || legacyCareer.injuryMatchesRemaining !== 0
+  || legacyCareer.matchHistory.length !== 0) {
+  throw new Error("A migração não criou os novos dados de contrato da 0.4.3");
 }
 const eliteCareer = migrateCareer({
   ...legacyCareer,
@@ -106,7 +110,29 @@ if (completedMove.careerPatch.clubId !== acceptedOffer.teamId
 }
 const renewal = getContractRenewal(marketCareer);
 if (!renewal.available || renewal.salary <= marketCareer.salary || renewal.contractUntilSeason <= marketCareer.season) {
-  throw new Error("A proposta de renovação da 0.4.2 é inválida");
+  throw new Error("A proposta de renovação da 0.4.3 é inválida");
+}
+const rookieOffers = getCareerTransferOffers(migrateCareer({
+  ...legacyCareer,
+  id: "rookie-market-043",
+  matches: 1,
+  rating: 6.6,
+  reputation: 12,
+}));
+if (rookieOffers.some((offer) => offer.available) || rookieOffers.some((offer) => offer.teamId === legacyCareer.clubId)) {
+  throw new Error("O mercado liberou uma transferência incompatível para um estreante");
+}
+const superstarOffers = getCareerTransferOffers(migrateCareer({
+  ...eliteCareer,
+  id: "superstar-market-043",
+  matches: 120,
+  rating: 9,
+  reputation: 100,
+  salary: 1_000_000,
+  marketValue: 500_000_000,
+}));
+if (superstarOffers.some((offer) => offer.teamStrength < 82) || superstarOffers.some((offer) => !offer.available)) {
+  throw new Error("O mercado de um craque mundial não priorizou clubes de elite");
 }
 
 const firstAdvance = advanceWorldSeason(legacyCareer, 5, "2026: permanência na divisão");
@@ -138,7 +164,7 @@ if (guarded.worldHistory.length !== 1 || guarded.worldTransfers.length !== 36) {
 
 let longCareer = legacyCareer;
 let totalProspects = 0;
-for (let index = 0; index < 15; index += 1) {
+for (let index = 0; index < 25; index += 1) {
   const advanced = advanceWorldSeason(longCareer, (index % 12) + 1, `${longCareer.season}: temporada simulada`);
   totalProspects += advanced.worldHistory[0]?.generatedProspects ?? 0;
   longCareer = migrateCareer({
@@ -152,7 +178,7 @@ for (let index = 0; index < 15; index += 1) {
 if (longCareer.worldPlayers.length !== expectedPlayers) {
   throw new Error("A renovação de gerações alterou o tamanho do universo");
 }
-if (longCareer.worldHistory.length !== 12 || longCareer.seasonArchive.length !== 15) {
+if (longCareer.worldHistory.length !== 12 || longCareer.seasonArchive.length !== 20) {
   throw new Error("Os limites do histórico mundial não foram respeitados");
 }
 if (longCareer.worldTransfers.length !== 180) {
@@ -168,7 +194,7 @@ if (serializedBytes > 2_000_000) {
 }
 
 console.log(JSON.stringify({
-  seasonsSimulated: 15,
+  seasonsSimulated: 25,
   countries: COUNTRIES.length,
   trackedPlayers: longCareer.worldPlayers.length,
   retainedTransfers: longCareer.worldTransfers.length,
@@ -180,6 +206,7 @@ console.log(JSON.stringify({
   eliteCareerRank: 1,
   careerOffers: careerOffers.length,
   availableCareerOffers: careerOffers.filter((offer) => offer.available).length,
+  superstarOfferFloor: Math.min(...superstarOffers.map((offer) => offer.teamStrength)),
   renewalUntil: renewal.contractUntilSeason,
   serializedBytes,
 }));

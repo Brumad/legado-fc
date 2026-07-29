@@ -402,6 +402,7 @@ h1, h2, h3, p { margin-top: 0; }
 .star-watch { grid-column: 1/-1; display: flex !important; justify-content: space-between !important; justify-items: auto !important; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.09); }
 .star-watch span { color: var(--lime); font: 600 6px var(--font-mono); }
 .star-watch strong { font-size: 8px; }
+.star-watch small { max-width: 52%; color: rgba(255,255,255,.42); font-size: 5px; text-align: right; }
 .dashboard-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; margin-top: 16px; }
 .hud-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: 0 10px 32px rgba(13,36,26,.045); }
 .weekly-card, .player-hud-card, .table-card, .news-card { padding: 22px; }
@@ -668,6 +669,15 @@ h1, h2, h3, p { margin-top: 0; }
 .club-leader-row > span:first-child { grid-template-columns: auto 1fr; align-items: center; }
 .club-leader-row b { overflow: hidden; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
 .club-leader-row em { color: var(--green); font: 600 6px var(--font-mono); font-style: normal; }
+.tactical-history-card { margin-top: 16px; padding: 24px; }
+.tactical-history-head, .tactical-history-list > div { display: grid; grid-template-columns: 1fr 1.25fr .85fr; align-items: center; gap: 12px; }
+.tactical-history-head { min-height: 29px; padding-left: 32px; color: var(--muted); border-bottom: 1px solid var(--line); font: 600 5px var(--font-mono); }
+.tactical-history-list > div { min-height: 54px; position: relative; padding-left: 32px; border-bottom: 1px solid var(--line); }
+.tactical-history-list > div > div { display: grid; gap: 3px; min-width: 0; }
+.tactical-history-list strong { overflow: hidden; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.tactical-history-list small { color: var(--muted); font-size: 5px; }
+.history-result { width: 22px; height: 22px; position: absolute; left: 0; display: grid; place-items: center; border-radius: 6px; color: white; font: 700 7px var(--font-mono); }
+.history-result.win { background: var(--green); }.history-result.draw { color: var(--deep); background: #efbe4d; }.history-result.loss { background: #c95c58; }
 
 /* Mundo persistente 0.4 */
 .world-hero { min-height: 310px; position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr 300px; align-items: center; gap: 30px; padding: clamp(28px,4vw,50px); border-radius: 23px; color: white; background: radial-gradient(circle at 78% 45%,rgba(200,244,99,.16),transparent 25%),linear-gradient(125deg,#061b12,#123e2b); box-shadow: var(--shadow); }
@@ -747,6 +757,9 @@ h1, h2, h3, p { margin-top: 0; }
 .life-action-list button:disabled { opacity: .38; }
 .life-action-list span { font-size: 7px; font-weight: 700; }
 .life-action-list small { color: var(--muted); font-size: 5px; line-height: 1.4; }
+.discipline-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin: 14px 0; }
+.discipline-summary span { display: flex; justify-content: space-between; padding: 9px; border-radius: 7px; color: var(--muted); background: var(--surface-2); font: 600 5px var(--font-mono); }
+.discipline-summary b { color: var(--green); }
 .lifestyle-module dl { margin: 0; }
 .lifestyle-module dl div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .lifestyle-module dt { color: var(--muted); font-size: 7px; }
@@ -860,6 +873,16 @@ h1, h2, h3, p { margin-top: 0; }
   box-shadow: 0 24px 55px rgba(0,0,0,.25); transition: border-color .25s,box-shadow .25s;
 }
 .interactive-pitch.is-active { border-color: rgba(200,244,99,.75); box-shadow: 0 0 0 1px rgba(200,244,99,.13),0 0 60px rgba(88,173,87,.12); }
+.match-briefing-panel { position: absolute; z-index: 9; inset: 14px; overflow: auto; padding: 22px; border: 1px solid rgba(200,244,99,.2); border-radius: 12px; color: white; background: rgba(4,23,15,.94); backdrop-filter: blur(12px); }
+.briefing-head span { color: var(--lime); font: 700 6px var(--font-mono); }.briefing-head h2 { margin: 6px 0; font-size: 24px; }.briefing-head p { max-width: 720px; margin: 0; color: rgba(255,255,255,.48); font-size: 7px; line-height: 1.55; }
+.briefing-intel { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 8px; margin: 14px 0; }
+.briefing-intel > div { display: grid; align-content: start; gap: 5px; padding: 11px; border-radius: 8px; background: rgba(255,255,255,.055); }
+.briefing-intel span { color: var(--lime); font: 700 5px var(--font-mono); }.briefing-intel b { color: rgba(255,255,255,.65); font-size: 6px; }.briefing-intel strong { font-size: 7px; line-height: 1.45; }.briefing-intel small { color: rgba(255,255,255,.4); font-size: 5px; }
+.approach-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+.approach-grid button { min-height: 105px; display: grid; align-content: start; gap: 5px; padding: 12px; border: 1px solid rgba(255,255,255,.09); border-radius: 9px; color: white; background: rgba(255,255,255,.045); text-align: left; transition: transform .2s,border-color .2s,background .2s; }
+.approach-grid button:hover { transform: translateY(-2px); border-color: var(--lime); background: rgba(200,244,99,.08); }
+.approach-grid button > span { color: var(--lime); font-size: 15px; }.approach-grid button strong { font-size: 8px; }.approach-grid button small { color: rgba(255,255,255,.47); font-size: 5px; line-height: 1.45; }.approach-grid button em { margin-top: auto; color: var(--lime); font: 600 5px var(--font-mono); font-style: normal; }
+.watch-match-button { width: 100%; padding: 13px; border: 0; border-radius: 8px; color: var(--deep); background: var(--lime); font: 700 6px var(--font-mono); }
 .pitch-grain { position: absolute; inset: 0; background: linear-gradient(150deg,rgba(255,255,255,.03),transparent 40%,rgba(0,0,0,.08)); }
 .field-half { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid rgba(255,255,255,.3); }
 .field-circle { position: absolute; width: 116px; height: 116px; left: 50%; top: 50%; transform: translate(-50%,-50%); border: 1px solid rgba(255,255,255,.3); border-radius: 50%; }
@@ -1047,6 +1070,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .match-context { gap: 14px; flex-wrap: wrap; }
   .play-match-button { width: 100%; min-width: 0; margin-top: 24px; }
   .matchday-fixture { width: calc(100% - 26px); margin: 0 13px 15px; padding: 18px 13px; }
+  .star-watch small { display: none; }
   .dashboard-grid { gap: 11px; margin-top: 11px; }
   .weekly-card, .player-hud-card, .table-card, .news-card { padding: 17px; }
   .training-grid { grid-template-columns: 1fr; }
@@ -1083,12 +1107,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .life-grid { grid-template-columns: 1fr 1fr; }
   .life-bars { grid-template-columns: 1fr; }
   .round-score-grid { grid-template-columns: 1fr; }
+  .tactical-history-head { display: none; }
+  .tactical-history-list > div { grid-template-columns: 1fr 1fr; padding: 10px 0 10px 30px; }
+  .tactical-history-list > div > div:nth-child(4) { grid-column: 1/-1; }
   .club-leaders-head, .club-leader-row { grid-template-columns: 1fr 1fr; }
   .club-leaders-head span:last-child, .club-leader-row > span:last-child { display: none; }
   .life-story-event { padding: 23px 18px; }
   .life-story-event button { width: 100%; }
   .life-module { padding: 17px; }
   .life-action-list, .life-metric-grid { grid-template-columns: 1fr; }
+  .discipline-summary { grid-template-columns: 1fr; }
   .relation-cards { grid-template-columns: 1fr; }
   .developer-panel { right: 8px; bottom: 69px; width: calc(100vw - 16px); max-height: 205px; overflow-y: auto; grid-template-columns: 1fr; gap: 4px; }
   .developer-panel > div { display: flex; align-items: center; gap: 8px; }
@@ -1116,6 +1144,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .decision-header p { font-size: 7px; }
   .live-rating strong { font-size: 25px; }
   .interactive-pitch { min-height: 315px; }
+  .match-briefing-panel { inset: 6px; padding: 13px; }
+  .briefing-head h2 { font-size: 19px; }
+  .briefing-intel { grid-template-columns: 1fr; }
+  .approach-grid { grid-template-columns: 1fr 1fr; }
+  .approach-grid button { min-height: 95px; padding: 9px; }
   .decision-target { min-width: 73px; }
   .decision-target > span { width: 39px; height: 39px; }
   .decision-target strong { font-size: 6px; }

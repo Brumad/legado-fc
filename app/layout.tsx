@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v6.png`;
 
   return {
-    title: "Legado FC — Partidas 2.0",
+    title: "Legado FC 0.4.3 — Universo em Campo",
     description:
-      "Partidas táticas e dinâmicas com cartões, impedimentos, substituições, lesões, fadiga, estatísticas completas e um mercado de carreira vivo.",
+      "O fechamento da fase 0.4.x: doze táticas, briefing jogável, abordagens do atleta, rivalidades adaptativas, lesões com recuperação e memória completa das partidas.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC — Partidas 2.0",
+      title: "Legado FC 0.4.3 — Universo em Campo",
       description:
-        "A atualização 0.4.2 transforma cada jogo com estilos táticos, postura pelo placar, disciplina, fadiga e lances próprios para cada posição.",
+        "Doze estilos táticos, escolhas antes do apito, adversários adaptativos e uma carreira que guarda cada relatório.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC — Partidas 2.0" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.4.3 — Universo em Campo" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC — Partidas 2.0",
-      description: "Tática, contexto, disciplina e decisões: mil partidas, mil histórias diferentes.",
+      title: "Legado FC 0.4.3 — Universo em Campo",
+      description: "Do briefing ao legado: cada adversário pensa, reage e deixa memória na carreira.",
       images: [imageUrl],
     },
   };
