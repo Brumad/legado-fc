@@ -19,7 +19,7 @@ export const DEFAULT_MATCH_INPUT: MatchInputFrame = {
 
 export const DEFAULT_MATCH_CORE_CONFIG: MatchCoreConfig = {
   fixedDeltaSeconds: 1 / 60,
-  matchClockRate: 90,
+  matchClockRate: 15,
   halfDurationSeconds: 45 * 60,
   playerSpeedMetersPerSecond: 5.8,
   sprintMultiplier: 1.42,

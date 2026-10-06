@@ -2026,3 +2026,115 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .playable-actions button { min-height: 48px; }
   .playable-overlay { padding: 20px 15px; }
 }
+
+
+/* ============================================================
+   Legado FC 0.5.3 — analog mobile controls + match settings
+   ============================================================ */
+.playable-touch-layer {
+  --control-scale: 1;
+  --mobile-control-opacity: .75;
+  opacity: var(--mobile-control-opacity);
+}
+.playable-match-canvas-shell[data-control-size="small"] .playable-touch-layer { --control-scale: .86; }
+.playable-match-canvas-shell[data-control-size="large"] .playable-touch-layer { --control-scale: 1.14; }
+
+.playable-joystick {
+  position: absolute;
+  left: max(14px,env(safe-area-inset-left));
+  bottom: max(18px,env(safe-area-inset-bottom));
+  width: calc(138px * var(--control-scale));
+  height: calc(138px * var(--control-scale));
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.2);
+  background: radial-gradient(circle,rgba(255,255,255,.09),rgba(4,16,10,.62) 66%);
+  box-shadow: inset 0 0 0 12px rgba(255,255,255,.025),0 10px 30px rgba(0,0,0,.22);
+  pointer-events: auto;
+  touch-action: none;
+}
+.playable-joystick-ring {
+  width: 68%;
+  height: 68%;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%;
+}
+.playable-joystick-knob {
+  position: absolute;
+  width: 44%;
+  height: 44%;
+  border-radius: 50%;
+  border: 2px solid rgba(200,244,99,.8);
+  background: radial-gradient(circle at 35% 30%,rgba(255,255,255,.25),rgba(13,95,59,.9));
+  box-shadow: 0 6px 16px rgba(0,0,0,.28);
+  will-change: transform;
+  pointer-events: none;
+}
+.playable-sprint-control {
+  position: absolute;
+  left: calc(max(14px,env(safe-area-inset-left)) + 108px * var(--control-scale));
+  bottom: calc(max(18px,env(safe-area-inset-bottom)) + 108px * var(--control-scale));
+  pointer-events: auto;
+}
+.playable-sprint-control button {
+  width: calc(58px * var(--control-scale));
+  height: calc(58px * var(--control-scale));
+  border-radius: 50%;
+  border: 1px solid rgba(200,244,99,.38);
+  color: #c8f463;
+  background: rgba(4,16,10,.75);
+  font: 900 5px var(--font-mono);
+  touch-action: none;
+}
+.playable-actions {
+  width: calc(188px * var(--control-scale));
+  height: calc(146px * var(--control-scale));
+}
+.playable-actions button {
+  min-height: calc(58px * var(--control-scale));
+  position: relative;
+  transition: transform .08s ease,filter .08s ease;
+}
+.playable-actions button::after,
+.playable-sprint-control button::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: inherit;
+}
+.playable-actions button:active,
+.playable-sprint-control button:active {
+  transform: scale(.9);
+  filter: brightness(1.35);
+}
+.playable-touch-layer.is-inverted .playable-joystick {
+  left: auto;
+  right: max(14px,env(safe-area-inset-right));
+}
+.playable-touch-layer.is-inverted .playable-sprint-control {
+  left: auto;
+  right: calc(max(14px,env(safe-area-inset-right)) + 108px * var(--control-scale));
+}
+.playable-touch-layer.is-inverted .playable-actions {
+  right: auto;
+  left: max(14px,env(safe-area-inset-left));
+}
+@media (max-width: 420px) {
+  .playable-joystick {
+    left: max(9px,env(safe-area-inset-left));
+    bottom: max(12px,env(safe-area-inset-bottom));
+  }
+  .playable-touch-layer.is-inverted .playable-joystick {
+    left: auto;
+    right: max(9px,env(safe-area-inset-right));
+  }
+  .playable-actions {
+    right: max(9px,env(safe-area-inset-right));
+    bottom: max(12px,env(safe-area-inset-bottom));
+  }
+  .playable-touch-layer.is-inverted .playable-actions {
+    right: auto;
+    left: max(9px,env(safe-area-inset-left));
+  }
+}

@@ -31,15 +31,16 @@ export type PlayableMatchCanvasProps = {
   className?: string;
   autoStart?: boolean;
   config?: Partial<MatchCoreConfig>;
+  controlSize?: "small" | "medium" | "large";
+  controlOpacity?: 0.55 | 0.75 | 1;
+  controlsSide?: "standard" | "inverted";
   onSnapshot?: (state: MatchCoreState) => void;
   onFinished?: (state: MatchCoreState) => void;
 };
 
 type TouchState = {
-  left: boolean;
-  right: boolean;
-  up: boolean;
-  down: boolean;
+  moveX: number;
+  moveY: number;
   sprint: boolean;
   pass: boolean;
   throughBall: boolean;
@@ -48,10 +49,8 @@ type TouchState = {
 };
 
 const emptyTouchState = (): TouchState => ({
-  left: false,
-  right: false,
-  up: false,
-  down: false,
+  moveX: 0,
+  moveY: 0,
   sprint: false,
   pass: false,
   throughBall: false,
@@ -64,17 +63,13 @@ function mergeInputs(
   touch: TouchState,
   gamepad: MatchInputFrame,
 ): MatchInputFrame {
-  const touchInput = touchInputFromVector(
-    Number(touch.right) - Number(touch.left),
-    Number(touch.down) - Number(touch.up),
-    {
-      sprint: touch.sprint,
-      pass: touch.pass,
-      throughBall: touch.throughBall,
-      shoot: touch.shoot,
-      tackle: touch.tackle,
-    },
-  );
+  const touchInput = touchInputFromVector(touch.moveX, touch.moveY, {
+    sprint: touch.sprint,
+    pass: touch.pass,
+    throughBall: touch.throughBall,
+    shoot: touch.shoot,
+    tackle: touch.tackle,
+  });
   return normalizeMatchInput({
     moveX: keyboard.moveX + touchInput.moveX + gamepad.moveX,
     moveY: keyboard.moveY + touchInput.moveY + gamepad.moveY,
@@ -109,13 +104,19 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     className = "",
     autoStart = true,
     config,
+    controlSize = "medium",
+    controlOpacity = 0.75,
+    controlsSide = "standard",
     onSnapshot,
     onFinished,
   }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const joystickRef = useRef<HTMLDivElement>(null);
+    const joystickKnobRef = useRef<HTMLSpanElement>(null);
     const runtimeRef = useRef<FixedStepMatchRuntime | null>(null);
     const keyboardKeysRef = useRef(new Set<string>());
     const touchRef = useRef<TouchState>(emptyTouchState());
+    const joystickPointerRef = useRef<number | null>(null);
     const finishedReportedRef = useRef(false);
     const onSnapshotRef = useRef(onSnapshot);
     const onFinishedRef = useRef(onFinished);
@@ -140,7 +141,6 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-
       const runtime = new FixedStepMatchRuntime(initialState, {
         ...DEFAULT_MATCH_CORE_CONFIG,
         ...config,
@@ -163,17 +163,13 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
           onSnapshotRef.current?.(runtime.state);
         }
       };
-      const onKeyUp = (event: KeyboardEvent) => {
-        keyboardKeysRef.current.delete(event.code);
-      };
-
+      const onKeyUp = (event: KeyboardEvent) => keyboardKeysRef.current.delete(event.code);
       window.addEventListener("keydown", onKeyDown);
       window.addEventListener("keyup", onKeyUp);
 
       let animationFrame = 0;
       let previous = performance.now();
       let snapshotCounter = 0;
-
       const render = (now: number) => {
         const rect = canvas.getBoundingClientRect();
         const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
@@ -184,9 +180,11 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
           canvas.height = height;
         }
 
-        const keyboard = keyboardInputFromKeys(keyboardKeysRef.current);
-        const gamepad = readGamepad();
-        runtime.setInput(mergeInputs(keyboard, touchRef.current, gamepad));
+        runtime.setInput(mergeInputs(
+          keyboardInputFromKeys(keyboardKeysRef.current),
+          touchRef.current,
+          readGamepad(),
+        ));
 
         const deltaSeconds = Math.min(0.25, Math.max(0, (now - previous) / 1000));
         previous = now;
@@ -195,13 +193,12 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         const context = canvas.getContext("2d");
         if (context) {
           const padding = Math.max(7 * pixelRatio, Math.min(width, height) * 0.018);
-          const viewport = {
+          drawMatchFrame(context, runtime.state, {
             width,
             height,
             padding,
             camera: createFollowCamera(runtime.state, { width, height, padding }),
-          };
-          drawMatchFrame(context, runtime.state, viewport);
+          });
         }
 
         snapshotCounter += 1;
@@ -213,10 +210,8 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
           finishedReportedRef.current = true;
           onFinishedRef.current?.(runtime.state);
         }
-
         animationFrame = window.requestAnimationFrame(render);
       };
-
       animationFrame = window.requestAnimationFrame(render);
       return () => {
         window.cancelAnimationFrame(animationFrame);
@@ -227,29 +222,62 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
       };
     }, [autoStart, config, initialState]);
 
-    function setTouch(key: keyof TouchState, value: boolean) {
+    function setTouchAction(key: Exclude<keyof TouchState, "moveX" | "moveY">, value: boolean) {
       touchRef.current = { ...touchRef.current, [key]: value };
     }
 
-    function actionButton(key: keyof TouchState, label: string, className = "") {
+    function updateJoystick(clientX: number, clientY: number) {
+      const base = joystickRef.current;
+      const knob = joystickKnobRef.current;
+      if (!base || !knob) return;
+      const rect = base.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const radius = Math.max(1, rect.width * 0.34);
+      const rawX = (clientX - centerX) / radius;
+      const rawY = (clientY - centerY) / radius;
+      const magnitude = Math.hypot(rawX, rawY);
+      const capped = magnitude > 1 ? 1 / magnitude : 1;
+      let x = rawX * capped;
+      let y = rawY * capped;
+      const deadZone = 0.12;
+      const strength = Math.hypot(x, y);
+      if (strength <= deadZone) {
+        x = 0;
+        y = 0;
+      } else {
+        const normalizedStrength = Math.min(1, (strength - deadZone) / (1 - deadZone));
+        const scale = normalizedStrength / strength;
+        x *= scale;
+        y *= scale;
+      }
+      touchRef.current = { ...touchRef.current, moveX: x, moveY: y };
+      knob.style.transform = `translate(${x * radius}px, ${y * radius}px)`;
+    }
+
+    function resetJoystick() {
+      joystickPointerRef.current = null;
+      touchRef.current = { ...touchRef.current, moveX: 0, moveY: 0 };
+      if (joystickKnobRef.current) joystickKnobRef.current.style.transform = "translate(0px, 0px)";
+    }
+
+    function actionButton(key: Exclude<keyof TouchState, "moveX" | "moveY">, label: string, actionClass = "") {
       return (
         <button
           type="button"
-          className={className}
+          className={actionClass}
           aria-label={label}
           onPointerDown={(event) => {
             event.preventDefault();
             event.currentTarget.setPointerCapture?.(event.pointerId);
-            setTouch(key, true);
+            setTouchAction(key, true);
           }}
           onPointerUp={(event) => {
-            if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-              event.currentTarget.releasePointerCapture?.(event.pointerId);
-            }
-            setTouch(key, false);
+            if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture?.(event.pointerId);
+            setTouchAction(key, false);
           }}
-          onLostPointerCapture={() => setTouch(key, false)}
-          onPointerCancel={() => setTouch(key, false)}
+          onLostPointerCapture={() => setTouchAction(key, false)}
+          onPointerCancel={() => setTouchAction(key, false)}
         >
           {label}
         </button>
@@ -257,21 +285,39 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     }
 
     return (
-      <div className={`playable-match-canvas-shell ${className}`} data-playable-canvas>
-        <canvas
-          ref={canvasRef}
-          className="playable-match-canvas"
-          tabIndex={0}
-          aria-label="Campo 2D jogável do Legado FC"
-        />
-        <div className="playable-touch-layer" aria-label="Controles de toque">
-          <div className="playable-dpad">
-            {actionButton("up", "↑", "is-up")}
-            {actionButton("left", "←", "is-left")}
-            {actionButton("right", "→", "is-right")}
-            {actionButton("down", "↓", "is-down")}
-            {actionButton("sprint", "SPRINT", "is-sprint")}
+      <div
+        className={`playable-match-canvas-shell ${className}`}
+        data-playable-canvas
+        data-control-size={controlSize}
+        data-control-side={controlsSide}
+        style={{ "--mobile-control-opacity": controlOpacity } as React.CSSProperties}
+      >
+        <canvas ref={canvasRef} className="playable-match-canvas" tabIndex={0} aria-label="Campo 2D jogável do Legado FC" />
+        <div className={`playable-touch-layer ${controlsSide === "inverted" ? "is-inverted" : ""}`} aria-label="Controles de toque">
+          <div
+            ref={joystickRef}
+            className="playable-joystick"
+            aria-label="Joystick virtual"
+            onPointerDown={(event) => {
+              event.preventDefault();
+              joystickPointerRef.current = event.pointerId;
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+              updateJoystick(event.clientX, event.clientY);
+            }}
+            onPointerMove={(event) => {
+              if (joystickPointerRef.current === event.pointerId) updateJoystick(event.clientX, event.clientY);
+            }}
+            onPointerUp={(event) => {
+              if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture?.(event.pointerId);
+              resetJoystick();
+            }}
+            onPointerCancel={resetJoystick}
+            onLostPointerCapture={resetJoystick}
+          >
+            <span className="playable-joystick-ring" />
+            <span ref={joystickKnobRef} className="playable-joystick-knob" />
           </div>
+          <div className="playable-sprint-control">{actionButton("sprint", "SPRINT", "is-sprint")}</div>
           <div className="playable-actions">
             {actionButton("throughBall", "PROF", "is-through")}
             {actionButton("pass", "PASSE", "is-pass")}

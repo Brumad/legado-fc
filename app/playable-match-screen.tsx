@@ -20,6 +20,10 @@ export function PlayableMatchScreen({
   onQuickMode,
   onExit,
   developerMode = false,
+  matchDuration = "standard",
+  mobileControlSize = "medium",
+  mobileControlOpacity = 0.75,
+  mobileControlsSide = "standard",
 }: {
   career: CareerState;
   fixture: Fixture;
@@ -27,12 +31,17 @@ export function PlayableMatchScreen({
   onQuickMode: () => void;
   onExit: () => void;
   developerMode?: boolean;
+  matchDuration?: "short" | "standard" | "long";
+  mobileControlSize?: "small" | "medium" | "large";
+  mobileControlOpacity?: 0.55 | 0.75 | 1;
+  mobileControlsSide?: "standard" | "inverted";
 }) {
   const playable = useMemo(() => createPlayableMatchState(career, fixture), [career, fixture]);
-  const runtimeConfig = useMemo(
-    () => developerMode ? { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 } : undefined,
-    [developerMode],
-  );
+  const runtimeConfig = useMemo(() => {
+    if (developerMode) return { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 };
+    const durationRate = { short: 30, standard: 15, long: 9 }[matchDuration];
+    return { matchClockRate: durationRate };
+  }, [developerMode, matchDuration]);
   const canvasRef = useRef<PlayableMatchCanvasHandle>(null);
   const [snapshot, setSnapshot] = useState<MatchCoreState>(playable.state);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
@@ -95,6 +104,9 @@ export function PlayableMatchScreen({
               ref={canvasRef}
               initialState={playable.state}
               config={runtimeConfig}
+              controlSize={mobileControlSize}
+              controlOpacity={mobileControlOpacity}
+              controlsSide={mobileControlsSide}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />

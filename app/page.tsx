@@ -77,6 +77,10 @@ type MatchResult = {
 };
 type GameSettings = {
   matchSpeed: "1x" | "2x" | "3x";
+  matchDuration: "short" | "standard" | "long";
+  mobileControlSize: "small" | "medium" | "large";
+  mobileControlOpacity: 0.55 | 0.75 | 1;
+  mobileControlsSide: "standard" | "inverted";
   reducedMotion: boolean;
   compactHud: boolean;
   highContrast: boolean;
@@ -90,6 +94,10 @@ const settingsKey = "legado-fc-settings-v1";
 const legacyKeys = ["legado-fc-career-v2", "legado-fc-career-v1"];
 const defaultSettings: GameSettings = {
   matchSpeed: "2x",
+  matchDuration: "standard",
+  mobileControlSize: "medium",
+  mobileControlOpacity: 0.75,
+  mobileControlsSide: "standard",
   reducedMotion: false,
   compactHud: false,
   highContrast: false,
@@ -1047,20 +1055,44 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   );
 }
 
-function SettingsView({ settings, onChange, standalone = false, onClose }: { settings: GameSettings; onChange: (settings: GameSettings) => void; standalone?: boolean; onClose?: () => void }) {
+function SettingsView({
+  settings,
+  onChange,
+  standalone = false,
+  onClose,
+  careerDifficulty,
+  onCareerDifficultyChange,
+}: {
+  settings: GameSettings;
+  onChange: (settings: GameSettings) => void;
+  standalone?: boolean;
+  onClose?: () => void;
+  careerDifficulty?: Difficulty;
+  onCareerDifficultyChange?: (difficulty: Difficulty) => void;
+}) {
+  const durationLabels: Record<GameSettings["matchDuration"], string> = {
+    short: "3 min",
+    standard: "6 min",
+    long: "10 min",
+  };
   const content = (
     <section className={`settings-panel ${standalone ? "is-standalone" : ""}`}>
       {standalone && <button className="creator-close" onClick={onClose} aria-label="Fechar configurações">×</button>}
-      <span className="overline">CONFIGURAÇÕES DO JOGO</span><h1>Do seu jeito.</h1><p>Estas preferências valem para todos os slots e ficam salvas neste dispositivo.</p>
+      <span className="overline">CONFIGURAÇÕES DO JOGO · 0.5.3</span><h1>Do seu jeito.</h1><p>Ritmo, controles e acessibilidade ficam salvos neste dispositivo. A dificuldade pertence à carreira ativa.</p>
       <div className="settings-groups">
-        <div className="setting-row"><div><strong>Velocidade da partida</strong><span>Altera o ritmo da simulação minuto a minuto.</span></div><div className="segmented">{(["1x", "2x", "3x"] as GameSettings["matchSpeed"][]).map((speed) => <button className={settings.matchSpeed === speed ? "is-active" : ""} onClick={() => onChange({ ...settings, matchSpeed: speed })} key={speed}>{speed}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Duração da partida 2D</strong><span>Tempo real aproximado de uma partida completa, sem alterar os 90 minutos exibidos.</span></div><div className="segmented">{(["short", "standard", "long"] as GameSettings["matchDuration"][]).map((duration) => <button className={settings.matchDuration === duration ? "is-active" : ""} onClick={() => onChange({ ...settings, matchDuration: duration })} key={duration}>{durationLabels[duration]}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Velocidade do modo rápido</strong><span>Altera somente o ritmo da simulação legada de lances.</span></div><div className="segmented">{(["1x", "2x", "3x"] as GameSettings["matchSpeed"][]).map((speed) => <button className={settings.matchSpeed === speed ? "is-active" : ""} onClick={() => onChange({ ...settings, matchSpeed: speed })} key={speed}>{speed}</button>)}</div></div>
+        {careerDifficulty && onCareerDifficultyChange && <div className="setting-row"><div><strong>Dificuldade da carreira</strong><span>Muda reação, pressão e tomada de decisão da IA — nunca força o placar.</span></div><div className="segmented">{(["Promessa", "Profissional", "Lenda"] as Difficulty[]).map((difficulty) => <button className={careerDifficulty === difficulty ? "is-active" : ""} onClick={() => onCareerDifficultyChange(difficulty)} key={difficulty}>{difficulty}</button>)}</div></div>}
+        <div className="setting-row"><div><strong>Tamanho dos controles mobile</strong><span>Ajusta joystick e botões sem reduzir a área útil do campo.</span></div><div className="segmented">{(["small", "medium", "large"] as GameSettings["mobileControlSize"][]).map((size) => <button className={settings.mobileControlSize === size ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlSize: size })} key={size}>{size === "small" ? "P" : size === "medium" ? "M" : "G"}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Opacidade dos controles</strong><span>Deixa os controles mais discretos ou mais visíveis.</span></div><div className="segmented">{([0.55, 0.75, 1] as GameSettings["mobileControlOpacity"][]).map((opacity) => <button className={settings.mobileControlOpacity === opacity ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlOpacity: opacity })} key={opacity}>{Math.round(opacity * 100)}%</button>)}</div></div>
+        <div className="setting-row"><div><strong>Lado dos controles mobile</strong><span>Troque joystick e botões para se adaptar à mão dominante.</span></div><div className="segmented">{(["standard", "inverted"] as GameSettings["mobileControlsSide"][]).map((side) => <button className={settings.mobileControlsSide === side ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlsSide: side })} key={side}>{side === "standard" ? "Joystick à esquerda" : "Joystick à direita"}</button>)}</div></div>
         <ToggleSetting title="Movimento reduzido" text="Diminui animações e efeitos de transição." checked={settings.reducedMotion} onChange={(checked) => onChange({ ...settings, reducedMotion: checked })} />
         <ToggleSetting title="HUD compacto" text="Reduz espaçamentos para mostrar mais dados." checked={settings.compactHud} onChange={(checked) => onChange({ ...settings, compactHud: checked })} />
         <ToggleSetting title="Alto contraste" text="Reforça bordas e textos secundários." checked={settings.highContrast} onChange={(checked) => onChange({ ...settings, highContrast: checked })} />
-        <ToggleSetting title="Narração da partida" text="Mostra o feed de eventos durante o jogo." checked={settings.commentary} onChange={(checked) => onChange({ ...settings, commentary: checked })} />
-        <ToggleSetting title="Modo de desenvolvimento" text="Libera atalhos, progressão instantânea e todos os nove tipos de lance." checked={settings.developerMode} onChange={(checked) => onChange({ ...settings, developerMode: checked })} />
+        <ToggleSetting title="Narração da partida" text="Mostra o feed de eventos durante o modo rápido." checked={settings.commentary} onChange={(checked) => onChange({ ...settings, commentary: checked })} />
+        <ToggleSetting title="Modo de desenvolvimento" text="Libera atalhos e acelera os testes automatizados da partida." checked={settings.developerMode} onChange={(checked) => onChange({ ...settings, developerMode: checked })} />
       </div>
-      <div className="settings-note"><span>{settings.developerMode ? "⌘" : "✓"}</span><div><strong>{settings.developerMode ? "Ferramentas de desenvolvimento ativas" : "Salvamento automático ativo"}</strong><p>{settings.developerMode ? "Alterações feitas pelos atalhos também são salvas neste dispositivo." : "Carreiras e configurações são gravadas após cada escolha."}</p></div></div>
+      <div className="settings-note"><span>{settings.developerMode ? "⌘" : "✓"}</span><div><strong>{settings.developerMode ? "Ferramentas de desenvolvimento ativas" : "Configuração salva automaticamente"}</strong><p>{settings.developerMode ? "O relógio da partida jogável usa aceleração de teste enquanto este modo estiver ativo." : `Partida 2D: ${durationLabels[settings.matchDuration]} · controles ${settings.mobileControlSize.toUpperCase()} · ${Math.round(settings.mobileControlOpacity * 100)}%.`}</p></div></div>
     </section>
   );
   return standalone ? <div className="settings-backdrop">{content}</div> : <main className="career-content inner-view career-secondary-v051 settings-v051">{content}</main>;
@@ -2125,6 +2157,10 @@ export default function Home() {
         onExit={() => setView("dashboard")}
         onQuickMode={() => setView("match-legacy")}
         developerMode={settings.developerMode}
+        matchDuration={settings.matchDuration}
+        mobileControlSize={settings.mobileControlSize}
+        mobileControlOpacity={settings.mobileControlOpacity}
+        mobileControlsSide={settings.mobileControlsSide}
         onFinish={(result) => { setLastResult(playableToMatchResult(result, fixture)); setView("result"); }}
       />
       : view === "match-legacy" ? <LegacyMatchScreen career={career} fixture={fixture} settings={settings} onExit={() => setView("dashboard")} onFinish={(result) => { setLastResult(result); setView("result"); }} />
@@ -2136,7 +2172,12 @@ export default function Home() {
           {view === "player" && <PlayerView career={career} />}
           {view === "life" && <LifeView career={career} onAction={handleLifeAction} />}
           {view === "market" && <MarketView career={career} onTransfer={transferTo} onCancelTransfer={cancelPendingTransfer} onRenew={renewContract} onHousing={changeHousing} />}
-          {view === "settings" && <SettingsView settings={settings} onChange={setSettings} />}
+          {view === "settings" && <SettingsView
+            settings={settings}
+            onChange={setSettings}
+            careerDifficulty={career.difficulty}
+            onCareerDifficultyChange={(difficulty) => updateCareer((current) => ({ ...current, difficulty, updatedAt: Date.now() }))}
+          />}
         </CareerLayout>}
     {settings.developerMode && view !== "match" && view !== "match-legacy" && view !== "result" && <DeveloperPanel career={career} onAction={handleDeveloperAction} />}
   </div>;
