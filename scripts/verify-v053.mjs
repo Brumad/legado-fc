@@ -101,9 +101,13 @@ assert.equal(new Set(OPPONENT_TACTICS.map((item) => item.id)).size, 12, "tática
   const slow = { ...base.players[0], ratings: ratings({ pace: 45 }) };
   const fast = { ...base.players[0], ratings: ratings({ pace: 92 }) };
   const input = normalizeMatchInput({ moveX: 1, sprint: true });
-  const movedSlow = moveMatchPlayer(slow, input, base, 1 / 10, DEFAULT_MATCH_CORE_CONFIG);
-  const movedFast = moveMatchPlayer(fast, input, base, 1 / 10, DEFAULT_MATCH_CORE_CONFIG);
-  assert.ok(movedFast.position.x > movedSlow.position.x, "pace alto precisa produzir deslocamento maior");
+  let movedSlow = slow;
+  let movedFast = fast;
+  for (let step = 0; step < 20; step += 1) {
+    movedSlow = moveMatchPlayer(movedSlow, input, { ...base, players: [movedSlow] }, 1 / 10, DEFAULT_MATCH_CORE_CONFIG);
+    movedFast = moveMatchPlayer(movedFast, input, { ...base, players: [movedFast] }, 1 / 10, DEFAULT_MATCH_CORE_CONFIG);
+  }
+  assert.ok(movedFast.position.x > movedSlow.position.x + 0.5, "pace alto precisa produzir deslocamento maior após aceleração");
 }
 
 // Impedimento usa bola + segundo penúltimo defensor.
