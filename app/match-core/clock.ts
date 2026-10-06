@@ -36,11 +36,15 @@ export function advanceMatchClock(
 ): MatchClockState {
   if (!clock.running || (clock.phase !== "first-half" && clock.phase !== "second-half")) return clock;
   const delta = Math.max(0, Number.isFinite(deltaSeconds) ? deltaSeconds : 0);
-  const periodSeconds = Math.min(config.halfDurationSeconds, clock.periodSeconds + delta);
+  const rawPeriodSeconds = clock.periodSeconds + delta;
+  const reachedPeriodEnd = rawPeriodSeconds >= config.halfDurationSeconds - 1e-9;
+  const periodSeconds = reachedPeriodEnd
+    ? config.halfDurationSeconds
+    : Math.min(config.halfDurationSeconds, rawPeriodSeconds);
   const consumed = periodSeconds - clock.periodSeconds;
   const matchSeconds = clock.matchSeconds + consumed;
 
-  if (periodSeconds >= config.halfDurationSeconds) {
+  if (reachedPeriodEnd) {
     if (clock.phase === "first-half") {
       return withDisplayTime({
         ...clock,
