@@ -16,8 +16,11 @@ export type PlayableMatchResult = {
   version: 1;
   fixtureId: string;
   matchId: string;
+  playerSide: MatchSide;
   homeGoals: number;
   awayGoals: number;
+  playerTeamGoals: number;
+  opponentGoals: number;
   goals: number;
   assists: number;
   rating: number;
@@ -54,7 +57,9 @@ function teamPlayers(team: Team, side: MatchSide, controlledPlayerId: string | n
       position,
       homePosition: { ...position },
       velocity: { x: 0, y: 0 },
+      facing: { x: side === "home" ? 1 : -1, y: 0 },
       stamina: 100,
+      actionCooldownTicks: 0,
     };
   });
 }
@@ -105,47 +110,90 @@ export function createPlayableMatchState(
   };
 }
 
-export function createEmptyPlayableStatistics(): MatchStatistics {
-  const empty = {
-    possession: 50,
-    shots: 0,
-    shotsOnTarget: 0,
-    bigChances: 0,
-    corners: 0,
-    fouls: 0,
-    offsides: 0,
-    yellowCards: 0,
-    redCards: 0,
-    expectedGoals: 0,
-  };
+function possessionPercent(state: MatchCoreState, side: MatchSide) {
+  const total = state.stats.home.possessionTicks + state.stats.away.possessionTicks;
+  if (!total) return 50;
+  return Math.round(state.stats[side].possessionTicks / total * 100);
+}
+
+export function createPlayableMatchStatistics(
+  state: MatchCoreState,
+  context: PlayableMatchContext,
+): MatchStatistics {
+  const playerSide = context.playerSide;
+  const opponentSide: MatchSide = playerSide === "home" ? "away" : "home";
+  const own = state.stats[playerSide];
+  const rival = state.stats[opponentSide];
+  const ownGoals = state.score[playerSide];
+  const rivalGoals = state.score[opponentSide];
+
   return {
-    playerTeam: { ...empty },
-    opponent: { ...empty },
+    playerTeam: {
+      possession: possessionPercent(state, playerSide),
+      shots: own.shots,
+      shotsOnTarget: Math.max(ownGoals, Math.round(own.shots * 0.38)),
+      bigChances: Math.max(ownGoals, Math.round(own.shots * 0.2)),
+      corners: own.corners,
+      fouls: own.fouls,
+      offsides: 0,
+      yellowCards: 0,
+      redCards: 0,
+      expectedGoals: Math.round((own.shots * 0.11 + ownGoals * 0.18) * 100) / 100,
+    },
+    opponent: {
+      possession: possessionPercent(state, opponentSide),
+      shots: rival.shots,
+      shotsOnTarget: Math.max(rivalGoals, Math.round(rival.shots * 0.38)),
+      bigChances: Math.max(rivalGoals, Math.round(rival.shots * 0.2)),
+      corners: rival.corners,
+      fouls: rival.fouls,
+      offsides: 0,
+      yellowCards: 0,
+      redCards: 0,
+      expectedGoals: Math.round((rival.shots * 0.11 + rivalGoals * 0.18) * 100) / 100,
+    },
   };
 }
 
 export function createPlayableMatchResult(
   state: MatchCoreState,
   context: PlayableMatchContext,
-  overrides: Partial<Omit<PlayableMatchResult, "version" | "fixtureId" | "matchId" | "homeGoals" | "awayGoals">> = {},
+  overrides: Partial<Omit<PlayableMatchResult, "version" | "fixtureId" | "matchId" | "playerSide" | "homeGoals" | "awayGoals" | "playerTeamGoals" | "opponentGoals">> = {},
 ): PlayableMatchResult {
   if (!state.finished) throw new Error("Não é possível concluir uma partida jogável antes do apito final");
+  const controlled = state.players.find((player) => player.id === context.controlledPlayerId);
+  const playerStats = state.stats.players[context.controlledPlayerId];
+  const playerTeamGoals = state.score[context.playerSide];
+  const opponentSide: MatchSide = context.playerSide === "home" ? "away" : "home";
+  const opponentGoals = state.score[opponentSide];
+  const rating = Math.max(4, Math.min(10,
+    6 +
+    (playerStats?.goals ?? 0) * 1.25 +
+    (playerStats?.assists ?? 0) * 0.75 +
+    (playerStats?.tackles ?? 0) * 0.08 +
+    (playerStats?.completedPasses ?? 0) * 0.015 -
+    (playerStats?.fouls ?? 0) * 0.08
+  ));
+
   return {
     version: 1,
     fixtureId: context.fixtureId,
     matchId: state.matchId,
+    playerSide: context.playerSide,
     homeGoals: state.score.home,
     awayGoals: state.score.away,
-    goals: 0,
-    assists: 0,
-    rating: 6,
+    playerTeamGoals,
+    opponentGoals,
+    goals: playerStats?.goals ?? 0,
+    assists: playerStats?.assists ?? 0,
+    rating: Math.round(rating * 10) / 10,
     minutesPlayed: 90,
     yellowCards: 0,
     redCard: false,
     injuryStatus: "",
-    energySpent: 0,
+    energySpent: Math.max(0, Math.round(100 - (controlled?.stamina ?? 100))),
     approach: "Equilibrado",
-    statistics: createEmptyPlayableStatistics(),
+    statistics: createPlayableMatchStatistics(state, context),
     ...overrides,
   };
 }
