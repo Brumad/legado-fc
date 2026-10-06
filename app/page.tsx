@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { CareerHub } from "./career-hub.tsx";
 import {
   Archetype,
   CareerConsequence,
@@ -488,36 +489,6 @@ function CareerLayout({
   );
 }
 
-const trainingOptions: Array<{ id: TrainingKind; icon: string; title: string; text: string; effect: string }> = [
-  { id: "recovery", icon: "◇", title: "Recuperação", text: "Fisioterapia e sono controlado.", effect: "+10 energia" },
-  { id: "technique", icon: "◎", title: "Fundamentos", text: "Treino específico da sua posição.", effect: "+1 atributo" },
-  { id: "intensity", icon: "↯", title: "Alta intensidade", text: "Ritmo forte antes da rodada.", effect: "+3 forma" },
-  { id: "tactics", icon: "▦", title: "Treino tático", text: "Leitura do rival e posicionamento.", effect: "+confiança" },
-  { id: "setpieces", icon: "◒", title: "Bola parada", text: "Faltas, pênaltis e escanteios.", effect: "+1 técnica" },
-  { id: "language", icon: "文", title: "Aula de idioma", text: "Comunicação e adaptação ao país.", effect: "+8 idioma" },
-  { id: "media", icon: "◌", title: "Ação com fãs", text: "Imprensa, torcida e patrocinadores.", effect: "+350 fãs" },
-];
-
-function gameDate(isoDate: string) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).format(new Date(`${isoDate}T12:00:00Z`)).replace(".", "");
-}
-
-function MiniTable({ career, limit = 5 }: { career: CareerState; limit?: number }) {
-  const rows = useMemo(() => generateStandings(career).slice(0, limit), [career, limit]);
-  return (
-    <div className="mini-table">
-      <div className="table-head"><span>#</span><span>CLUBE</span><span>J</span><span>SG</span><span>PTS</span></div>
-      {rows.map((row) => (
-        <div className={`table-row ${row.isPlayerTeam ? "is-player" : ""}`} key={row.team.id}>
-          <span>{String(row.position).padStart(2, "0")}</span>
-          <span><TeamCrest short={row.team.short} color={row.team.color} small /><b>{row.team.name}</b></span>
-          <span>{row.played}</span><span>{row.goalDifference > 0 ? "+" : ""}{row.goalDifference}</span><strong>{row.points}</strong>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Dashboard({
   career,
   fixture,
@@ -531,105 +502,14 @@ function Dashboard({
   onTrain: (kind: TrainingKind) => void;
   onNavigate: (view: AppView) => void;
 }) {
-  const standings = useMemo(() => generateStandings(career), [career]);
-  const position = standings.find((row) => row.isPlayerTeam)?.position ?? 1;
-  const news = useMemo(() => buildCareerNews(career, fixture), [career, fixture]);
-  const matchPreview = useMemo(() => generateMatchPlan(career, fixture), [career, fixture]);
-  const opponentStar = fixture.opponent.stars[fixture.seed % fixture.opponent.stars.length];
-  const preparationSlots = useMemo(() => Array.from({ length: career.preparationActionsAllowed }, (_, index) => ({
-    date: addDaysToDate(career.currentDate, Math.min(career.daysUntilMatch - 1, index * 2 + 1)),
-    action: career.preparationLog[index],
-  })), [career.currentDate, career.daysUntilMatch, career.preparationActionsAllowed, career.preparationLog]);
-  const preparationComplete = career.preparationActionsUsed >= career.preparationActionsAllowed;
-  const unavailableReason = career.suspensionMatches > 0 ? `Suspenso por ${career.suspensionMatches} jogo(s)` : career.injuryMatchesRemaining > 0 ? `${career.injuryStatus} · ${career.injuryMatchesRemaining} jogo(s)` : "";
-
   return (
-    <main className="career-content dashboard-view">
-      <section className="welcome-row">
-        <div><span className="overline">SEMANA {career.seasonRound} · {career.daysUntilMatch} DIAS ATÉ O JOGO</span><h1>Boa noite, {career.name.split(" ")[0]}.</h1><p>{fixture.pressure}. Você tem {career.preparationActionsAllowed} {career.preparationActionsAllowed === 1 ? "ação" : "ações"} disponíveis antes de enfrentar o {fixture.opponent.name}.</p></div>
-        <div className="condition-chip"><span className={!unavailableReason && career.energy > 70 ? "good" : "warn"} /><div><small>STATUS DO ATLETA</small><strong>{unavailableReason || (career.energy > 78 ? "Pronto para jogar" : career.energy > 60 ? "Atenção à fadiga" : "Recuperação indicada")}</strong></div></div>
-      </section>
-
-      {career.activeConsequences.length > 0 && <button className="dashboard-consequence-alert" onClick={() => onNavigate("life")}>
-        <div><span className="overline">CONSEQUÊNCIA ATIVA</span><strong>{career.activeConsequences[0].title}</strong><small>{career.activeConsequences[0].description}</small></div>
-        <div><span>{career.activeConsequences[0].remainingMatches} JOGO(S)</span><b>{matchPreview.consequenceModifiers.performance >= 0 ? "+" : ""}{matchPreview.consequenceModifiers.performance} desempenho</b><em>VER TODAS →</em></div>
-      </button>}
-
-      <section className="matchday-hero">
-        <div className="matchday-atmosphere" style={{ "--away": fixture.opponent.color } as React.CSSProperties} />
-        <div className="matchday-copy">
-          <span className="match-label">{fixture.competition.toUpperCase()} · RODADA {fixture.round}</span>
-          <h2>O próximo capítulo<br />começa agora.</h2>
-          <div className="match-context">
-            <span><small>LOCAL</small>{fixture.home ? "Em casa" : fixture.venue}</span>
-            <span><small>CLIMA</small>{fixture.weather}</span>
-            <span><small>PRESSÃO</small>{fixture.pressure}</span>
-            <span><small>PLANO RIVAL</small>{matchPreview.opponentTactic.formation} · {matchPreview.opponentTactic.name}</span>
-          </div>
-          <button className="play-match-button" onClick={onPlay}><span>▶</span><div><small>{unavailableReason ? "FORA DA LISTA" : "INICIAR"}</small><strong>{unavailableReason ? "ACOMPANHAR PARTIDA" : "JOGAR PARTIDA 2.0"}</strong></div><b>→</b></button>
-        </div>
-        <div className="matchday-fixture">
-          <div><TeamCrest short={career.clubShort} color={career.clubColor} /><strong>{career.clubName}</strong><small>{fixture.home ? "MANDANTE" : "VISITANTE"}</small></div>
-          <span className="fixture-vs"><b>VS</b><small>{fixture.venue}</small></span>
-          <div><TeamCrest short={fixture.opponent.short} color={fixture.opponent.color} /><strong>{fixture.opponent.name}</strong><small>FORÇA {fixture.opponent.strength}</small></div>
-          <div className="star-watch"><span>JOGADOR A OBSERVAR</span><strong>{opponentStar}</strong><small>Chave: {matchPreview.tacticalInstruction}</small></div>
-        </div>
-      </section>
-
-      <section className="dashboard-grid">
-        <article className="hud-card weekly-card">
-          <div className="card-heading"><div><span className="overline">CALENDÁRIO DE PREPARAÇÃO</span><h3>Uma ação a cada dois dias</h3></div><span className={`status-tag ${preparationComplete ? "done" : ""}`}>{career.preparationActionsUsed}/{career.preparationActionsAllowed} realizadas</span></div>
-          <div className="preparation-calendar">
-            <div className="calendar-day is-today"><span>HOJE</span><strong>{gameDate(career.currentDate)}</strong><small>Início</small></div>
-            {preparationSlots.map((slot, index) => <div className={`calendar-day ${slot.action ? "is-filled" : ""}`} key={`${slot.date}-${index}`}><span>AÇÃO {index + 1}</span><strong>{gameDate(slot.date)}</strong><small>{slot.action ?? "Livre"}</small></div>)}
-            <div className="calendar-day is-match"><span>PARTIDA</span><strong>{gameDate(career.nextMatchDate)}</strong><small>vs {fixture.opponent.short}</small></div>
-          </div>
-          <div className="training-grid">
-            {trainingOptions.map((option) => (
-              <button className={`training-option ${career.preparationLog.includes(option.title) ? "is-selected" : ""}`} disabled={preparationComplete} onClick={() => onTrain(option.id)} key={option.id}>
-                <span>{option.icon}</span><div><strong>{option.title}</strong><small>{option.text}</small></div><b>{career.preparationLog.includes(option.title) ? "✓" : option.effect}</b>
-              </button>
-            ))}
-          </div>
-        </article>
-
-        <article className="hud-card player-hud-card">
-          <div className="player-hud-top">
-            <PlayerAvatar career={career} />
-            <div><span className="overline">SEU ATLETA</span><h3>{career.name}</h3><p>{career.position} · Camisa {career.shirtNumber}</p></div>
-            <div className="overall-badge"><small>OVR</small><strong>{getOverall(career)}</strong></div>
-          </div>
-          <div className="player-vitals">
-            <div><span>ENERGIA <b>{career.energy}%</b></span><i><em style={{ width: `${career.energy}%` }} /></i></div>
-            <div><span>MORAL <b>{career.morale}%</b></span><i><em style={{ width: `${career.morale}%` }} /></i></div>
-          </div>
-          <div className="season-numbers">
-            <div><strong>{career.goals}</strong><span>GOLS</span></div><div><strong>{career.assists}</strong><span>ASSIST.</span></div><div><strong>{career.rating.toFixed(1)}</strong><span>NOTA</span></div><div><strong>{career.reputation}</strong><span>REP.</span></div>
-          </div>
-          <button className="text-link" onClick={() => onNavigate("player")}>ABRIR PERFIL COMPLETO →</button>
-        </article>
-
-        <article className="hud-card table-card">
-          <div className="card-heading"><div><span className="overline">{career.leagueName.toUpperCase()}</span><h3>Classificação</h3></div><div className="position-badge"><small>POSIÇÃO</small><strong>{position}º</strong></div></div>
-          <MiniTable career={career} />
-          <button className="text-link" onClick={() => onNavigate("season")}>VER TABELA COMPLETA →</button>
-        </article>
-
-        <article className="hud-card news-card">
-          <div className="card-heading"><div><span className="overline">MUNDO EM MOVIMENTO</span><h3>Central de notícias</h3></div><span className="live-pulse"><i /> AO VIVO</span></div>
-          <div className="news-feed">
-            {news.map((item) => <div className="news-row" key={item.id}><span className={`news-icon ${item.category}`}>{item.category === "mercado" ? "↗" : item.category === "liga" ? "▦" : "L"}</span><div><small>{item.category.toUpperCase()} {item.isNew && "· NOVO"}</small><strong>{item.title}</strong><p>{item.text}</p></div></div>)}
-          </div>
-        </article>
-      </section>
-
-      <section className="season-ribbon">
-        <div><span className="overline">FORMA RECENTE</span><div className="form-dots">{(career.recentResults.length ? career.recentResults : ["E", "V", "D", "V", "E"]).slice(0, 5).map((result, index) => <span className={resultClass(result)} key={`${result}-${index}`}>{result[0]}</span>)}</div></div>
-        <div><span>CONTRATO</span><strong>{career.contractMatches} jogos restantes</strong></div>
-        <div><span>SALÁRIO MENSAL</span><strong>{money(career.salary)}</strong></div>
-        <div><span>PAÍS · DIVISÃO</span><strong>{career.countryName} · D{career.division}</strong></div>
-      </section>
-    </main>
+    <CareerHub
+      career={career}
+      fixture={fixture}
+      onPlay={onPlay}
+      onTrain={onTrain}
+      onNavigate={onNavigate}
+    />
   );
 }
 
