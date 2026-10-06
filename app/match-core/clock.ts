@@ -1,4 +1,4 @@
-import { MatchClockState, MatchCoreConfig } from "./types";
+import { MatchClockState, MatchCoreConfig } from "./types.ts";
 
 function withDisplayTime(clock: MatchClockState): MatchClockState {
   const rounded = Math.max(0, clock.matchSeconds);
