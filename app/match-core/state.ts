@@ -1,4 +1,4 @@
-import { DEFAULT_PITCH } from "./config";
+import { DEFAULT_PITCH } from "./config.ts";
 import {
   MatchClockState,
   MatchCoreEvent,
@@ -7,7 +7,7 @@ import {
   MatchStateValidation,
   PitchDimensions,
   Vector2,
-} from "./types";
+} from "./types.ts";
 
 function cloneVector(vector: Vector2): Vector2 {
   return { x: vector.x, y: vector.y };
