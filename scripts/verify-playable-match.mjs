@@ -9,7 +9,6 @@ import {
   gamepadInputFromAxes,
   keyboardInputFromKeys,
   resolveTackles,
-  startSecondHalf,
   stepMatchCore,
   touchInputFromVector,
   validateMatchCoreState,
