@@ -1,7 +1,7 @@
 import type { CareerState, Fixture, MatchApproach, MatchStatistics, Team } from "./game-engine";
 import { TEAMS } from "./game-engine";
-import { createMatchCoreState } from "./match-core/state";
-import type { MatchCoreState, MatchPlayerState, MatchSide } from "./match-core/types";
+import { createMatchCoreState } from "./match-core/state.ts";
+import type { MatchCoreState, MatchPlayerState, MatchSide } from "./match-core/types.ts";
 
 export type PlayableMatchContext = {
   careerId: string;
