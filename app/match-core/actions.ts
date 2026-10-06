@@ -309,6 +309,15 @@ export function resolvePossessionAction(
   const input = inputs.get(owner.id);
   if (!input) return state;
   const ratings = owner.ratings ?? fallbackRatings;
+  const aiDifficultyModifier = owner.controlled
+    ? 0
+    : state.teamSetup[owner.side].difficulty === "Lenda"
+      ? 6
+      : state.teamSetup[owner.side].difficulty === "Promessa"
+        ? -7
+        : 0;
+  const shootingSkill = clamp(ratings.shooting + aiDifficultyModifier, 25, 98);
+  const passingSkill = clamp(ratings.passing + aiDifficultyModifier, 25, 98);
 
   if (input.shoot) {
     const intendedGoal = {
@@ -318,8 +327,8 @@ export function resolvePossessionAction(
         Math.min(state.pitch.width / 2 + 3, state.pitch.width / 2 + input.moveY * 2.2),
       ),
     };
-    const goal = executionTarget(state, owner, intendedGoal, ratings.shooting, 4.8, "shot");
-    const shotPower = config.shotSpeed * (0.82 + ratings.shooting / 100 * 0.3);
+    const goal = executionTarget(state, owner, intendedGoal, shootingSkill, 4.8, "shot");
+    const shotPower = config.shotSpeed * (0.82 + shootingSkill / 100 * 0.3);
     let next = kickBall(state, owner, goal, shotPower, config.actionCooldownTicks);
     next = updateTeamStat(next, owner.side, "shots");
     next = updatePlayerStats(next, owner.id, { shots: 1 });
@@ -339,12 +348,12 @@ export function resolvePossessionAction(
           y: target.position.y,
         }
       : target.position;
-    const precision = executionTarget(next, owner, lead, ratings.passing, input.throughBall ? 3.8 : 2.2, input.throughBall ? "through" : "pass");
+    const precision = executionTarget(next, owner, lead, passingSkill, input.throughBall ? 3.8 : 2.2, input.throughBall ? "through" : "pass");
     next = kickBall(
       next,
       owner,
       precision,
-      (input.throughBall ? config.throughBallSpeed : config.passSpeed) * (0.9 + ratings.passing / 100 * 0.18),
+      (input.throughBall ? config.throughBallSpeed : config.passSpeed) * (0.9 + passingSkill / 100 * 0.18),
       Math.round(config.actionCooldownTicks * 0.7),
     );
     return appendMatchEvent(next, {
