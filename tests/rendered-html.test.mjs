@@ -88,7 +88,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(engine, /counter/);
   assert.match(engine, /aerial/);
   assert.match(engine, /samplePoisson/);
-  assert.match(engine, /opponentTactics/);
+  assert.match(engine, /OPPONENT_TACTICS/);
   assert.match(engine, /gegenpress/);
   assert.match(engine, /catenaccio/);
   assert.match(engine, /falso-nove/);
