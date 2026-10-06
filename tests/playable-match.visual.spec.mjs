@@ -72,7 +72,8 @@ test("keyboard plays, pauses and completes a full 2D match", async ({ browser })
 
   const screen = page.locator("[data-playable-match-screen]");
   const startX = Number(await screen.getAttribute("data-player-x"));
-  await page.locator(".playable-match-canvas").click();\n  await page.keyboard.down("d");
+  await page.locator(".playable-match-canvas").click();
+  await page.keyboard.down("d");
   await page.keyboard.down("Shift");
   await page.waitForTimeout(550);
   await page.keyboard.up("Shift");
