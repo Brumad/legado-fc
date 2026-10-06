@@ -1,4 +1,4 @@
-import { MatchCoreConfig, MatchInputFrame, PitchDimensions } from "./types";
+import { MatchCoreConfig, MatchInputFrame, PitchDimensions } from "./types.ts";
 
 export const DEFAULT_PITCH: PitchDimensions = {
   length: 105,
