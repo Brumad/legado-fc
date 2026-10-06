@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.4.3 — Consequências",
+    title: "Legado FC 0.5.0 — Fundação Jogável",
     description:
-      "Escolhas que atravessam partidas e temporadas: personalidade dinâmica, consequências persistentes, cobranças futuras, treinador, elenco, saúde, família e mercado.",
+      "Fundação da nova gameplay jogável do Legado FC, preservando carreira, mundo, consequências e compatibilidade com saves 0.4.3.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.4.3 — Consequências",
+      title: "Legado FC 0.5.0 — Fundação Jogável",
       description:
-        "Suas decisões agora mudam desempenho, fadiga, lesões, disciplina, relações, contratos e acontecimentos futuros.",
+        "A carreira existente agora convive com um Match Core independente, determinístico e preparado para a gameplay 2D jogável.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.4.3 — Consequências" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.0 — Fundação Jogável" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.4.3 — Consequências",
-      description: "Toda escolha deixa uma marca — dentro e fora do campo.",
+      title: "Legado FC 0.5.0 — Fundação Jogável",
+      description: "A carreira foi preservada; a nova fundação de gameplay já está pronta.",
       images: [imageUrl],
     },
   };

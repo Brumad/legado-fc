@@ -165,7 +165,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.4.3 · CONSEQUÊNCIAS</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.0 · FUNDAÇÃO JOGÁVEL</small></div></div>;
 }
 
 function Lobby({
@@ -255,7 +255,7 @@ function Lobby({
       </section>
 
       <footer className="lobby-footer">
-        <span>LEGADO ENGINE <b>4.3</b></span>
+        <span>LEGADO ENGINE <b>5.0</b></span>
         <p>Doze táticas, briefing jogável e uma carreira que guarda cada partida.</p>
         <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} CARREIRAS SIMULADAS</span>
       </footer>
@@ -974,7 +974,7 @@ function LifeView({ career, onAction }: { career: CareerState; onAction: (action
   ];
   return (
     <main className="career-content inner-view">
-      <section className="view-heading"><div><span className="overline">0.4.3 · CONSEQUÊNCIAS</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
+      <section className="view-heading"><div><span className="overline">0.5.0 · FUNDAÇÃO JOGÁVEL</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
 
       {event && <section className="life-story-event"><span className="overline">EVENTO ENCADEADO · {career.queuedLifeEvents.length} NA FILA</span><h2>{event.title}</h2><p>{event.text}</p><div>{event.choices.map((choice) => <button onClick={() => onAction(choice.id)} key={choice.id}><strong>{choice.label}</strong><small>{choice.hint}</small></button>)}</div></section>}
 

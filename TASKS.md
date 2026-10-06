@@ -257,7 +257,11 @@ O modo atual de lances não será destruído imediatamente. Ele deve permanecer 
 
 # 0.5.0 - Fundação do novo jogo
 
-Status: **PLANEJADO**
+Status: **COMPLETE**
+
+Checkpoint de implementação: branch `feat/v0.5.0-gameplay-foundation`.
+
+A 0.5.0 foi fechada como uma **fundação paralela e segura**. Ela não remove a gameplay 0.4.3 nem força o novo renderer na carreira atual. O objetivo desta versão é criar fronteiras técnicas para que as próximas versões possam substituir a partida progressivamente sem arriscar carreira, saves e mundo persistente.
 
 ## Objetivo
 
@@ -265,40 +269,81 @@ Criar a arquitetura necessária para a nova gameplay sem alterar o resultado fun
 
 ## Tarefas
 
-- [ ] Criar branch dedicada da série `0.5.x`.
-- [ ] Separar domínio da carreira, mundo, mercado e partida.
-- [ ] Reduzir responsabilidade de `app/game-engine.ts`.
-- [ ] Reduzir responsabilidade de `app/page.tsx`.
-- [ ] Criar módulo próprio para estado da partida.
-- [ ] Criar módulo próprio para regras da partida.
-- [ ] Criar módulo próprio para IA.
-- [ ] Criar módulo próprio para física/movimento da bola.
-- [ ] Criar camada de integração carreira <-> partida.
-- [ ] Criar contrato único de resultado de partida.
-- [ ] Preservar o gerador de partidas atual para simulação do restante do mundo.
-- [ ] Preservar o modo rápido de lances como fallback.
-- [ ] Definir loop de simulação em passo fixo independente do FPS de renderização.
-- [ ] Criar abstração de input para teclado, toque e gamepad.
-- [ ] Criar shell de Canvas para partida.
-- [ ] Preparar suporte a pausa, retomada e abandono seguro da partida.
-- [ ] Definir schema dos novos dados antes de alterar o save.
-- [ ] Criar migração da versão de save somente quando novos campos persistentes forem adicionados.
-- [ ] Atualizar CI.
-- [ ] Corrigir nomes das etapas de 5.000 partidas e 25 temporadas.
+- [x] Criar branch dedicada da série `0.5.x`.
+- [x] Separar o novo domínio de partida do monólito de carreira/mundo/mercado.
+- [x] Impedir que a nova gameplay aumente a responsabilidade de `app/game-engine.ts`.
+- [x] Impedir que o loop de frame da nova gameplay fique dentro de `app/page.tsx`.
+- [x] Criar módulo próprio para estado da partida.
+- [x] Criar módulo próprio para regras da partida.
+- [x] Criar módulo próprio para IA.
+- [x] Criar módulo próprio para física/movimento da bola.
+- [x] Criar camada de integração carreira <-> partida.
+- [x] Criar contrato único de resultado de partida.
+- [x] Preservar o gerador de partidas atual para simulação do restante do mundo.
+- [x] Preservar o modo rápido de lances como fallback.
+- [x] Definir loop de simulação em passo fixo independente do FPS de renderização.
+- [x] Criar abstração de input para teclado, toque e gamepad.
+- [x] Criar shell de Canvas para partida.
+- [x] Preparar suporte a pausa, retomada e abandono seguro da partida.
+- [x] Definir schema do Match Core antes de qualquer persistência nova.
+- [x] Não criar migração desnecessária: a 0.5.0 não adiciona campos persistentes ao save da carreira.
+- [x] Atualizar CI.
+- [x] Corrigir nomes das etapas de 5.000 partidas e 25 temporadas.
+
+### Decisão arquitetural
+
+A extração completa de todo o código legado de carreira, mundo e mercado de `game-engine.ts`, assim como a desmontagem completa da antiga `MatchScreen` de `page.tsx`, **não faz parte do fechamento da 0.5.0**. Fazer isso antes de a nova partida substituir o fluxo antigo aumentaria risco sem benefício funcional imediato.
+
+A partir daqui, toda gameplay nova deve entrar por `app/match-core/*`, `app/gameplay-integration.ts` e renderers próprios. O legado será reduzido progressivamente nas versões seguintes conforme cada fluxo for substituído e validado.
+
+## Entregas técnicas
+
+- [x] `app/match-core/types.ts` — contrato de estado e schema v1.
+- [x] `app/match-core/state.ts` — criação e validação do estado.
+- [x] `app/match-core/clock.ts` — relógio determinístico com limites exatos.
+- [x] `app/match-core/input.ts` — teclado, touch e gamepad.
+- [x] `app/match-core/rules.ts` — regras geométricas/bordas e base de gol/saída.
+- [x] `app/match-core/physics.ts` — movimento de jogador e bola.
+- [x] `app/match-core/ai.ts` — fundação de IA independente.
+- [x] `app/match-core/simulation.ts` — runtime headless em passo fixo.
+- [x] `app/match-core/renderer.ts` — renderer Canvas desacoplado.
+- [x] `app/playable-match-canvas.tsx` — shell visual sem React por frame.
+- [x] `app/gameplay-integration.ts` — bridge carreira -> 22 jogadores -> resultado.
+- [x] `scripts/verify-match-core.mjs`.
+- [x] `scripts/verify-match-integration.mjs`.
+- [x] workflow dedicado `.github/workflows/validation.yml`.
 
 ## Critérios de aceite
 
-- [ ] Uma carreira `0.4.3` abre sem perda de dados.
-- [ ] O mundo antigo continua produzindo os mesmos invariantes.
-- [ ] `verify:variation` continua passando.
-- [ ] `verify:world` continua passando.
-- [ ] Build de produção passa.
-- [ ] Build do GitHub Pages passa.
-- [ ] Lint passa.
-- [ ] Teste de renderização passa.
-- [ ] Nenhuma regra de carreira precisa depender do renderer.
-- [ ] O loop da partida pode rodar headless para testes.
-- [ ] Não existe necessidade de React renderizar cada frame da partida.
+- [x] Uma carreira `0.4.3` abre sem perda de dados, coberta pelas migrações/regressões existentes.
+- [x] O mundo antigo continua produzindo os mesmos invariantes.
+- [x] `verify:variation` continua passando com 5.000 partidas.
+- [x] `verify:world` continua passando com 25 temporadas.
+- [x] `verify:match-core` passa.
+- [x] `verify:match-integration` passa.
+- [x] Build de produção passa.
+- [x] Build do GitHub Pages passa.
+- [x] Typecheck passa.
+- [x] Lint passa.
+- [x] Teste de renderização passa.
+- [x] Nenhuma regra do novo Match Core depende do renderer.
+- [x] O loop da partida roda headless para testes.
+- [x] React não precisa renderizar cada frame da nova partida.
+- [x] O modo 0.4.3 permanece disponível enquanto a gameplay nova não está pronta para substituí-lo.
+
+## Evidência de fechamento
+
+Pipeline da branch validado com sucesso em:
+
+- typecheck;
+- lint;
+- Match Core;
+- integração carreira/partida;
+- 5.000 partidas legadas;
+- 25 temporadas do mundo;
+- build de produção;
+- testes de renderização;
+- build GitHub Pages.
 
 ---
 

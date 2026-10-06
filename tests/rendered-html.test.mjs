@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.4.3 application shell", async () => {
+test("server-renders the Legado FC 0.5.0 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC 0\.4\.3 — Consequências<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.5\.0 — Fundação Jogável<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.match(html, /og-v7\.png/i);
 });
@@ -42,7 +42,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /0\.4\.3 · CONSEQUÊNCIAS/);
+  assert.match(page, /0\.5\.0 · FUNDAÇÃO JOGÁVEL/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
@@ -130,4 +130,20 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(css, /result-consequence-report/);
   assert.match(css, /pending-transfer-banner/);
   await access(new URL("../public/og-v7.png", import.meta.url));
+});
+
+
+test("keeps the 0.5.0 gameplay foundation isolated and testable", async () => {
+  const [core, integration, canvas] = await Promise.all([
+    readFile(new URL("../app/match-core/simulation.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/gameplay-integration.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/playable-match-canvas.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(core, /FixedStepMatchRuntime/);
+  assert.match(core, /abandonMatch/);
+  assert.match(integration, /createPlayableMatchState/);
+  assert.match(integration, /22 jogadores/);
+  assert.match(canvas, /requestAnimationFrame/);
+  assert.doesNotMatch(canvas, /setState\(/);
 });
