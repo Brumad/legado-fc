@@ -51,7 +51,7 @@ export function advanceMatchClock(
         phase: "half-time",
         running: false,
         periodSeconds: config.halfDurationSeconds,
-        matchSeconds,
+        matchSeconds: config.halfDurationSeconds,
       });
     }
     return withDisplayTime({
@@ -59,7 +59,7 @@ export function advanceMatchClock(
       phase: "finished",
       running: false,
       periodSeconds: config.halfDurationSeconds,
-      matchSeconds,
+      matchSeconds: config.halfDurationSeconds * 2,
     });
   }
 
