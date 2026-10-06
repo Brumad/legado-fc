@@ -17,6 +17,10 @@ export type PlayableMatchContext = {
   playerSide: MatchSide;
   homeTeamId: string;
   awayTeamId: string;
+  opponentTacticName: string;
+  opponentFormation: string;
+  difficulty: CareerState["difficulty"];
+  rivalryLevel: number;
 };
 
 export type PlayableMatchResult = {
@@ -182,6 +186,10 @@ export function createPlayableMatchState(
       playerSide,
       homeTeamId: homeTeam.id,
       awayTeamId: awayTeam.id,
+      opponentTacticName: matchPlan.opponentTactic.name,
+      opponentFormation: matchPlan.opponentTactic.formation,
+      difficulty: career.difficulty,
+      rivalryLevel: matchPlan.rivalryLevel,
     },
   };
 }
