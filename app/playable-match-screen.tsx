@@ -29,6 +29,10 @@ export function PlayableMatchScreen({
   developerMode?: boolean;
 }) {
   const playable = useMemo(() => createPlayableMatchState(career, fixture), [career, fixture]);
+  const runtimeConfig = useMemo(
+    () => developerMode ? { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 } : undefined,
+    [developerMode],
+  );
   const canvasRef = useRef<PlayableMatchCanvasHandle>(null);
   const [snapshot, setSnapshot] = useState<MatchCoreState>(playable.state);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
@@ -90,7 +94,7 @@ export function PlayableMatchScreen({
             <PlayableMatchCanvas
               ref={canvasRef}
               initialState={playable.state}
-              config={developerMode ? { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 } : undefined}
+              config={runtimeConfig}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />
