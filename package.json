@@ -15,7 +15,7 @@
     "test": "npm run typecheck && npm run build && npm run verify:variation && npm run verify:world && npm run verify:match-core && npm run verify:match-integration && npm run test:render",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern github-dist --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "verify:match-core": "node --experimental-strip-types scripts/verify-match-core.mjs",
     "test:render": "node --test tests/rendered-html.test.mjs",
     "verify:match-integration": "node --experimental-strip-types scripts/verify-match-integration.mjs"
