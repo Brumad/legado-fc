@@ -1,8 +1,8 @@
-import { DEFAULT_MATCH_CORE_CONFIG } from "./config";
-import { advanceMatchClock, pauseMatchClock, resumeMatchClock, startMatchClock, startSecondHalfClock } from "./clock";
-import { normalizeMatchInput } from "./input";
-import { appendMatchEvent } from "./state";
-import { MatchCoreConfig, MatchCoreState, MatchInputFrame, MatchPlayerState, Vector2 } from "./types";
+import { DEFAULT_MATCH_CORE_CONFIG } from "./config.ts";
+import { advanceMatchClock, pauseMatchClock, resumeMatchClock, startMatchClock, startSecondHalfClock } from "./clock.ts";
+import { normalizeMatchInput } from "./input.ts";
+import { appendMatchEvent } from "./state.ts";
+import { MatchCoreConfig, MatchCoreState, MatchInputFrame, MatchPlayerState, Vector2 } from "./types.ts";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
