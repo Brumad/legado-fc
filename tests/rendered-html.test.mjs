@@ -36,16 +36,19 @@ test("server-renders the Legado FC 0.5.2 application shell", async () => {
 });
 
 test("keeps the completed 0.4.x systems in the production source", async () => {
-  const [page, hub, engine, css] = await Promise.all([
+  const [page, hub, creator, engine, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/career-hub.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/career-creator.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /0\.5\.2 · CAMPO 2D/);
   assert.match(page, /<CareerHub/);
-  assert.match(page, /country-choice-grid/);
+  assert.match(creator, /country-choice-grid/);
+  assert.match(creator, /COUNTRIES\.length/);
+  assert.match(creator, /PlayerAvatar/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
   assert.match(hub, /hub-calendar/);

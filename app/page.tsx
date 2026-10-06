@@ -1,31 +1,25 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CareerHub } from "./career-hub.tsx";
 import { CareerCreator } from "./career-creator.tsx";
 import { PlayerAvatar } from "./player-avatar.tsx";
 import { PlayableMatchScreen } from "./playable-match-screen.tsx";
 import type { PlayableMatchResult } from "./gameplay-integration.ts";
 import {
-  Archetype,
   CareerConsequence,
   CareerMatchRecord,
   CareerState,
   CareerTransferOffer,
-  CountryId,
   COUNTRIES,
   Difficulty,
   DivisionLevel,
   Fixture,
-  Foot,
   MatchMoment,
   MatchApproach,
   MatchPlan,
   MatchStatistics,
   MatchTarget,
-  ORIGINS,
-  OriginType,
-  Position,
   TEAMS,
   WORLD_TEAMS,
   addDaysToDate,
