@@ -2,6 +2,8 @@
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CareerHub } from "./career-hub.tsx";
+import { PlayableMatchScreen } from "./playable-match-screen.tsx";
+import type { PlayableMatchResult } from "./gameplay-integration.ts";
 import {
   Archetype,
   CareerConsequence,
@@ -48,7 +50,7 @@ import {
   simulateFullRound,
 } from "./game-engine";
 
-type AppView = "lobby" | "dashboard" | "season" | "world" | "player" | "life" | "market" | "settings" | "match" | "result";
+type AppView = "lobby" | "dashboard" | "season" | "world" | "player" | "life" | "market" | "settings" | "match" | "match-legacy" | "result";
 type FeedItem = { minute: number; text: string; tone?: "goal" | "chance" | "normal" };
 type MatchResult = {
   xp: number;
@@ -120,6 +122,36 @@ const emptyResult: MatchResult = {
   consequenceImpact: [],
   consequencePerformance: 0,
 };
+
+function playableToMatchResult(result: PlayableMatchResult, fixture: Fixture): MatchResult {
+  const involvement = result.goals + result.assists;
+  return {
+    xp: 30 + result.goals * 120 + result.assists * 80 + Math.round(Math.max(0, result.rating - 6) * 35),
+    goals: result.goals,
+    assists: result.assists,
+    rating: result.rating,
+    unionGoals: result.playerTeamGoals,
+    opponentGoals: result.opponentGoals,
+    opponentName: fixture.opponent.name,
+    signature: `playable:${result.matchId}:${result.homeGoals}-${result.awayGoals}`,
+    statistics: result.statistics,
+    tacticName: "Partida 2D jogável",
+    tacticFormation: "CAMPO",
+    yellowCards: result.yellowCards,
+    redCard: result.redCard,
+    injuryStatus: result.injuryStatus,
+    injuryMatches: 0,
+    wasSubstituted: false,
+    minutesPlayed: result.minutesPlayed,
+    energySpent: result.energySpent,
+    approach: result.approach,
+    consequenceImpact: involvement
+      ? [`Participação direta em ${involvement} gol(s) na partida jogável.`]
+      : ["Partida concluída no novo campo 2D jogável."],
+    consequencePerformance: Math.round((result.rating - 6) * 2),
+  };
+}
+
 
 function compactNumber(value: number) {
   return new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(value);
@@ -1096,7 +1128,7 @@ const matchApproaches: Array<{ id: MatchApproach; icon: string; title: string; d
   { id: "Criativo", icon: "◎", title: "Criativo", description: "Busque passes e dribles improváveis para quebrar o plano rival.", effect: "bônus técnico em criação" },
 ];
 
-function MatchScreen({
+function LegacyMatchScreen({
   career,
   fixture,
   settings,
@@ -2087,7 +2119,14 @@ export default function Home() {
   if (!fixture) return null;
 
   return <div className={rootClass}>
-    {view === "match" ? <MatchScreen career={career} fixture={fixture} settings={settings} onExit={() => setView("dashboard")} onFinish={(result) => { setLastResult(result); setView("result"); }} />
+    {view === "match" ? <PlayableMatchScreen
+        career={career}
+        fixture={fixture}
+        onExit={() => setView("dashboard")}
+        onQuickMode={() => setView("match-legacy")}
+        onFinish={(result) => { setLastResult(playableToMatchResult(result, fixture)); setView("result"); }}
+      />
+      : view === "match-legacy" ? <LegacyMatchScreen career={career} fixture={fixture} settings={settings} onExit={() => setView("dashboard")} onFinish={(result) => { setLastResult(result); setView("result"); }} />
       : view === "result" ? <ResultScreen career={career} result={lastResult} fixture={fixture} onContinue={continueCareer} />
         : <CareerLayout career={career} view={view} onNavigate={setView} onLobby={() => { setActiveSlot(null); setView("lobby"); }}>
           {view === "dashboard" && <Dashboard career={career} fixture={fixture} onPlay={() => setView("match")} onTrain={train} onNavigate={setView} />}
@@ -2098,6 +2137,6 @@ export default function Home() {
           {view === "market" && <MarketView career={career} onTransfer={transferTo} onCancelTransfer={cancelPendingTransfer} onRenew={renewContract} onHousing={changeHousing} />}
           {view === "settings" && <SettingsView settings={settings} onChange={setSettings} />}
         </CareerLayout>}
-    {settings.developerMode && view !== "match" && view !== "result" && <DeveloperPanel career={career} onAction={handleDeveloperAction} />}
+    {settings.developerMode && view !== "match" && view !== "match-legacy" && view !== "result" && <DeveloperPanel career={career} onAction={handleDeveloperAction} />}
   </div>;
 }
