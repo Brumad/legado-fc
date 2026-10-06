@@ -62,7 +62,7 @@ export function createRuntimeStats(players: MatchPlayerState[]): MatchRuntimeSta
 }
 
 export function createMatchClock(): MatchClockState {
-  return { phase: "pre-match", running: false, matchSeconds: 0, periodSeconds: 0, minute: 0, second: 0 };
+  return { phase: "pre-match", running: false, matchSeconds: 0, periodSeconds: 0, minute: 0, second: 0, addedTimeSeconds: 0 };
 }
 
 export function createMatchCoreState(options: {
