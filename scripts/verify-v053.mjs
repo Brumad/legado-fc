@@ -236,21 +236,21 @@ assert.equal(new Set(OPPONENT_TACTICS.map((item) => item.id)).size, 12, "tática
     };
     const runtime = new FixedStepMatchRuntime(state, {
       ...DEFAULT_MATCH_CORE_CONFIG,
-      matchClockRate: 1800,
+      matchClockRate: 60,
       restartDelayTicks: 1,
       maxCatchUpSteps: 120,
     });
     runtime.start();
 
     let guard = 0;
-    while (runtime.state.clock.phase === "first-half" && guard < 360) {
+    while (runtime.state.clock.phase === "first-half" && guard < 3400) {
       runtime.advanceFrame(1 / 60);
       guard += 1;
     }
     assert.equal(runtime.state.clock.phase, "half-time", "primeiro tempo IA x IA travou no jogo " + index);
     runtime.startSecondHalf();
     guard = 0;
-    while (!runtime.state.finished && guard < 360) {
+    while (!runtime.state.finished && guard < 3400) {
       runtime.advanceFrame(1 / 60);
       guard += 1;
     }
@@ -264,8 +264,8 @@ assert.equal(new Set(OPPONENT_TACTICS.map((item) => item.id)).size, 12, "tática
     if (goals > 0) matchesWithGoals += 1;
   }
   const averageGoals = totalGoals / 100;
-  assert.ok(matchesWithGoals >= 5, "IA precisa conseguir marcar sem placar roteirizado");
-  assert.ok(averageGoals >= 0.15 && averageGoals <= 8, "média de gols saiu de uma faixa segura: " + averageGoals);
+  assert.ok(matchesWithGoals >= 5, "IA precisa conseguir marcar sem placar roteirizado; jogos com gol=" + matchesWithGoals + " total=" + totalGoals);
+  assert.ok(averageGoals >= 0.15 && averageGoals <= 8, "média de gols saiu de uma faixa segura: " + averageGoals + " em " + matchesWithGoals + " jogos com gol");
   assert.ok(maxGoals <= 15, "placar extremo sugere regressão: " + maxGoals);
 }
 
