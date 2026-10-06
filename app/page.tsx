@@ -1626,7 +1626,8 @@ export default function Home() {
   async function importCareer(index: number, file: File) {
     try {
       const parsed = JSON.parse(await file.text()) as { career?: Partial<CareerState> } | Partial<CareerState>;
-      const imported = migrateCareer("career" in parsed && parsed.career ? parsed.career : parsed);
+      const wrappedCareer = (parsed as { career?: Partial<CareerState> }).career;
+      const imported = migrateCareer(wrappedCareer ?? (parsed as Partial<CareerState>));
       setSlots((current) => current.map((slot, slotIndex) => slotIndex === index ? imported : slot));
     } catch {
       window.alert("Este arquivo não contém uma carreira válida do Legado FC.");
