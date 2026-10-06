@@ -91,7 +91,7 @@ test("keyboard plays, pauses and completes a full 2D match", async ({ browser })
   const pauseButton = page.getByRole("button", { name: "PAUSAR" }).last();
   await pauseButton.click();
   await expect(page.getByText("PARTIDA PAUSADA")).toBeVisible();
-  await page.getByRole("button", { name: "CONTINUAR" }).click();
+  await page.locator(".playable-overlay").getByRole("button", { name: "CONTINUAR" }).click();
 
   await finishFastMatch(page);
   await context.close();
