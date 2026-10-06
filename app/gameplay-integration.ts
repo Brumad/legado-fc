@@ -1,4 +1,4 @@
-import type { CareerState, Fixture, MatchApproach, MatchStatistics, Team } from "./game-engine";
+import type { CareerState, Fixture, MatchApproach, MatchStatistics, Team } from "./game-engine.ts";
 import { TEAMS } from "./game-engine";
 import { createMatchCoreState } from "./match-core/state.ts";
 import type { MatchCoreState, MatchPlayerState, MatchSide } from "./match-core/types.ts";
