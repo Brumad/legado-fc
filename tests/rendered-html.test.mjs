@@ -23,29 +23,32 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.5.2 application shell", async () => {
+test("server-renders the Legado FC 0.5.3 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC 0\.5\.2 — Partida 2D Jogável<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.5\.3 — Futebol, Controles e Criação de Atleta<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.match(html, /og-v7\.png/i);
 });
 
 test("keeps the completed 0.4.x systems in the production source", async () => {
-  const [page, hub, engine, css] = await Promise.all([
+  const [page, hub, creator, engine, css] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/career-hub.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/career-creator.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /0\.5\.2 · CAMPO 2D/);
+  assert.match(page, /0\.5\.3 · FUTEBOL JOGÁVEL/);
   assert.match(page, /<CareerHub/);
-  assert.match(page, /country-choice-grid/);
+  assert.match(creator, /country-choice-grid/);
+  assert.match(creator, /COUNTRIES\.length/);
+  assert.match(creator, /PlayerAvatar/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
   assert.match(hub, /hub-calendar/);
@@ -85,7 +88,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(engine, /counter/);
   assert.match(engine, /aerial/);
   assert.match(engine, /samplePoisson/);
-  assert.match(engine, /opponentTactics/);
+  assert.match(engine, /OPPONENT_TACTICS/);
   assert.match(engine, /gegenpress/);
   assert.match(engine, /catenaccio/);
   assert.match(engine, /falso-nove/);

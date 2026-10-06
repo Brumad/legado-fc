@@ -20,6 +20,10 @@ export function PlayableMatchScreen({
   onQuickMode,
   onExit,
   developerMode = false,
+  matchDuration = "standard",
+  mobileControlSize = "medium",
+  mobileControlOpacity = 0.75,
+  mobileControlsSide = "standard",
 }: {
   career: CareerState;
   fixture: Fixture;
@@ -27,12 +31,17 @@ export function PlayableMatchScreen({
   onQuickMode: () => void;
   onExit: () => void;
   developerMode?: boolean;
+  matchDuration?: "short" | "standard" | "long";
+  mobileControlSize?: "small" | "medium" | "large";
+  mobileControlOpacity?: 0.55 | 0.75 | 1;
+  mobileControlsSide?: "standard" | "inverted";
 }) {
   const playable = useMemo(() => createPlayableMatchState(career, fixture), [career, fixture]);
-  const runtimeConfig = useMemo(
-    () => developerMode ? { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 } : undefined,
-    [developerMode],
-  );
+  const runtimeConfig = useMemo(() => {
+    if (developerMode) return { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 };
+    const durationRate = { short: 30, standard: 15, long: 9 }[matchDuration];
+    return { matchClockRate: durationRate };
+  }, [developerMode, matchDuration]);
   const canvasRef = useRef<PlayableMatchCanvasHandle>(null);
   const [snapshot, setSnapshot] = useState<MatchCoreState>(playable.state);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
@@ -46,6 +55,10 @@ export function PlayableMatchScreen({
   const playerPossession = possessionTotal
     ? Math.round(snapshot.stats[playerSide].possessionTicks / possessionTotal * 100)
     : 50;
+  const durationLabel = { short: "3 MIN", standard: "6 MIN", long: "10 MIN" }[matchDuration];
+  const addedBase = snapshot.clock.phase === "first-half" || snapshot.clock.phase === "half-time" ? 45 : 90;
+  const addedMinutes = Math.max(0, snapshot.clock.minute - addedBase);
+  const clockMinuteLabel = addedMinutes > 0 ? `${addedBase}+${addedMinutes}` : String(snapshot.clock.minute).padStart(2, "0");
 
   function finishPlayableMatch() {
     const state = finalState ?? canvasRef.current?.getState();
@@ -65,9 +78,9 @@ export function PlayableMatchScreen({
       <header className="playable-match-header">
         <button className="playable-exit" onClick={onExit} aria-label="Sair da partida">←</button>
         <div className="playable-competition">
-          <span>0.5.2 · PARTIDA 2D</span>
+          <span>0.5.3 · FUTEBOL JOGÁVEL</span>
           <strong>{fixture.competition}</strong>
-          <small>{fixture.home ? "CASA" : "FORA"} · {fixture.weather}</small>
+          <small>{fixture.home ? "CASA" : "FORA"} · {fixture.weather} · {durationLabel}</small>
         </div>
         <div className="playable-scoreboard" aria-label="Placar">
           <div><span style={{ "--club": career.clubColor } as React.CSSProperties}>{career.clubShort}</span><b>{career.clubShort}</b></div>
@@ -76,7 +89,7 @@ export function PlayableMatchScreen({
         </div>
         <div className="playable-clock">
           <small>{snapshot.clock.phase === "half-time" ? "INTERVALO" : snapshot.restart?.label ?? (snapshot.paused ? "PAUSADO" : "EM JOGO")}</small>
-          <strong>{String(Math.min(90, snapshot.clock.minute)).padStart(2, "0")}:{String(snapshot.clock.second).padStart(2, "0")}</strong>
+          <strong>{clockMinuteLabel}:{String(snapshot.clock.second).padStart(2, "0")}</strong>
         </div>
         <button className="playable-quick-mode" onClick={onQuickMode}>MODO RÁPIDO</button>
       </header>
@@ -91,10 +104,19 @@ export function PlayableMatchScreen({
       ) : (
         <section className="playable-match-layout">
           <div className="playable-field-column">
+            <div className="playable-match-meta-strip">
+              <span><b>IA</b> {playable.context.difficulty}</span>
+              <span><b>RIVAL</b> {playable.context.opponentFormation} · {playable.context.opponentTacticName}</span>
+              <span><b>DURAÇÃO</b> {durationLabel}</span>
+              {snapshot.clock.addedTimeSeconds > 0 && <span className="is-stoppage"><b>ACRÉSCIMO</b> +{Math.ceil(snapshot.clock.addedTimeSeconds / 60)} min</span>}
+            </div>
             <PlayableMatchCanvas
               ref={canvasRef}
               initialState={playable.state}
               config={runtimeConfig}
+              controlSize={mobileControlSize}
+              controlOpacity={mobileControlOpacity}
+              controlsSide={mobileControlsSide}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />
@@ -130,7 +152,7 @@ export function PlayableMatchScreen({
             <section className="playable-player-card">
               <span>SEU JOGADOR</span>
               <h2>{career.name}</h2>
-              <p>{career.position} · OVR em carreira</p>
+              <p>{career.position} · IA {playable.context.difficulty}</p>
               <div>
                 <span><small>STAMINA</small><strong>{Math.round(controlled?.stamina ?? 100)}%</strong></span>
                 <i><em style={{ width: `${controlled?.stamina ?? 100}%` }} /></i>
@@ -153,6 +175,7 @@ export function PlayableMatchScreen({
               <div><kbd>L</kbd><p>Chute</p></div>
               <div><kbd>ESPAÇO</kbd><p>Desarme</p></div>
               <small>Gamepad: A passe · B chute · X bote · Y profundidade · LB/RB sprint</small>
+              <em>{playable.context.opponentFormation} · {playable.context.opponentTacticName}</em>
             </section>
 
             <section className="playable-match-buttons">

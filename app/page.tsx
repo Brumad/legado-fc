@@ -1,29 +1,25 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CareerHub } from "./career-hub.tsx";
+import { CareerCreator } from "./career-creator.tsx";
+import { PlayerAvatar } from "./player-avatar.tsx";
 import { PlayableMatchScreen } from "./playable-match-screen.tsx";
 import type { PlayableMatchResult } from "./gameplay-integration.ts";
 import {
-  Archetype,
   CareerConsequence,
   CareerMatchRecord,
   CareerState,
   CareerTransferOffer,
-  CountryId,
   COUNTRIES,
   Difficulty,
   DivisionLevel,
   Fixture,
-  Foot,
   MatchMoment,
   MatchApproach,
   MatchPlan,
   MatchStatistics,
   MatchTarget,
-  ORIGINS,
-  OriginType,
-  Position,
   TEAMS,
   WORLD_TEAMS,
   addDaysToDate,
@@ -77,6 +73,10 @@ type MatchResult = {
 };
 type GameSettings = {
   matchSpeed: "1x" | "2x" | "3x";
+  matchDuration: "short" | "standard" | "long";
+  mobileControlSize: "small" | "medium" | "large";
+  mobileControlOpacity: 0.55 | 0.75 | 1;
+  mobileControlsSide: "standard" | "inverted";
   reducedMotion: boolean;
   compactHud: boolean;
   highContrast: boolean;
@@ -90,6 +90,10 @@ const settingsKey = "legado-fc-settings-v1";
 const legacyKeys = ["legado-fc-career-v2", "legado-fc-career-v1"];
 const defaultSettings: GameSettings = {
   matchSpeed: "2x",
+  matchDuration: "standard",
+  mobileControlSize: "medium",
+  mobileControlOpacity: 0.75,
+  mobileControlsSide: "standard",
   reducedMotion: false,
   compactHud: false,
   highContrast: false,
@@ -180,24 +184,8 @@ function TeamCrest({ short, color, small = false }: { short: string; color: stri
   return <span className={`team-crest ${small ? "is-small" : ""}`} style={{ "--crest-color": color } as React.CSSProperties}>{short}</span>;
 }
 
-function PlayerAvatar({ career, large = false }: { career: CareerState; large?: boolean }) {
-  const hairClasses: Record<string, string> = {
-    Curto: "hair-short",
-    Raspado: "hair-shaved",
-    Cacheado: "hair-curly",
-    Tranças: "hair-braids",
-  };
-  return (
-    <div className={`player-avatar ${large ? "is-large" : ""}`} style={{ "--skin": career.skinTone, "--kit": career.clubColor } as React.CSSProperties} aria-label={`Avatar de ${career.name}`}>
-      <span className={`avatar-hair ${hairClasses[career.hairStyle] ?? "hair-short"}`} />
-      <span className="avatar-head" />
-      <span className="avatar-body"><b>{career.shirtNumber}</b></span>
-    </div>
-  );
-}
-
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.2 · CAMPO 2D</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.3 · FUTEBOL JOGÁVEL</small></div></div>;
 }
 
 function Lobby({
@@ -292,166 +280,6 @@ function Lobby({
         <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} CARREIRAS SIMULADAS</span>
       </footer>
     </main>
-  );
-}
-
-function OptionPill({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
-  return <button type="button" className={`option-pill ${active ? "is-active" : ""}`} onClick={onClick}>{children}</button>;
-}
-
-function CareerCreator({
-  onCreate,
-  onClose,
-  slot,
-}: {
-  onCreate: (career: CareerState) => void;
-  onClose: () => void;
-  slot: number;
-}) {
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState<Position>("Meia");
-  const [origin, setOrigin] = useState<OriginType>("Clube de bairro");
-  const [nationality, setNationality] = useState("Brasil");
-  const [countryId, setCountryId] = useState<CountryId>("BR");
-  const [division, setDivision] = useState<DivisionLevel>(2);
-  const [foot, setFoot] = useState<Foot>("Direito");
-  const [archetype, setArchetype] = useState<Archetype>("Maestro");
-  const [difficulty, setDifficulty] = useState<Difficulty>("Profissional");
-  const [age, setAge] = useState(18);
-  const [shirtNumber, setShirtNumber] = useState(18);
-  const [skinTone, setSkinTone] = useState("#b97850");
-  const [hairStyle, setHairStyle] = useState("Curto");
-
-  const selectedCountry = useMemo(() => COUNTRIES.find((country) => country.id === countryId) ?? COUNTRIES[0], [countryId]);
-  const selectedLeague = useMemo(() => getLeagueDefinition(countryId, division), [countryId, division]);
-  const selectedClub = useMemo(() => getStartingClub(countryId, division, origin), [countryId, division, origin]);
-  const preview = useMemo(() => migrateCareer({
-    name: name.trim() || "Novo Talento",
-    position,
-    origin,
-    nationality,
-    countryId,
-    countryName: selectedCountry.name,
-    division,
-    leagueId: selectedLeague.id,
-    leagueName: selectedLeague.name,
-    clubId: selectedClub.id,
-    clubName: selectedClub.name,
-    clubShort: selectedClub.short,
-    clubColor: selectedClub.color,
-    clubStrength: selectedClub.strength,
-    salary: getSalary(countryId, division),
-    foot,
-    archetype,
-    difficulty,
-    age,
-    shirtNumber,
-    skinTone,
-    hairStyle,
-  }), [name, position, origin, nationality, countryId, selectedCountry.name, division, selectedLeague.id, selectedLeague.name, selectedClub, foot, archetype, difficulty, age, shirtNumber, skinTone, hairStyle]);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    onCreate(migrateCareer({
-      ...preview,
-      id: `slot-${slot + 1}-${hashText(`${name}:${Date.now()}`).toString(36)}`,
-      name: name.trim() || "Alex Silva",
-      matches: 0,
-      recentResults: [],
-    }));
-  }
-
-  return (
-    <div className="creator-backdrop">
-      <section className="creator-window" role="dialog" aria-modal="true" aria-labelledby="creator-title">
-        <aside className="creator-preview">
-          <button className="creator-close light" onClick={onClose} aria-label="Fechar criação">←</button>
-          <Brand dark />
-          <span className="overline">NOVO ATLETA · SLOT 0{slot + 1}</span>
-          <div className="preview-stage">
-            <div className="preview-spotlight" />
-            <PlayerAvatar career={preview} large />
-            <span className="preview-shirt">{shirtNumber}</span>
-          </div>
-          <div className="preview-name">
-            <small>{position.toUpperCase()} · {foot.toUpperCase()}</small>
-            <h2>{name.trim() || "NOVO TALENTO"}</h2>
-            <span>{selectedCountry.flag} {selectedLeague.name} · OVR {getOverall(preview)}</span>
-          </div>
-          <div className="preview-club"><TeamCrest short={selectedClub.short} color={selectedClub.color} /><div><small>CLUBE INICIAL · FORÇA {selectedClub.strength}</small><strong>{selectedClub.name}</strong></div></div>
-        </aside>
-
-        <div className="creator-form-pane">
-          <button className="creator-close" onClick={onClose} aria-label="Fechar criação">×</button>
-          <span className="step-label">PERSONALIZAÇÃO COMPLETA</span>
-          <h1 id="creator-title">Quem será você<br />dentro de campo?</h1>
-          <form onSubmit={submit}>
-            <div className="creator-section">
-              <div className="creator-section-title"><span>01</span><div><strong>Identidade</strong><small>As bases da sua história</small></div></div>
-              <label className="field-label">Nome do jogador<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex Silva" maxLength={24} autoFocus /></label>
-              <div className="field-grid three">
-                <label className="field-label">Idade<input type="number" min="16" max="23" value={age} onChange={(event) => setAge(Number(event.target.value))} /></label>
-                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}>{COUNTRIES.map((country) => <option key={country.id}>{country.name}</option>)}<option>Colômbia</option><option>Uruguai</option></select></label>
-                <label className="field-label">Número<input type="number" min="1" max="99" value={shirtNumber} onChange={(event) => setShirtNumber(Number(event.target.value))} /></label>
-              </div>
-            </div>
-
-            <div className="creator-section">
-              <div className="creator-section-title"><span>02</span><div><strong>Onde tudo começa</strong><small>País, divisão e história de origem</small></div></div>
-              <div className="country-choice-grid">
-                {COUNTRIES.map((country) => (
-                  <button type="button" className={`country-choice ${countryId === country.id ? "is-active" : ""}`} onClick={() => setCountryId(country.id)} key={country.id}>
-                    <span>{country.flag}</span><div><strong>{country.name}</strong><small>{country.style}</small></div>
-                  </button>
-                ))}
-              </div>
-              <div className="division-choice">
-                <button type="button" className={division === 2 ? "is-active" : ""} onClick={() => setDivision(2)}><span>CAMINHO DA ASCENSÃO</span><strong>{selectedCountry.leagues[1].name}</strong><small>Suba construindo seu nome desde baixo</small></button>
-                <button type="button" className={division === 1 ? "is-active" : ""} onClick={() => setDivision(1)}><span>DESAFIO DA ELITE</span><strong>{selectedCountry.leagues[0].name}</strong><small>Mais salário, pressão e risco de queda</small></button>
-              </div>
-              <div className="origin-choice-grid">
-                {ORIGINS.map((item) => (
-                  <button type="button" className={origin === item.id ? "is-active" : ""} onClick={() => setOrigin(item.id)} key={item.id}>
-                    <strong>{item.id}</strong><small>{item.description}</small>
-                  </button>
-                ))}
-              </div>
-              <div className="starting-contract"><TeamCrest short={selectedClub.short} color={selectedClub.color} small /><div><small>CONTRATO INICIAL</small><strong>{selectedClub.name}</strong><span>{money(getSalary(countryId, division))}/mês · {selectedLeague.name}</span></div></div>
-            </div>
-
-            <div className="creator-section">
-              <div className="creator-section-title"><span>03</span><div><strong>Perfil de jogo</strong><small>Define atributos e tipos de lance</small></div></div>
-              <label className="field-label">Posição<select value={position} onChange={(event) => setPosition(event.target.value as Position)}><option>Atacante</option><option>Ponta</option><option>Meia</option><option>Lateral</option><option>Zagueiro</option></select></label>
-              <div className="choice-row" aria-label="Pé dominante">
-                <span>PÉ DOMINANTE</span>
-                <div><OptionPill active={foot === "Direito"} onClick={() => setFoot("Direito")}>Direito</OptionPill><OptionPill active={foot === "Esquerdo"} onClick={() => setFoot("Esquerdo")}>Esquerdo</OptionPill></div>
-              </div>
-              <div className="archetype-grid">
-                {(["Maestro", "Finalizador", "Velocista", "Operário", "Muralha"] as Archetype[]).map((item) => (
-                  <button type="button" className={`archetype-card ${archetype === item ? "is-active" : ""}`} onClick={() => setArchetype(item)} key={item}>
-                    <span>{item === "Maestro" ? "◎" : item === "Finalizador" ? "◉" : item === "Velocista" ? "↯" : item === "Operário" ? "◆" : "⬢"}</span>
-                    <strong>{item}</strong>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="creator-section appearance-section">
-              <div className="creator-section-title"><span>04</span><div><strong>Aparência e desafio</strong><small>Visual do avatar e ritmo da carreira</small></div></div>
-              <div className="appearance-row">
-                <label>PELE<div className="swatches">{["#f2c5a0", "#d89a70", "#b97850", "#75442f", "#4a2a22"].map((tone) => <button type="button" aria-label={`Tom de pele ${tone}`} className={skinTone === tone ? "is-active" : ""} style={{ background: tone }} onClick={() => setSkinTone(tone)} key={tone} />)}</div></label>
-                <label>CABELO<select value={hairStyle} onChange={(event) => setHairStyle(event.target.value)}><option>Curto</option><option>Raspado</option><option>Cacheado</option><option>Tranças</option></select></label>
-              </div>
-              <div className="difficulty-row">
-                {(["Promessa", "Profissional", "Lenda"] as Difficulty[]).map((item) => <OptionPill active={difficulty === item} onClick={() => setDifficulty(item)} key={item}>{item}</OptionPill>)}
-              </div>
-            </div>
-
-            <button className="create-career-button" type="submit"><span>INICIAR CARREIRA</span><b>Entrar na {selectedLeague.name} →</b></button>
-          </form>
-        </div>
-      </section>
-    </div>
   );
 }
 
@@ -626,7 +454,7 @@ function WorldView({ career }: { career: CareerState }) {
     <main className="career-content inner-view career-secondary-v051 world-view world-v051">
       <section className="world-hero">
         <div className="world-hero-copy">
-          <span className="overline">0.5.2 · MUNDO PERSISTENTE</span>
+          <span className="overline">0.5.3 · MUNDO PERSISTENTE</span>
           <h1>O mundo não espera por você.</h1>
           <p>Enquanto sua carreira avança, jogadores evoluem, trocam de clube, envelhecem e deixam espaço para uma nova geração.</p>
           <div className="world-live-stats">
@@ -901,7 +729,7 @@ function LifeView({ career, onAction }: { career: CareerState; onAction: (action
   ];
   return (
     <main className="career-content inner-view career-secondary-v051 life-v051">
-      <section className="view-heading"><div><span className="overline">0.5.2 · VIDA E FINANÇAS</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
+      <section className="view-heading"><div><span className="overline">0.5.3 · VIDA E FINANÇAS</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
 
       {event && <section className="life-story-event"><span className="overline">EVENTO ENCADEADO · {career.queuedLifeEvents.length} NA FILA</span><h2>{event.title}</h2><p>{event.text}</p><div>{event.choices.map((choice) => <button onClick={() => onAction(choice.id)} key={choice.id}><strong>{choice.label}</strong><small>{choice.hint}</small></button>)}</div></section>}
 
@@ -984,7 +812,7 @@ function MarketView({
   ];
   return (
     <main className="career-content inner-view career-secondary-v051 market-view-042 market-v051">
-      <section className="view-heading"><div><span className="overline">0.5.2 · MERCADO E CONTRATO</span><h1>{career.pendingTransfer ? "Seu próximo capítulo está assinado." : "Seu nome tem um preço — e um projeto."}</h1><p>Clubes analisam nível, forma, reputação e encaixe no elenco. Acordos assinados entram em vigor ao fim da temporada para preservar todas as competições.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100 · OVR {getOverall(career)}</span></div></section>
+      <section className="view-heading"><div><span className="overline">0.5.3 · MERCADO E CONTRATO</span><h1>{career.pendingTransfer ? "Seu próximo capítulo está assinado." : "Seu nome tem um preço — e um projeto."}</h1><p>Clubes analisam nível, forma, reputação e encaixe no elenco. Acordos assinados entram em vigor ao fim da temporada para preservar todas as competições.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100 · OVR {getOverall(career)}</span></div></section>
       {career.pendingTransfer && <section className="pending-transfer-banner"><div><span>PRÉ-CONTRATO ASSINADO</span><strong>{career.pendingTransfer.teamName}</strong><small>{career.pendingTransfer.countryName} · {career.pendingTransfer.leagueName} · chegada em {career.season + 1}</small></div><div><span>FUNÇÃO</span><strong>{career.pendingTransfer.role}</strong><small>{money(career.pendingTransfer.salary)}/mês · bônus {money(career.pendingTransfer.signingBonus)}</small></div><button onClick={onCancelTransfer}>CANCELAR ACORDO</button></section>}
       <section className="market-grid">
         <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>{career.leagueName} · Divisão {career.division}</p></div></div><div className="contract-details"><div><span>VÍNCULO</span><strong>até {career.contractUntilSeason}</strong></div><div><span>SALÁRIO</span><strong>{money(career.salary)}/mês</strong></div><div><span>FUNÇÃO</span><strong>{career.contractRole}</strong></div><div><span>MULTA</span><strong>{money(career.releaseClause)}</strong></div></div><div className="contract-progress"><span>Confiança do treinador <b>{career.coachTrust}%</b></span><i><em style={{ width: `${career.coachTrust}%` }} /></i></div><div className="renewal-box"><div><span>PROPOSTA DE RENOVAÇÃO</span><strong>{money(renewal.salary)}/mês · até {renewal.contractUntilSeason}</strong><small>{renewal.role} · bônus {money(renewal.signingBonus)}</small></div><button disabled={!renewal.available || Boolean(career.pendingTransfer)} onClick={onRenew}>{career.pendingTransfer ? "PRÉ-CONTRATO ATIVO" : renewal.available ? "RENOVAR" : renewal.requirement.toUpperCase()}</button></div></article>
@@ -1027,7 +855,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   const format = getLeagueDefinition(career.countryId, career.division).format;
   return (
     <aside className="developer-panel">
-      <div><span>DEV 0.5.2</span><strong>Laboratório de Carreira</strong><small>Alterações são aplicadas somente a este slot.</small></div>
+      <div><span>DEV 0.5.3</span><strong>Laboratório de Carreira</strong><small>Alterações são aplicadas somente a este slot.</small></div>
       <section>
         <button onClick={() => onAction("unlock")}>LIBERAR TUDO</button>
         <button onClick={() => onAction("max-player")}>MAXIMIZAR ATLETA</button>
@@ -1047,20 +875,44 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   );
 }
 
-function SettingsView({ settings, onChange, standalone = false, onClose }: { settings: GameSettings; onChange: (settings: GameSettings) => void; standalone?: boolean; onClose?: () => void }) {
+function SettingsView({
+  settings,
+  onChange,
+  standalone = false,
+  onClose,
+  careerDifficulty,
+  onCareerDifficultyChange,
+}: {
+  settings: GameSettings;
+  onChange: (settings: GameSettings) => void;
+  standalone?: boolean;
+  onClose?: () => void;
+  careerDifficulty?: Difficulty;
+  onCareerDifficultyChange?: (difficulty: Difficulty) => void;
+}) {
+  const durationLabels: Record<GameSettings["matchDuration"], string> = {
+    short: "3 min",
+    standard: "6 min",
+    long: "10 min",
+  };
   const content = (
     <section className={`settings-panel ${standalone ? "is-standalone" : ""}`}>
       {standalone && <button className="creator-close" onClick={onClose} aria-label="Fechar configurações">×</button>}
-      <span className="overline">CONFIGURAÇÕES DO JOGO</span><h1>Do seu jeito.</h1><p>Estas preferências valem para todos os slots e ficam salvas neste dispositivo.</p>
+      <span className="overline">CONFIGURAÇÕES DO JOGO · 0.5.3</span><h1>Do seu jeito.</h1><p>Ritmo, controles e acessibilidade ficam salvos neste dispositivo. A dificuldade pertence à carreira ativa.</p>
       <div className="settings-groups">
-        <div className="setting-row"><div><strong>Velocidade da partida</strong><span>Altera o ritmo da simulação minuto a minuto.</span></div><div className="segmented">{(["1x", "2x", "3x"] as GameSettings["matchSpeed"][]).map((speed) => <button className={settings.matchSpeed === speed ? "is-active" : ""} onClick={() => onChange({ ...settings, matchSpeed: speed })} key={speed}>{speed}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Duração da partida 2D</strong><span>Tempo real aproximado de uma partida completa, sem alterar os 90 minutos exibidos.</span></div><div className="segmented">{(["short", "standard", "long"] as GameSettings["matchDuration"][]).map((duration) => <button className={settings.matchDuration === duration ? "is-active" : ""} onClick={() => onChange({ ...settings, matchDuration: duration })} key={duration}>{durationLabels[duration]}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Velocidade do modo rápido</strong><span>Altera somente o ritmo da simulação legada de lances.</span></div><div className="segmented">{(["1x", "2x", "3x"] as GameSettings["matchSpeed"][]).map((speed) => <button className={settings.matchSpeed === speed ? "is-active" : ""} onClick={() => onChange({ ...settings, matchSpeed: speed })} key={speed}>{speed}</button>)}</div></div>
+        {careerDifficulty && onCareerDifficultyChange && <div className="setting-row"><div><strong>Dificuldade da carreira</strong><span>Muda reação, pressão e tomada de decisão da IA — nunca força o placar.</span></div><div className="segmented">{(["Promessa", "Profissional", "Lenda"] as Difficulty[]).map((difficulty) => <button className={careerDifficulty === difficulty ? "is-active" : ""} onClick={() => onCareerDifficultyChange(difficulty)} key={difficulty}>{difficulty}</button>)}</div></div>}
+        <div className="setting-row"><div><strong>Tamanho dos controles mobile</strong><span>Ajusta joystick e botões sem reduzir a área útil do campo.</span></div><div className="segmented">{(["small", "medium", "large"] as GameSettings["mobileControlSize"][]).map((size) => <button className={settings.mobileControlSize === size ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlSize: size })} key={size}>{size === "small" ? "P" : size === "medium" ? "M" : "G"}</button>)}</div></div>
+        <div className="setting-row"><div><strong>Opacidade dos controles</strong><span>Deixa os controles mais discretos ou mais visíveis.</span></div><div className="segmented">{([0.55, 0.75, 1] as GameSettings["mobileControlOpacity"][]).map((opacity) => <button className={settings.mobileControlOpacity === opacity ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlOpacity: opacity })} key={opacity}>{Math.round(opacity * 100)}%</button>)}</div></div>
+        <div className="setting-row"><div><strong>Lado dos controles mobile</strong><span>Troque joystick e botões para se adaptar à mão dominante.</span></div><div className="segmented">{(["standard", "inverted"] as GameSettings["mobileControlsSide"][]).map((side) => <button className={settings.mobileControlsSide === side ? "is-active" : ""} onClick={() => onChange({ ...settings, mobileControlsSide: side })} key={side}>{side === "standard" ? "Joystick à esquerda" : "Joystick à direita"}</button>)}</div></div>
         <ToggleSetting title="Movimento reduzido" text="Diminui animações e efeitos de transição." checked={settings.reducedMotion} onChange={(checked) => onChange({ ...settings, reducedMotion: checked })} />
         <ToggleSetting title="HUD compacto" text="Reduz espaçamentos para mostrar mais dados." checked={settings.compactHud} onChange={(checked) => onChange({ ...settings, compactHud: checked })} />
         <ToggleSetting title="Alto contraste" text="Reforça bordas e textos secundários." checked={settings.highContrast} onChange={(checked) => onChange({ ...settings, highContrast: checked })} />
-        <ToggleSetting title="Narração da partida" text="Mostra o feed de eventos durante o jogo." checked={settings.commentary} onChange={(checked) => onChange({ ...settings, commentary: checked })} />
-        <ToggleSetting title="Modo de desenvolvimento" text="Libera atalhos, progressão instantânea e todos os nove tipos de lance." checked={settings.developerMode} onChange={(checked) => onChange({ ...settings, developerMode: checked })} />
+        <ToggleSetting title="Narração da partida" text="Mostra o feed de eventos durante o modo rápido." checked={settings.commentary} onChange={(checked) => onChange({ ...settings, commentary: checked })} />
+        <ToggleSetting title="Modo de desenvolvimento" text="Libera atalhos e acelera os testes automatizados da partida." checked={settings.developerMode} onChange={(checked) => onChange({ ...settings, developerMode: checked })} />
       </div>
-      <div className="settings-note"><span>{settings.developerMode ? "⌘" : "✓"}</span><div><strong>{settings.developerMode ? "Ferramentas de desenvolvimento ativas" : "Salvamento automático ativo"}</strong><p>{settings.developerMode ? "Alterações feitas pelos atalhos também são salvas neste dispositivo." : "Carreiras e configurações são gravadas após cada escolha."}</p></div></div>
+      <div className="settings-note"><span>{settings.developerMode ? "⌘" : "✓"}</span><div><strong>{settings.developerMode ? "Ferramentas de desenvolvimento ativas" : "Configuração salva automaticamente"}</strong><p>{settings.developerMode ? "O relógio da partida jogável usa aceleração de teste enquanto este modo estiver ativo." : `Partida 2D: ${durationLabels[settings.matchDuration]} · controles ${settings.mobileControlSize.toUpperCase()} · ${Math.round(settings.mobileControlOpacity * 100)}%.`}</p></div></div>
     </section>
   );
   return standalone ? <div className="settings-backdrop">{content}</div> : <main className="career-content inner-view career-secondary-v051 settings-v051">{content}</main>;
@@ -2125,6 +1977,10 @@ export default function Home() {
         onExit={() => setView("dashboard")}
         onQuickMode={() => setView("match-legacy")}
         developerMode={settings.developerMode}
+        matchDuration={settings.matchDuration}
+        mobileControlSize={settings.mobileControlSize}
+        mobileControlOpacity={settings.mobileControlOpacity}
+        mobileControlsSide={settings.mobileControlsSide}
         onFinish={(result) => { setLastResult(playableToMatchResult(result, fixture)); setView("result"); }}
       />
       : view === "match-legacy" ? <LegacyMatchScreen career={career} fixture={fixture} settings={settings} onExit={() => setView("dashboard")} onFinish={(result) => { setLastResult(result); setView("result"); }} />
@@ -2136,7 +1992,12 @@ export default function Home() {
           {view === "player" && <PlayerView career={career} />}
           {view === "life" && <LifeView career={career} onAction={handleLifeAction} />}
           {view === "market" && <MarketView career={career} onTransfer={transferTo} onCancelTransfer={cancelPendingTransfer} onRenew={renewContract} onHousing={changeHousing} />}
-          {view === "settings" && <SettingsView settings={settings} onChange={setSettings} />}
+          {view === "settings" && <SettingsView
+            settings={settings}
+            onChange={setSettings}
+            careerDifficulty={career.difficulty}
+            onCareerDifficultyChange={(difficulty) => updateCareer((current) => ({ ...current, difficulty, updatedAt: Date.now() }))}
+          />}
         </CareerLayout>}
     {settings.developerMode && view !== "match" && view !== "match-legacy" && view !== "result" && <DeveloperPanel career={career} onAction={handleDeveloperAction} />}
   </div>;

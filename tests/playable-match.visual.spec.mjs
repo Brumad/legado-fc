@@ -33,6 +33,10 @@ const careerFixture = {
 
 const testSettings = {
   matchSpeed: "3x",
+  matchDuration: "short",
+  mobileControlSize: "medium",
+  mobileControlOpacity: 0.75,
+  mobileControlsSide: "standard",
   reducedMotion: true,
   compactHud: false,
   highContrast: false,
@@ -97,7 +101,7 @@ test("keyboard plays, pauses and completes a full 2D match", async ({ browser })
   await context.close();
 });
 
-test("touch controls move the player and complete a full 2D match", async ({ browser }) => {
+test("analog touch controls move the player and complete a full 2D match", async ({ browser }) => {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -109,37 +113,66 @@ test("touch controls move the player and complete a full 2D match", async ({ bro
 
   const screen = page.locator("[data-playable-match-screen]");
   const startX = Number(await screen.getAttribute("data-player-x"));
-  const right = page.locator(".playable-dpad .is-right");
-  const sprint = page.locator(".playable-dpad .is-sprint");
-  await expect(right).toBeVisible();
+  const joystick = page.locator(".playable-joystick");
+  const sprint = page.locator(".playable-sprint-control .is-sprint");
+  await expect(joystick).toBeVisible();
+  await expect(sprint).toBeVisible();
   await expect(page.locator(".playable-actions .is-pass")).toBeVisible();
   await expect(page.locator(".playable-actions .is-shoot")).toBeVisible();
 
-  await right.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerdown", {
-    bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: 1,
-  })));
+  await joystick.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    element.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + rect.width * 0.82,
+      clientY: rect.top + rect.height * 0.5,
+    }));
+  });
   await sprint.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerdown", {
     bubbles: true, pointerId: 2, pointerType: "touch", isPrimary: false, button: 0, buttons: 1,
   })));
   await page.waitForTimeout(550);
-  await right.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerup", {
-    bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: 0,
-  })));
+  await joystick.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    element.dispatchEvent(new PointerEvent("pointermove", {
+      bubbles: true,
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 1,
+      clientX: rect.left + rect.width * 0.88,
+      clientY: rect.top + rect.height * 0.42,
+    }));
+    element.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      pointerId: 1,
+      pointerType: "touch",
+      isPrimary: true,
+      button: 0,
+      buttons: 0,
+      clientX: rect.left + rect.width * 0.88,
+      clientY: rect.top + rect.height * 0.42,
+    }));
+  });
   await sprint.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerup", {
     bubbles: true, pointerId: 2, pointerType: "touch", isPrimary: false, button: 0, buttons: 0,
   })));
   await page.waitForTimeout(200);
 
   const movedX = Number(await screen.getAttribute("data-player-x"));
-  expect(movedX).not.toBe(startX);
+  expect(movedX).toBeGreaterThan(startX);
+  await expect(page.locator(".playable-joystick-knob")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
 
   await page.locator(".playable-actions .is-pass").tap();
   await page.locator(".playable-actions .is-shoot").tap();
 
-  const overflow = await page.evaluate(() => ({
-    width: innerWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
+  const overflow = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.width + 1);
 
   await finishFastMatch(page);

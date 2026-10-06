@@ -257,6 +257,9 @@ export type CareerState = {
   shirtNumber: number;
   skinTone: string;
   hairStyle: string;
+  hairColor?: string;
+  facialHair?: string;
+  faceShape?: string;
   clubId: string;
   clubName: string;
   clubShort: string;
@@ -896,7 +899,7 @@ const venuesByCountry: Record<CountryId, string[]> = {
   JP: ["Sakura Stadium", "Mirai Arena", "Fuji Park", "Hikari Field"],
 };
 
-const opponentTactics: OpponentTactic[] = [
+export const OPPONENT_TACTICS: OpponentTactic[] = [
   {
     id: "pressao-alta",
     name: "Pressão sufocante",
@@ -1384,8 +1387,8 @@ export function generateMatchPlan(career: CareerState, fixture = createFixture(c
     .slice(0, 3)
     .map((consequence) => `${consequence.title}: ${consequence.description}`);
   const previousMeetings = career.matchHistory.filter((match) => match.opponentId === fixture.opponent.id);
-  const tacticIndex = (hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) + previousMeetings.length * 5) % opponentTactics.length;
-  const opponentTactic = opponentTactics[tacticIndex];
+  const tacticIndex = (hashText(`${fixture.opponent.id}:${fixture.seed}:tactic`) + previousMeetings.length * 5) % OPPONENT_TACTICS.length;
+  const opponentTactic = OPPONENT_TACTICS[tacticIndex];
   const positionKinds: Record<Position, MomentKind[]> = {
     Atacante: ["shot", "aerial", "counter"],
     Ponta: ["dribble", "counter", "corner"],
@@ -2430,6 +2433,9 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     shirtNumber: input?.shirtNumber ?? 18,
     skinTone: input?.skinTone ?? "#b97850",
     hairStyle: input?.hairStyle ?? "Curto",
+    hairColor: input?.hairColor ?? "#171917",
+    facialHair: input?.facialHair ?? "Sem barba",
+    faceShape: input?.faceShape ?? "Oval",
     clubId: input?.clubId ?? selectedClub.id,
     clubName: input?.clubName ?? selectedClub.name,
     clubShort: input?.clubShort ?? selectedClub.short,
