@@ -12,12 +12,13 @@
     "verify:variation": "node --experimental-strip-types scripts/verify-variation.mjs",
     "verify:world": "node --experimental-strip-types scripts/verify-world.mjs",
     "start": "vinext start",
-    "test": "npm run typecheck && npm run build && npm run verify:variation && npm run verify:world && npm run verify:match-core && npm run test:render",
+    "test": "npm run typecheck && npm run build && npm run verify:variation && npm run verify:world && npm run verify:match-core && npm run verify:match-integration && npm run test:render",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern github-dist --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
     "verify:match-core": "node --experimental-strip-types scripts/verify-match-core.mjs",
-    "test:render": "node --test tests/rendered-html.test.mjs"
+    "test:render": "node --test tests/rendered-html.test.mjs",
+    "verify:match-integration": "node --experimental-strip-types scripts/verify-match-integration.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
