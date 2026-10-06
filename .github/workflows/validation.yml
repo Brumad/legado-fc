@@ -1,0 +1,64 @@
+name: Validar Legado FC
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches:
+      - "feat/**"
+      - "fix/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v6
+
+      - name: Preparar o pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Preparar o Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Validar Match Core 0.5
+        run: pnpm verify:match-core
+
+      - name: Testar 5.000 partidas legadas
+        run: pnpm verify:variation
+
+      - name: Testar 25 temporadas do mundo
+        run: pnpm verify:world
+
+      - name: Build de produção
+        run: pnpm build
+
+      - name: Testes de renderização
+        run: pnpm test:render
+
+      - name: Build GitHub Pages
+        run: pnpm build:github
+        env:
+          GITHUB_PAGES_BASE: /legado-fc/
