@@ -349,7 +349,9 @@ Pipeline da branch validado com sucesso em:
 
 # 0.5.1 - Nova interface de carreira
 
-Status: **PLANEJADO**
+Status: **EM DESENVOLVIMENTO**
+
+Branch: `feat/v0.5.1-career-interface`
 
 ## Objetivo
 
@@ -369,34 +371,57 @@ A tela principal deve responder imediatamente:
 
 ## Tarefas
 
-- [ ] Criar home/hub principal da carreira.
-- [ ] Criar cabeçalho compacto do jogador.
-- [ ] Mostrar idade, posição, overall, clube e temporada.
-- [ ] Mostrar energia, moral, forma e condição física.
-- [ ] Mostrar dinheiro e salário.
-- [ ] Criar card do próximo jogo.
-- [ ] Criar navegação clara entre Partida, Treino, Vida, Mundo, Mercado e Perfil.
-- [ ] Criar central de eventos e decisões.
-- [ ] Criar calendário visual.
-- [ ] Reorganizar treino em fluxo rápido.
-- [ ] Reorganizar relações em cards simples.
-- [ ] Reorganizar finanças e patrimônio.
-- [ ] Reorganizar mercado e contrato.
-- [ ] Adaptar telas para celular e desktop.
-- [ ] Garantir navegação por teclado.
-- [ ] Garantir áreas de toque adequadas no mobile.
-- [ ] Criar design system próprio do Legado FC.
-- [ ] Remover dependência visual de componentes gigantes do `page.tsx`.
+- [x] Criar home/hub principal da carreira.
+- [x] Criar cabeçalho compacto do jogador.
+- [x] Mostrar idade, posição, overall, clube e temporada.
+- [x] Mostrar energia, moral, forma e condição física.
+- [x] Mostrar dinheiro e salário.
+- [x] Criar card do próximo jogo.
+- [x] Criar navegação clara entre Partida, Treino, Vida, Mundo, Mercado e Perfil.
+- [x] Criar central de eventos e decisões.
+- [x] Criar calendário visual.
+- [x] Reorganizar treino em fluxo rápido.
+- [x] Reorganizar relações em cards simples.
+- [x] Criar resumo de finanças e patrimônio na home.
+- [ ] Reorganizar a tela completa de finanças e patrimônio.
+- [x] Criar resumo de mercado e contrato na home.
+- [ ] Reorganizar a tela completa de mercado e contrato.
+- [x] Adaptar o novo hub para celular e desktop.
+- [x] Garantir navegação principal por teclado usando controles nativos e foco visível.
+- [x] Garantir áreas de toque mínimas no novo hub.
+- [x] Criar design system próprio do Career Hub.
+- [x] Remover a nova home do componente gigante de `page.tsx`.
+- [x] Criar `verify:career-ui` como gate específico da 0.5.1.
+- [ ] Fazer validação visual manual/automatizada real em 360 px, tablet e desktop.
+- [ ] Harmonizar as telas secundárias com o novo design system.
+- [ ] Atualizar metadata, README e release notes ao fechar a versão.
 
 ## Critérios de aceite
 
-- [ ] O usuário chega à próxima partida em no máximo dois passos a partir da home.
-- [ ] Todas as funções existentes da `0.4.3` continuam acessíveis.
-- [ ] Interface funciona em viewport mobile e desktop.
-- [ ] Nenhum texto essencial fica cortado em 360 px de largura.
-- [ ] Navegação principal funciona sem mouse.
-- [ ] Nenhum asset ou layout é cópia direta de New Star Soccer.
-- [ ] Save antigo continua compatível.
+- [x] O usuário chega à próxima partida em um passo a partir da home.
+- [x] Todas as funções existentes da `0.4.3` permanecem acessíveis pela navegação atual.
+- [ ] Interface validada visualmente em viewport mobile e desktop.
+- [ ] Nenhum texto essencial cortado em 360 px confirmado por teste visual.
+- [x] Navegação principal funciona sem mouse por controles focáveis.
+- [x] Nenhum asset ou layout é cópia direta de New Star Soccer.
+- [x] Save antigo continua compatível, pois a 0.5.1 não altera schema persistente.
+
+## Checkpoint atual
+
+O primeiro slice já separou a nova home em `app/career-hub.tsx`, mantendo `page.tsx` como orquestrador. O hub possui:
+
+- resumo do atleta;
+- status físico e mental;
+- próximo jogo;
+- atalhos de carreira;
+- calendário;
+- treino rápido;
+- decisões e eventos;
+- relações;
+- contrato/finanças;
+- notícias.
+
+A validação estrutural está em `scripts/verify-career-ui.mjs`.
 
 ---
 
