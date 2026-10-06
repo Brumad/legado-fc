@@ -1,4 +1,4 @@
-import type { MatchCoreState, Vector2 } from "./types";
+import type { MatchCoreState, Vector2 } from "./types.ts";
 
 export type MatchViewport = {
   width: number;
