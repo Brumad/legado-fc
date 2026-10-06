@@ -439,7 +439,7 @@ function AppSidebar({ career, view, onNavigate, onLobby }: { career: CareerState
     <aside className="app-sidebar">
       <Brand dark />
       <nav aria-label="Navegação da carreira">
-        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view} aria-current={view === item.view ? "page" : undefined}><span>{item.icon}</span><b>{item.label}</b></button>)}
+        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view} data-career-nav={item.view} aria-label={item.label} aria-current={view === item.view ? "page" : undefined}><span>{item.icon}</span><b>{item.label}</b></button>)}
       </nav>
       <div className="sidebar-season"><small>{career.countryName.toUpperCase()} · DIVISÃO {career.division}</small><strong>{career.season}</strong><span>Rodada {career.seasonRound} de {rounds}</span><div><i style={{ width: `${career.seasonRound / rounds * 100}%` }} /></div></div>
       <button className="exit-career" onClick={onLobby}>← <span>Trocar carreira</span></button>
@@ -492,7 +492,7 @@ function CareerLayout({
         {children}
       </div>
       <nav className="mobile-nav" aria-label="Navegação móvel">
-        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view}><span>{item.icon}</span><b>{item.label}</b></button>)}
+        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view} data-career-nav={item.view} aria-label={item.label} aria-current={view === item.view ? "page" : undefined}><span>{item.icon}</span><b>{item.label}</b></button>)}
       </nav>
     </div>
   );
