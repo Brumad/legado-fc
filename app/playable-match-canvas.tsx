@@ -237,10 +237,19 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
           type="button"
           className={className}
           aria-label={label}
-          onPointerDown={(event) => { event.preventDefault(); setTouch(key, true); }}
-          onPointerUp={() => setTouch(key, false)}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            setTouch(key, true);
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+              event.currentTarget.releasePointerCapture?.(event.pointerId);
+            }
+            setTouch(key, false);
+          }}
+          onLostPointerCapture={() => setTouch(key, false)}
           onPointerCancel={() => setTouch(key, false)}
-          onPointerLeave={() => setTouch(key, false)}
         >
           {label}
         </button>

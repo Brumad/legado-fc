@@ -72,11 +72,11 @@ test("keyboard plays, pauses and completes a full 2D match", async ({ browser })
 
   const screen = page.locator("[data-playable-match-screen]");
   const startX = Number(await screen.getAttribute("data-player-x"));
-  await page.keyboard.down("KeyD");
-  await page.keyboard.down("ShiftLeft");
+  await page.locator(".playable-match-canvas").click();\n  await page.keyboard.down("d");
+  await page.keyboard.down("Shift");
   await page.waitForTimeout(550);
-  await page.keyboard.up("ShiftLeft");
-  await page.keyboard.up("KeyD");
+  await page.keyboard.up("Shift");
+  await page.keyboard.up("d");
   await page.waitForTimeout(200);
   const movedX = Number(await screen.getAttribute("data-player-x"));
   const stamina = Number(await screen.getAttribute("data-player-stamina"));
@@ -114,20 +114,26 @@ test("touch controls move the player and complete a full 2D match", async ({ bro
   await expect(page.locator(".playable-actions .is-pass")).toBeVisible();
   await expect(page.locator(".playable-actions .is-shoot")).toBeVisible();
 
-  await right.dispatchEvent("pointerdown", { pointerId: 1, pointerType: "touch" });
-  await sprint.dispatchEvent("pointerdown", { pointerId: 2, pointerType: "touch" });
+  await right.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerdown", {
+    bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: 1,
+  })));
+  await sprint.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerdown", {
+    bubbles: true, pointerId: 2, pointerType: "touch", isPrimary: false, button: 0, buttons: 1,
+  })));
   await page.waitForTimeout(550);
-  await right.dispatchEvent("pointerup", { pointerId: 1, pointerType: "touch" });
-  await sprint.dispatchEvent("pointerup", { pointerId: 2, pointerType: "touch" });
+  await right.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerup", {
+    bubbles: true, pointerId: 1, pointerType: "touch", isPrimary: true, button: 0, buttons: 0,
+  })));
+  await sprint.evaluate((element) => element.dispatchEvent(new PointerEvent("pointerup", {
+    bubbles: true, pointerId: 2, pointerType: "touch", isPrimary: false, button: 0, buttons: 0,
+  })));
   await page.waitForTimeout(200);
 
   const movedX = Number(await screen.getAttribute("data-player-x"));
   expect(movedX).not.toBe(startX);
 
-  await page.locator(".playable-actions .is-pass").dispatchEvent("pointerdown", { pointerId: 3, pointerType: "touch" });
-  await page.locator(".playable-actions .is-pass").dispatchEvent("pointerup", { pointerId: 3, pointerType: "touch" });
-  await page.locator(".playable-actions .is-shoot").dispatchEvent("pointerdown", { pointerId: 4, pointerType: "touch" });
-  await page.locator(".playable-actions .is-shoot").dispatchEvent("pointerup", { pointerId: 4, pointerType: "touch" });
+  await page.locator(".playable-actions .is-pass").tap();
+  await page.locator(".playable-actions .is-shoot").tap();
 
   const overflow = await page.evaluate(() => ({
     width: innerWidth,
