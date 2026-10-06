@@ -40,10 +40,10 @@ jobs:
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
 
-      - name: Testar 1.000 partidas
+      - name: Testar 5.000 partidas
         run: pnpm verify:variation
 
-      - name: Testar 15 temporadas do mundo
+      - name: Testar 25 temporadas do mundo
         run: pnpm verify:world
 
       - name: Gerar o site estático
