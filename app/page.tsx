@@ -165,7 +165,7 @@ function PlayerAvatar({ career, large = false }: { career: CareerState; large?: 
 }
 
 function Brand({ dark = false }: { dark?: boolean }) {
-  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.0 · FUNDAÇÃO JOGÁVEL</small></div></div>;
+  return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.1 · CARREIRA</small></div></div>;
 }
 
 function Lobby({
@@ -424,10 +424,10 @@ function CareerCreator({
 }
 
 const navItems: Array<{ view: AppView; icon: string; label: string }> = [
-  { view: "dashboard", icon: "⌂", label: "Central" },
+  { view: "dashboard", icon: "⌂", label: "Início" },
   { view: "season", icon: "▦", label: "Temporada" },
   { view: "world", icon: "◉", label: "Mundo" },
-  { view: "player", icon: "◎", label: "Atleta" },
+  { view: "player", icon: "◎", label: "Perfil" },
   { view: "life", icon: "◇", label: "Vida" },
   { view: "market", icon: "↗", label: "Mercado" },
   { view: "settings", icon: "⚙", label: "Ajustes" },
@@ -439,7 +439,7 @@ function AppSidebar({ career, view, onNavigate, onLobby }: { career: CareerState
     <aside className="app-sidebar">
       <Brand dark />
       <nav aria-label="Navegação da carreira">
-        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view}><span>{item.icon}</span><b>{item.label}</b></button>)}
+        {navItems.map((item) => <button className={view === item.view ? "is-active" : ""} onClick={() => onNavigate(item.view)} key={item.view} aria-current={view === item.view ? "page" : undefined}><span>{item.icon}</span><b>{item.label}</b></button>)}
       </nav>
       <div className="sidebar-season"><small>{career.countryName.toUpperCase()} · DIVISÃO {career.division}</small><strong>{career.season}</strong><span>Rodada {career.seasonRound} de {rounds}</span><div><i style={{ width: `${career.seasonRound / rounds * 100}%` }} /></div></div>
       <button className="exit-career" onClick={onLobby}>← <span>Trocar carreira</span></button>
@@ -447,11 +447,21 @@ function AppSidebar({ career, view, onNavigate, onLobby }: { career: CareerState
   );
 }
 
-function AppTopbar({ career, onLobby }: { career: CareerState; onLobby: () => void }) {
+const viewLabels: Partial<Record<AppView, string>> = {
+  dashboard: "Início",
+  season: "Temporada",
+  world: "Mundo",
+  player: "Perfil",
+  life: "Vida",
+  market: "Mercado",
+  settings: "Ajustes",
+};
+
+function AppTopbar({ career, view, onLobby }: { career: CareerState; view: AppView; onLobby: () => void }) {
   return (
     <header className="app-topbar">
-      <button className="mobile-brand" onClick={onLobby}><span>L</span></button>
-      <div className="topbar-context"><small>{career.leagueName.toUpperCase()} · {career.countryName.toUpperCase()}</small><strong>Central de carreira</strong></div>
+      <button className="mobile-brand" onClick={onLobby} aria-label="Voltar às carreiras"><span>L</span></button>
+      <div className="topbar-context"><small>{career.leagueName.toUpperCase()} · {career.countryName.toUpperCase()}</small><strong>{viewLabels[view] ?? "Carreira"}</strong></div>
       <div className="topbar-stats">
         <div><small>VALOR</small><strong>{money(career.marketValue)}</strong></div>
         <div><small>FÃS</small><strong>{compactNumber(career.fans)}</strong></div>
@@ -478,7 +488,7 @@ function CareerLayout({
     <div className="career-app">
       <AppSidebar career={career} view={view} onNavigate={onNavigate} onLobby={onLobby} />
       <div className="career-main">
-        <AppTopbar career={career} onLobby={onLobby} />
+        <AppTopbar career={career} view={view} onLobby={onLobby} />
         {children}
       </div>
       <nav className="mobile-nav" aria-label="Navegação móvel">
@@ -581,10 +591,10 @@ function WorldView({ career }: { career: CareerState }) {
     ? Math.round(activePlayers.reduce((total, player) => total + player.overall, 0) / activePlayers.length)
     : 0;
   return (
-    <main className="career-content inner-view world-view">
+    <main className="career-content inner-view career-secondary-v051 world-view world-v051">
       <section className="world-hero">
         <div className="world-hero-copy">
-          <span className="overline">LEGADO ENGINE 4.1 · UNIVERSO PERSISTENTE</span>
+          <span className="overline">0.5.1 · MUNDO PERSISTENTE</span>
           <h1>O mundo não espera por você.</h1>
           <p>Enquanto sua carreira avança, jogadores evoluem, trocam de clube, envelhecem e deixam espaço para uma nova geração.</p>
           <div className="world-live-stats">
@@ -941,8 +951,8 @@ function MarketView({
     { id: "Casa" as const, label: "Casa própria", deposit: country.costOfLiving * 5 },
   ];
   return (
-    <main className="career-content inner-view market-view-042">
-      <section className="view-heading"><div><span className="overline">MERCADO DE CARREIRA · 0.4.3</span><h1>{career.pendingTransfer ? "Seu próximo capítulo está assinado." : "Seu nome tem um preço — e um projeto."}</h1><p>Clubes analisam nível, forma, reputação e encaixe no elenco. Acordos assinados entram em vigor ao fim da temporada para preservar todas as competições.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100 · OVR {getOverall(career)}</span></div></section>
+    <main className="career-content inner-view career-secondary-v051 market-view-042 market-v051">
+      <section className="view-heading"><div><span className="overline">0.5.1 · MERCADO E CONTRATO</span><h1>{career.pendingTransfer ? "Seu próximo capítulo está assinado." : "Seu nome tem um preço — e um projeto."}</h1><p>Clubes analisam nível, forma, reputação e encaixe no elenco. Acordos assinados entram em vigor ao fim da temporada para preservar todas as competições.</p></div><div className="market-value-block"><small>VALOR ESTIMADO</small><strong>{money(career.marketValue)}</strong><span>Reputação {career.reputation}/100 · OVR {getOverall(career)}</span></div></section>
       {career.pendingTransfer && <section className="pending-transfer-banner"><div><span>PRÉ-CONTRATO ASSINADO</span><strong>{career.pendingTransfer.teamName}</strong><small>{career.pendingTransfer.countryName} · {career.pendingTransfer.leagueName} · chegada em {career.season + 1}</small></div><div><span>FUNÇÃO</span><strong>{career.pendingTransfer.role}</strong><small>{money(career.pendingTransfer.salary)}/mês · bônus {money(career.pendingTransfer.signingBonus)}</small></div><button onClick={onCancelTransfer}>CANCELAR ACORDO</button></section>}
       <section className="market-grid">
         <article className="hud-card contract-card"><span className="overline">CONTRATO ATUAL</span><div className="contract-club"><TeamCrest short={career.clubShort} color={career.clubColor} /><div><h3>{career.clubName}</h3><p>{career.leagueName} · Divisão {career.division}</p></div></div><div className="contract-details"><div><span>VÍNCULO</span><strong>até {career.contractUntilSeason}</strong></div><div><span>SALÁRIO</span><strong>{money(career.salary)}/mês</strong></div><div><span>FUNÇÃO</span><strong>{career.contractRole}</strong></div><div><span>MULTA</span><strong>{money(career.releaseClause)}</strong></div></div><div className="contract-progress"><span>Confiança do treinador <b>{career.coachTrust}%</b></span><i><em style={{ width: `${career.coachTrust}%` }} /></i></div><div className="renewal-box"><div><span>PROPOSTA DE RENOVAÇÃO</span><strong>{money(renewal.salary)}/mês · até {renewal.contractUntilSeason}</strong><small>{renewal.role} · bônus {money(renewal.signingBonus)}</small></div><button disabled={!renewal.available || Boolean(career.pendingTransfer)} onClick={onRenew}>{career.pendingTransfer ? "PRÉ-CONTRATO ATIVO" : renewal.available ? "RENOVAR" : renewal.requirement.toUpperCase()}</button></div></article>
@@ -985,7 +995,7 @@ function DeveloperPanel({ career, onAction }: { career: CareerState; onAction: (
   const format = getLeagueDefinition(career.countryId, career.division).format;
   return (
     <aside className="developer-panel">
-      <div><span>DEV 0.4.3</span><strong>Laboratório de Consequências</strong><small>Alterações são aplicadas somente a este slot.</small></div>
+      <div><span>DEV 0.5.1</span><strong>Laboratório de Carreira</strong><small>Alterações são aplicadas somente a este slot.</small></div>
       <section>
         <button onClick={() => onAction("unlock")}>LIBERAR TUDO</button>
         <button onClick={() => onAction("max-player")}>MAXIMIZAR ATLETA</button>
@@ -1021,7 +1031,7 @@ function SettingsView({ settings, onChange, standalone = false, onClose }: { set
       <div className="settings-note"><span>{settings.developerMode ? "⌘" : "✓"}</span><div><strong>{settings.developerMode ? "Ferramentas de desenvolvimento ativas" : "Salvamento automático ativo"}</strong><p>{settings.developerMode ? "Alterações feitas pelos atalhos também são salvas neste dispositivo." : "Carreiras e configurações são gravadas após cada escolha."}</p></div></div>
     </section>
   );
-  return standalone ? <div className="settings-backdrop">{content}</div> : <main className="career-content inner-view">{content}</main>;
+  return standalone ? <div className="settings-backdrop">{content}</div> : <main className="career-content inner-view career-secondary-v051 settings-v051">{content}</main>;
 }
 
 function ToggleSetting({ title, text, checked, onChange }: { title: string; text: string; checked: boolean; onChange: (checked: boolean) => void }) {
