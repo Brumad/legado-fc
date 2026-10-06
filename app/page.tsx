@@ -27,7 +27,6 @@ import {
   addDaysToDate,
   advanceCareerConsequences,
   advanceWorldSeason,
-  buildCareerNews,
   completeCareerTransfer,
   createFixture,
   generateMatchPlan,

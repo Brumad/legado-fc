@@ -47,8 +47,8 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
   assert.match(page, /promotions/);
-  assert.match(hub, /preparation-calendar/);
-  assert.match(hub, /Aula de idioma/);
+  assert.match(hub, /hub-calendar/);
+  assert.match(hub, /Idioma/);
   assert.match(page, /ASSINAR/);
   assert.match(page, /developerMode/);
   assert.match(page, /LifeView/);
