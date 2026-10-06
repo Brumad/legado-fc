@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.5.1 — Nova Interface de Carreira",
+    title: "Legado FC 0.5.2 — Partida 2D Jogável",
     description:
-      "Nova interface de carreira do Legado FC com hub responsivo, decisões, treino, vida, finanças, mercado e mundo, preservando a fundação jogável 0.5.",
+      "Primeira partida 2D realmente jogável do Legado FC, com controle do atleta da carreira, bola, passe, chute, desarme, IA, câmera, reinícios e suporte a teclado e toque.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.5.1 — Nova Interface de Carreira",
+      title: "Legado FC 0.5.2 — Partida 2D Jogável",
       description:
-        "A carreira agora possui uma interface de jogo unificada e responsiva sobre o Match Core independente criado na 0.5.0.",
+        "A carreira agora entra diretamente em um campo 2D jogável, preservando a interface 0.5.1 e o modo rápido legado como fallback.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.1 — Nova Interface de Carreira" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.2 — Partida 2D Jogável" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.5.1 — Nova Interface de Carreira",
-      description: "Nova central de carreira, telas secundárias harmonizadas e validação real em mobile, tablet e desktop.",
+      title: "Legado FC 0.5.2 — Partida 2D Jogável",
+      description: "Campo 2D, 22 jogadores, controles arcade, câmera dinâmica e partidas completas validadas em desktop e mobile.",
       images: [imageUrl],
     },
   };

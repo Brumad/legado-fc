@@ -439,60 +439,142 @@ A partir daqui o foco volta ao campo: jogador controlável, bola, passe, chute, 
 
 # 0.5.2 - Partida 2D jogável: vertical slice
 
-Status: **PLANEJADO**
+Status: **COMPLETE**
+
+Branch: `feat/v0.5.2-playable-match`
+
+Checkpoint completo validado: `a2756444`  
+Workflow: `37516851694`
 
 ## Objetivo
 
-Entregar a primeira partida realmente jogável do Legado FC.
+Entregar a primeira partida realmente jogável do Legado FC, usando o Match Core criado na 0.5.0 e entrando nela a partir da carreira construída na 0.5.1.
 
 ## Direção de gameplay
 
-Visual superior retrô, leitura rápida e controles arcade inspirados no ritmo de Super Soccer Champs.
+Campo 2D superior com leitura rápida e controles arcade. O usuário controla somente o atleta da carreira; companheiros e adversários são controlados pela IA.
 
-O usuário controla somente o atleta da carreira. Companheiros e adversários são controlados pela IA.
+O modo rápido legado foi preservado como fallback e pode ser acessado diretamente da nova tela de partida.
 
 ## Tarefas
 
-- [ ] Criar campo 2D.
-- [ ] Criar bola com posição, velocidade e desaceleração.
-- [ ] Criar 22 entidades de jogador.
-- [ ] Criar jogador controlável.
-- [ ] Criar movimentação em oito ou mais direções.
-- [ ] Criar aceleração e desaceleração.
-- [ ] Criar sprint.
-- [ ] Ligar sprint à stamina.
-- [ ] Criar passe curto.
-- [ ] Criar passe forte/profundidade.
-- [ ] Criar chute.
-- [ ] Criar domínio/primeiro toque.
-- [ ] Criar desarme.
-- [ ] Criar disputa de bola.
-- [ ] Criar recepção de passe.
-- [ ] Criar posse.
-- [ ] Criar câmera que acompanha a jogada.
-- [ ] Criar placar e cronômetro.
-- [ ] Criar pausa.
-- [ ] Criar reinício após gol.
-- [ ] Criar lateral.
-- [ ] Criar tiro de meta.
-- [ ] Criar escanteio 2D temporário antes da versão 3D.
-- [ ] Criar falta 2D temporária antes da versão 3D.
-- [ ] Criar controles para teclado.
-- [ ] Criar controles por toque.
-- [ ] Preparar gamepad.
-- [ ] Criar modo de teste sem interface da carreira.
+- [x] Criar campo 2D.
+- [x] Criar bola com posição, velocidade e desaceleração.
+- [x] Criar 22 entidades de jogador.
+- [x] Criar jogador controlável.
+- [x] Criar movimentação em oito ou mais direções.
+- [x] Criar aceleração e desaceleração.
+- [x] Criar sprint.
+- [x] Ligar sprint à stamina.
+- [x] Criar passe curto.
+- [x] Criar passe forte/profundidade.
+- [x] Criar chute.
+- [x] Criar domínio/primeiro toque.
+- [x] Criar desarme.
+- [x] Criar disputa de bola.
+- [x] Criar recepção de passe.
+- [x] Criar posse.
+- [x] Criar câmera que acompanha o atleta controlado.
+- [x] Criar placar e cronômetro.
+- [x] Criar pausa e retomada.
+- [x] Criar intervalo e início do segundo tempo.
+- [x] Criar reinício após gol.
+- [x] Criar lateral.
+- [x] Criar tiro de meta.
+- [x] Criar escanteio 2D temporário antes da versão 3D.
+- [x] Criar falta 2D temporária antes da versão 3D.
+- [x] Criar controles para teclado.
+- [x] Criar controles por toque.
+- [x] Preparar e integrar gamepad.
+- [x] Criar modo de teste headless sem interface da carreira.
+- [x] Integrar resultado jogável à tela de resultado e progressão da carreira.
+- [x] Preservar modo rápido legado como fallback.
+- [x] Criar testes reais de navegador para desktop e mobile.
+
+## Controles
+
+### Teclado
+
+- WASD / setas: movimentação;
+- Shift: sprint;
+- J: passe curto;
+- K: profundidade;
+- L: chute;
+- Espaço: desarme;
+- Esc: pausa/retomada.
+
+### Toque
+
+- direcional virtual;
+- sprint;
+- passe;
+- profundidade;
+- chute;
+- bote/desarme.
+
+### Gamepad
+
+- analógico esquerdo: movimentação;
+- A: passe;
+- B: chute;
+- X: bote;
+- Y: profundidade;
+- LB/RB: sprint.
 
 ## Critérios de aceite
 
-- [ ] É possível iniciar e terminar uma partida de 90 minutos.
-- [ ] O jogador consegue andar, correr, passar, chutar e desarmar.
-- [ ] A bola nunca produz NaN/Infinity.
-- [ ] Jogadores não saem permanentemente dos limites do campo.
-- [ ] Gol só é validado quando a bola cruza corretamente a linha.
-- [ ] O relógio não trava após pausa ou troca de estado.
-- [ ] Dez partidas completas consecutivas terminam sem soft lock.
-- [ ] Teclado e toque conseguem concluir uma partida.
-- [ ] A partida pode ser simulada headless para testes.
+- [x] É possível iniciar e terminar uma partida de 90 minutos.
+- [x] O jogador consegue andar, correr, passar, chutar e desarmar.
+- [x] A bola é validada continuamente contra NaN/Infinity.
+- [x] Jogadores permanecem dentro dos limites do campo.
+- [x] Gol só é validado depois que a bola cruza completamente a linha.
+- [x] O relógio não trava após pausa, intervalo ou troca de estado.
+- [x] Dez partidas completas consecutivas terminam sem soft lock.
+- [x] Teclado consegue concluir uma partida real no navegador.
+- [x] Toque consegue concluir uma partida real no navegador.
+- [x] A partida pode ser simulada headless para testes.
+- [x] O modo rápido 0.4.x continua acessível.
+- [x] A carreira recebe o resultado da partida 2D sem novo schema persistente.
+
+## Validação
+
+`verify:playable-match` cobre:
+
+- movimento;
+- aceleração;
+- sprint/stamina;
+- posse e primeiro toque;
+- passe e profundidade;
+- chute e gol;
+- desarme e falta;
+- lateral;
+- tiro de meta;
+- escanteio;
+- teclado;
+- touch;
+- gamepad;
+- 10 partidas completas headless.
+
+O workflow `37516851694` também executou Chromium real:
+
+- teclado: mover, sprintar, pausar, retomar e concluir partida — PASS;
+- touch: mover, usar ações e concluir partida — PASS;
+- modo rápido legado disponível — PASS.
+
+## Arquitetura
+
+A gameplay jogável permanece concentrada em:
+
+- `app/match-core/*`;
+- `app/playable-match-canvas.tsx`;
+- `app/playable-match-screen.tsx`;
+- `app/gameplay-integration.ts`.
+
+O monólito de carreira continua sendo reduzido por integração, não por reescrita destrutiva.
+
+## Próximo marco
+
+`0.5.3` deve aprofundar a qualidade do futebol em campo: IA posicional, goleiros, colisões/disputas mais ricas, animação visual, leitura de passe/chute e polimento do ritmo antes das bolas paradas 3D.
 
 ---
 

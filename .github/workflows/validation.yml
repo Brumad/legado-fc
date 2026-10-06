@@ -72,13 +72,13 @@ jobs:
         env:
           GITHUB_PAGES_BASE: /legado-fc/
 
-      - name: Instalar navegador para validação visual 0.5.1
+      - name: Preparar navegador para validações visuais
         if: (startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1') || startsWith(github.ref_name, 'feat/v0.5.2') || startsWith(github.head_ref, 'feat/v0.5.2'))
         run: |
           pnpm add --save-dev @playwright/test@1.56.0 --lockfile=false
           pnpm exec playwright install --with-deps chromium
 
-      - name: Validar UI real em 360px tablet e desktop
+      - name: Validar interface de carreira em 360px tablet e desktop
         if: (startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1') || startsWith(github.ref_name, 'feat/v0.5.2') || startsWith(github.head_ref, 'feat/v0.5.2'))
         run: |
           pnpm exec vite preview --config vite.github.config.ts --host 127.0.0.1 --port 4173 > /tmp/legado-preview.log 2>&1 &

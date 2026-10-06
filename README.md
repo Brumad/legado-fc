@@ -1,54 +1,73 @@
 # Legado FC
 
-Simulador de vida e carreira de um jogador de futebol. A série 0.5 está
-transformando o projeto em um jogo de futebol realmente jogável sem descartar a
-carreira, o mundo persistente e os sistemas construídos na 0.4.x.
+Simulador de vida e carreira de um jogador de futebol. A série 0.5 transforma o
+projeto em um jogo de futebol jogável sem descartar carreira, mundo persistente
+e sistemas construídos na 0.4.x.
 
 ## Versão atual
 
-`0.5.1 — Nova Interface de Carreira`
+`0.5.2 — Partida 2D Jogável`
 
-A 0.5.1 reorganiza a experiência fora de campo em uma interface de jogo
-responsiva. A fundação do Match Core criada na 0.5.0 permanece intacta e a
-partida 0.4.3 continua disponível como fallback até o vertical slice 2D da
-0.5.2.
+A 0.5.2 é o primeiro grande marco de gameplay da série 0.5: a carreira agora
+entra em um campo 2D realmente jogável. O usuário controla somente seu atleta,
+enquanto os outros 21 jogadores são comandados pela IA.
 
-### Interface 0.5.1
+### Partida 2D
 
-- Career Hub separado de `page.tsx`;
-- perfil compacto com clube, posição, idade, overall e temporada;
-- energia, moral, forma e condição em leitura imediata;
-- saldo, salário, contrato e valor de mercado;
-- card de próximo jogo com acesso em um passo;
-- atalhos para Partida, Treino, Vida, Mundo, Mercado e Perfil;
-- calendário e treino rápido;
-- central de decisões e consequências;
-- relações, finanças e patrimônio;
-- mercado, propostas e renovação;
-- Temporada, Mundo, Perfil, Vida e Mercado harmonizados;
-- navegação desktop e mobile com foco visível;
-- layout validado em 360x800, 768x1024 e 1440x1000.
+- campo superior com câmera acompanhando o atleta;
+- 22 jogadores em campo;
+- aceleração, desaceleração e sprint;
+- stamina ligada ao sprint;
+- bola livre com velocidade e desaceleração;
+- posse, domínio e recepção;
+- passe curto e profundidade;
+- chute e gol;
+- desarme e disputa de posse;
+- faltas e reinício em cobrança 2D;
+- lateral, tiro de meta e escanteio;
+- reinício após gol;
+- placar, cronômetro, pausa e intervalo;
+- teclado, touch e gamepad;
+- resultado integrado à progressão da carreira;
+- modo rápido legado preservado como fallback.
 
-### Fundação jogável preservada
+### Controles de teclado
 
-- Match Core independente do React;
-- estado próprio para campo, bola, jogadores, placar e eventos;
-- passo fixo de 60 Hz independente do FPS;
-- relógio determinístico, pausa, retomada e abandono seguro;
-- módulos separados de regras, física e IA;
-- inputs normalizados para teclado, touch e gamepad;
-- renderer Canvas desacoplado;
-- bridge carreira -> partida com 22 jogadores e um atleta controlado;
-- testes headless do core e da integração.
+```text
+WASD / setas  movimentação
+Shift         sprint
+J             passe
+K             profundidade
+L             chute
+Espaço        desarme
+Esc           pausa
+```
 
-### Base de carreira preservada
+### Validação do campo
 
-- 12 países, 24 divisões e 505 clubes;
-- calendário, contratos, mercado e transferências;
-- consequências persistentes e personalidade dinâmica;
-- mundo persistente, aposentadorias e novos talentos;
-- múltiplos slots, importação/exportação e migração de saves;
-- PWA e GitHub Pages.
+O gate `verify:playable-match` executa testes headless do vertical slice e dez
+partidas completas consecutivas. O CI também abre Chromium e conclui partidas
+reais com teclado e touch.
+
+### Interface de carreira preservada
+
+A 0.5.1 continua disponível integralmente:
+
+- Career Hub;
+- Temporada;
+- Mundo;
+- Perfil;
+- Vida e Finanças;
+- Mercado e Contrato;
+- layouts mobile, tablet e desktop.
+
+### Fundação técnica
+
+- Match Core independente de React;
+- simulação em passo fixo;
+- regras, física, IA e renderer desacoplados;
+- bridge carreira -> partida -> resultado;
+- modo rápido legado preservado.
 
 ## Desenvolvimento
 
@@ -68,13 +87,11 @@ pnpm lint
 pnpm verify:match-core
 pnpm verify:match-integration
 pnpm verify:career-ui
+pnpm verify:playable-match
 pnpm verify:variation
 pnpm verify:world
 pnpm test:render
 pnpm build:github
 ```
-
-O CI da série 0.5.1 também executa testes de navegador em Chromium para mobile,
-tablet e desktop.
 
 O roadmap e os critérios de aceite vivem em `TASKS.md`.
