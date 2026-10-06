@@ -54,13 +54,55 @@ async function openCareer(page) {
 }
 
 async function assertNoDocumentOverflow(page, label) {
-  const metrics = await page.evaluate(() => ({
-    width: window.innerWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-    bodyScrollWidth: document.body.scrollWidth,
-  }));
-  expect(metrics.scrollWidth, label + " documentElement overflow").toBeLessThanOrEqual(metrics.width + 1);
-  expect(metrics.bodyScrollWidth, label + " body overflow").toBeLessThanOrEqual(metrics.width + 1);
+  const metrics = await page.evaluate(() => {
+    const width = window.innerWidth;
+    const offenders = Array.from(document.querySelectorAll("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          className: typeof element.className === "string" ? element.className : "",
+          text: (element.textContent ?? "").trim().replace(/\\s+/g, " ").slice(0, 70),
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      })
+      .filter((item) => item.right > width + 1 || item.left < -1)
+      .sort((a, b) => (b.right - width) - (a.right - width))
+      .slice(0, 8);
+    return {
+      width,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      offenders,
+    };
+  });
+  const details = metrics.offenders.length ? " offenders=" + JSON.stringify(metrics.offenders) : "";
+  expect(metrics.scrollWidth, label + " documentElement overflow" + details).toBeLessThanOrEqual(metrics.width + 1);
+  expect(metrics.bodyScrollWidth, label + " body overflow" + details).toBeLessThanOrEqual(metrics.width + 1);
+}
+
+async function assertEssentialTextFits(page) {
+  const selectors = [
+    ".hub-player-identity h1",
+    ".hub-player-identity p",
+    ".hub-condition strong",
+    ".hub-money strong",
+    ".hub-play-button strong",
+    ".hub-action-grid strong",
+  ];
+  const clipped = await page.evaluate((items) => items.flatMap((selector) =>
+    Array.from(document.querySelectorAll(selector)).map((element) => ({
+      selector,
+      text: (element.textContent ?? "").trim(),
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    })).filter((item) => item.scrollWidth > item.clientWidth + 1)
+  ), selectors);
+  expect(clipped, "essential 360px text must not be clipped").toEqual([]);
 }
 
 async function navigate(page, view) {
@@ -82,6 +124,7 @@ for (const viewport of viewports) {
     await expect(page.locator(".hub-next-match")).toBeVisible();
     await expect(page.locator(".hub-status-strip")).toContainText("ENERGIA");
     await expect(page.locator(".hub-player-header")).toContainText("SALDO");
+    if (viewport.name === "mobile-360") await assertEssentialTextFits(page);
 
     for (const item of [
       { view: "life", selector: ".life-v051" },
