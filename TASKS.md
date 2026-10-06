@@ -349,27 +349,18 @@ Pipeline da branch validado com sucesso em:
 
 # 0.5.1 - Nova interface de carreira
 
-Status: **EM DESENVOLVIMENTO**
+Status: **COMPLETE**
 
 Branch: `feat/v0.5.1-career-interface`
 
+Checkpoint visual validado: `819ee6f9`  
+Workflow: `37510730801`
+
 ## Objetivo
 
-Transformar a navegação atual em uma interface que pareça um jogo, com inspiração estrutural em New Star Soccer, mas identidade visual própria.
+Transformar a navegação da carreira em uma interface que pareça um jogo, mantendo inspiração apenas estrutural em jogos de carreira de futebol e identidade visual própria do Legado FC.
 
-## Direção
-
-A tela principal deve responder imediatamente:
-
-- quem é o jogador;
-- em qual clube está;
-- qual é o próximo jogo;
-- como estão energia, moral, forma e condição;
-- quanto dinheiro possui;
-- como estão treinador, elenco, família e patrocinadores;
-- quais decisões precisam de atenção.
-
-## Tarefas
+## Entregas
 
 - [x] Criar home/hub principal da carreira.
 - [x] Criar cabeçalho compacto do jogador.
@@ -377,51 +368,72 @@ A tela principal deve responder imediatamente:
 - [x] Mostrar energia, moral, forma e condição física.
 - [x] Mostrar dinheiro e salário.
 - [x] Criar card do próximo jogo.
-- [x] Criar navegação clara entre Partida, Treino, Vida, Mundo, Mercado e Perfil.
+- [x] Permitir chegar à partida em um passo a partir da home.
+- [x] Criar navegação entre Partida, Treino, Vida, Mundo, Mercado e Perfil.
 - [x] Criar central de eventos e decisões.
 - [x] Criar calendário visual.
 - [x] Reorganizar treino em fluxo rápido.
 - [x] Reorganizar relações em cards simples.
-- [x] Criar resumo de finanças e patrimônio na home.
-- [ ] Reorganizar a tela completa de finanças e patrimônio.
-- [x] Criar resumo de mercado e contrato na home.
-- [ ] Reorganizar a tela completa de mercado e contrato.
-- [x] Adaptar o novo hub para celular e desktop.
-- [x] Garantir navegação principal por teclado usando controles nativos e foco visível.
-- [x] Garantir áreas de toque mínimas no novo hub.
+- [x] Reorganizar finanças e patrimônio.
+- [x] Reorganizar mercado e contrato.
+- [x] Harmonizar Temporada, Mundo, Perfil, Vida e Mercado com o design system 0.5.1.
+- [x] Adaptar interface para celular, tablet e desktop.
+- [x] Garantir navegação por teclado e foco visível.
+- [x] Garantir alvos de toque adequados na navegação principal.
 - [x] Criar design system próprio do Career Hub.
 - [x] Remover a nova home do componente gigante de `page.tsx`.
-- [x] Criar `verify:career-ui` como gate específico da 0.5.1.
-- [ ] Fazer validação visual manual/automatizada real em 360 px, tablet e desktop.
-- [ ] Harmonizar as telas secundárias com o novo design system.
-- [ ] Atualizar metadata, README e release notes ao fechar a versão.
+- [x] Criar `verify:career-ui`.
+- [x] Criar validação real de navegador com Chromium/Playwright.
+- [x] Validar 360x800.
+- [x] Validar 768x1024.
+- [x] Validar 1440x1000.
+- [x] Validar ausência de overflow horizontal nas telas principais.
+- [x] Validar que textos essenciais da home não ficam cortados em 360 px.
+- [x] Atualizar metadata, manifest, README e release notes.
+- [x] Preservar schema e compatibilidade de save.
+
+## Telas alinhadas ao padrão 0.5.1
+
+- [x] Início / Career Hub.
+- [x] Temporada.
+- [x] Mundo.
+- [x] Perfil.
+- [x] Vida e Finanças.
+- [x] Mercado e Contrato.
+- [x] Navegação lateral/mobile.
+- [x] Topbar contextual.
 
 ## Critérios de aceite
 
 - [x] O usuário chega à próxima partida em um passo a partir da home.
-- [x] Todas as funções existentes da `0.4.3` permanecem acessíveis pela navegação atual.
-- [ ] Interface validada visualmente em viewport mobile e desktop.
-- [ ] Nenhum texto essencial cortado em 360 px confirmado por teste visual.
-- [x] Navegação principal funciona sem mouse por controles focáveis.
-- [x] Nenhum asset ou layout é cópia direta de New Star Soccer.
-- [x] Save antigo continua compatível, pois a 0.5.1 não altera schema persistente.
+- [x] As funções existentes da 0.4.3 continuam acessíveis.
+- [x] Interface validada em mobile, tablet e desktop em navegador real.
+- [x] Nenhum overflow horizontal detectado nos viewports validados.
+- [x] Textos essenciais da home não ficam cortados em 360 px no fixture de validação.
+- [x] Navegação principal funciona sem mouse.
+- [x] Nenhum asset ou layout foi copiado diretamente das referências.
+- [x] Save antigo continua compatível; a 0.5.1 não altera o schema persistente.
+- [x] Match Core e integração da 0.5.0 continuam verdes.
+- [x] Regressão de 5.000 partidas continua verde.
+- [x] Regressão de 25 temporadas continua verde.
+- [x] Build de produção e GitHub Pages continuam verdes.
 
-## Checkpoint atual
+## Evidência de fechamento visual
 
-O primeiro slice já separou a nova home em `app/career-hub.tsx`, mantendo `page.tsx` como orquestrador. O hub possui:
+O workflow `37510730801` executou quatro testes reais em Chromium:
 
-- resumo do atleta;
-- status físico e mental;
-- próximo jogo;
-- atalhos de carreira;
-- calendário;
-- treino rápido;
-- decisões e eventos;
-- relações;
-- contrato/finanças;
-- notícias.
+- `mobile-360` — PASS;
+- `tablet` — PASS;
+- `desktop` — PASS;
+- navegação por teclado — PASS.
 
-A validação estrutural está em `scripts/verify-career-ui.mjs`.
+O teste verifica Home, Vida, Mercado, Perfil, Temporada e Mundo, além de overflow horizontal e legibilidade essencial da home em 360 px.
+
+## Próximo marco
+
+`0.5.2 — Partida 2D jogável: vertical slice`.
+
+A partir daqui o foco volta ao campo: jogador controlável, bola, passe, chute, desarme, câmera, reinícios e conclusão de uma partida completa usando o Match Core criado na 0.5.0.
 
 ---
 

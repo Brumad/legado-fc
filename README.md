@@ -1,29 +1,35 @@
 # Legado FC
 
-Simulador de vida e carreira de um jogador de futebol. A série 0.5 inicia a
-transformação da experiência em um jogo de futebol realmente jogável sem
-descartar a carreira, o mundo persistente e os sistemas construídos na 0.4.x.
+Simulador de vida e carreira de um jogador de futebol. A série 0.5 está
+transformando o projeto em um jogo de futebol realmente jogável sem descartar a
+carreira, o mundo persistente e os sistemas construídos na 0.4.x.
 
 ## Versão atual
 
-`0.5.0 — Fundação Jogável`
+`0.5.1 — Nova Interface de Carreira`
 
-A 0.5.0 é uma versão de arquitetura e compatibilidade. O fluxo de partida 0.4.3
-continua disponível como fallback enquanto o novo campo jogável é desenvolvido
-nas próximas versões.
+A 0.5.1 reorganiza a experiência fora de campo em uma interface de jogo
+responsiva. A fundação do Match Core criada na 0.5.0 permanece intacta e a
+partida 0.4.3 continua disponível como fallback até o vertical slice 2D da
+0.5.2.
 
-### Base preservada
+### Interface 0.5.1
 
-- criação de carreira por país, divisão, origem, posição e arquétipo;
-- calendário, preparação, contratos, mercado e transferências;
-- consequências persistentes e personalidade dinâmica;
-- 12 países, 24 divisões e 505 clubes;
-- mundo persistente, aposentadorias e novos talentos;
-- partidas procedurais e modo rápido legado;
-- múltiplos slots, importação/exportação e migração de saves;
-- PWA e GitHub Pages.
+- Career Hub separado de `page.tsx`;
+- perfil compacto com clube, posição, idade, overall e temporada;
+- energia, moral, forma e condição em leitura imediata;
+- saldo, salário, contrato e valor de mercado;
+- card de próximo jogo com acesso em um passo;
+- atalhos para Partida, Treino, Vida, Mundo, Mercado e Perfil;
+- calendário e treino rápido;
+- central de decisões e consequências;
+- relações, finanças e patrimônio;
+- mercado, propostas e renovação;
+- Temporada, Mundo, Perfil, Vida e Mercado harmonizados;
+- navegação desktop e mobile com foco visível;
+- layout validado em 360x800, 768x1024 e 1440x1000.
 
-### Nova fundação 0.5.0
+### Fundação jogável preservada
 
 - Match Core independente do React;
 - estado próprio para campo, bola, jogadores, placar e eventos;
@@ -32,11 +38,17 @@ nas próximas versões.
 - módulos separados de regras, física e IA;
 - inputs normalizados para teclado, touch e gamepad;
 - renderer Canvas desacoplado;
-- shell visual que usa `requestAnimationFrame` sem atualizar React a cada frame;
-- bridge da carreira para uma partida com 22 jogadores e exatamente um atleta controlado;
-- contrato de resultado da nova partida;
-- testes headless do core e da integração;
-- regressão de 5.000 partidas e 25 temporadas no CI.
+- bridge carreira -> partida com 22 jogadores e um atleta controlado;
+- testes headless do core e da integração.
+
+### Base de carreira preservada
+
+- 12 países, 24 divisões e 505 clubes;
+- calendário, contratos, mercado e transferências;
+- consequências persistentes e personalidade dinâmica;
+- mundo persistente, aposentadorias e novos talentos;
+- múltiplos slots, importação/exportação e migração de saves;
+- PWA e GitHub Pages.
 
 ## Desenvolvimento
 
@@ -48,20 +60,21 @@ pnpm dev
 pnpm test
 ```
 
-Comandos principais de verificação:
+Gates principais:
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm verify:match-core
 pnpm verify:match-integration
+pnpm verify:career-ui
 pnpm verify:variation
 pnpm verify:world
 pnpm test:render
+pnpm build:github
 ```
 
-A simulação de carreira legada continua em `app/game-engine.ts`.
-A nova gameplay deve ser construída em `app/match-core/*`, com a integração de
-carreira em `app/gameplay-integration.ts` e renderização independente do domínio.
+O CI da série 0.5.1 também executa testes de navegador em Chromium para mobile,
+tablet e desktop.
 
 O roadmap e os critérios de aceite vivem em `TASKS.md`.

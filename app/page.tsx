@@ -255,7 +255,7 @@ function Lobby({
       </section>
 
       <footer className="lobby-footer">
-        <span>LEGADO ENGINE <b>5.0</b></span>
+        <span>LEGADO ENGINE <b>5.1</b></span>
         <p>Doze táticas, briefing jogável e uma carreira que guarda cada partida.</p>
         <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} CARREIRAS SIMULADAS</span>
       </footer>

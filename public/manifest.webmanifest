@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Legado FC 0.4.3: personalidade dinâmica, consequências persistentes, eventos futuros e decisões que mudam toda a carreira.",
+  "description": "Legado FC 0.5.1: nova interface de carreira responsiva com hub, vida, finanças, mercado, mundo e fundação jogável preservada.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d2018",

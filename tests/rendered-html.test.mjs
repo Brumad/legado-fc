@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.5.0 application shell", async () => {
+test("server-renders the Legado FC 0.5.1 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC 0\.5\.0 — Fundação Jogável<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.5\.1 — Nova Interface de Carreira<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.match(html, /og-v7\.png/i);
 });
