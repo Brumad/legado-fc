@@ -73,13 +73,13 @@ jobs:
           GITHUB_PAGES_BASE: /legado-fc/
 
       - name: Instalar navegador para validação visual 0.5.1
-        if: startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1')
+        if: (startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1') || startsWith(github.ref_name, 'feat/v0.5.2') || startsWith(github.head_ref, 'feat/v0.5.2'))
         run: |
           pnpm add --save-dev @playwright/test@1.56.0 --lockfile=false
           pnpm exec playwright install --with-deps chromium
 
       - name: Validar UI real em 360px tablet e desktop
-        if: startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1')
+        if: (startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1') || startsWith(github.ref_name, 'feat/v0.5.2') || startsWith(github.head_ref, 'feat/v0.5.2'))
         run: |
           pnpm exec vite preview --config vite.github.config.ts --host 127.0.0.1 --port 4173 > /tmp/legado-preview.log 2>&1 &
           for i in $(seq 1 30); do
@@ -87,5 +87,12 @@ jobs:
             sleep 1
           done
           pnpm exec playwright test tests/career-ui.visual.spec.mjs --reporter=line --workers=1
+        env:
+          GITHUB_PAGES_BASE: /legado-fc/
+
+      - name: Validar partida jogável real 0.5.2
+        if: startsWith(github.ref_name, 'feat/v0.5.2') || startsWith(github.head_ref, 'feat/v0.5.2')
+        run: |
+          pnpm exec playwright test tests/playable-match.visual.spec.mjs --reporter=line --workers=1
         env:
           GITHUB_PAGES_BASE: /legado-fc/

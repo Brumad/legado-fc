@@ -19,12 +19,14 @@ export function PlayableMatchScreen({
   onFinish,
   onQuickMode,
   onExit,
+  developerMode = false,
 }: {
   career: CareerState;
   fixture: Fixture;
   onFinish: (result: PlayableMatchResult) => void;
   onQuickMode: () => void;
   onExit: () => void;
+  developerMode?: boolean;
 }) {
   const playable = useMemo(() => createPlayableMatchState(career, fixture), [career, fixture]);
   const canvasRef = useRef<PlayableMatchCanvasHandle>(null);
@@ -48,7 +50,14 @@ export function PlayableMatchScreen({
   }
 
   return (
-    <main className="playable-match-screen" data-playable-match-screen>
+    <main
+      className="playable-match-screen"
+      data-playable-match-screen
+      data-match-minute={snapshot.clock.minute}
+      data-player-stamina={Math.round(controlled?.stamina ?? 100)}
+      data-player-x={controlled?.position.x.toFixed(2) ?? ""}
+      data-player-y={controlled?.position.y.toFixed(2) ?? ""}
+    >
       <header className="playable-match-header">
         <button className="playable-exit" onClick={onExit} aria-label="Sair da partida">←</button>
         <div className="playable-competition">
@@ -81,6 +90,7 @@ export function PlayableMatchScreen({
             <PlayableMatchCanvas
               ref={canvasRef}
               initialState={playable.state}
+              config={developerMode ? { matchClockRate: 900, restartDelayTicks: 2, maxCatchUpSteps: 120 } : undefined}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />

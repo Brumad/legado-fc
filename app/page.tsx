@@ -2124,6 +2124,7 @@ export default function Home() {
         fixture={fixture}
         onExit={() => setView("dashboard")}
         onQuickMode={() => setView("match-legacy")}
+        developerMode={settings.developerMode}
         onFinish={(result) => { setLastResult(playableToMatchResult(result, fixture)); setView("result"); }}
       />
       : view === "match-legacy" ? <LegacyMatchScreen career={career} fixture={fixture} settings={settings} onExit={() => setView("dashboard")} onFinish={(result) => { setLastResult(result); setView("result"); }} />
