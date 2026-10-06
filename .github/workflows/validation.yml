@@ -49,6 +49,9 @@ jobs:
       - name: Validar integração carreira e Match Core
         run: pnpm verify:match-integration
 
+      - name: Validar interface de carreira 0.5.1
+        run: pnpm verify:career-ui
+
       - name: Testar 5.000 partidas legadas
         run: pnpm verify:variation
 

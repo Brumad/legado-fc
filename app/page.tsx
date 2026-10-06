@@ -513,6 +513,12 @@ function Dashboard({
   );
 }
 
+function gameDate(isoDate: string) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" })
+    .format(new Date(`${isoDate}T12:00:00Z`))
+    .replace(".", "");
+}
+
 function SeasonView({ career }: { career: CareerState }) {
   const rows = useMemo(() => generateStandings(career), [career]);
   const clubLeaders = useMemo(() => getClubLeaders(career), [career]);
