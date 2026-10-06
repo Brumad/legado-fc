@@ -159,7 +159,7 @@ export function claimLooseBall(state: MatchCoreState, config: MatchCoreConfig): 
   const winner = candidates[0];
   if (!winner) return state;
 
-  let next = {
+  let next: MatchCoreState = {
     ...state,
     ball: {
       ...state.ball,
