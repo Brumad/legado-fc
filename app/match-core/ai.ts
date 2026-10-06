@@ -69,11 +69,32 @@ function nearestMark(player: MatchPlayerState, state: MatchCoreState, anchor: Ve
     .sort((a, b) => a.score - b.score)[0]?.candidate;
 }
 
+function dynamicTactic(player: MatchPlayerState, state: MatchCoreState): MatchTacticalProfile {
+  const setup = state.teamSetup[player.side];
+  const base = setup.tactic;
+  const opponentSide = player.side === "home" ? "away" : "home";
+  const scoreDelta = state.score[player.side] - state.score[opponentSide];
+  const minute = state.clock.minute;
+  const late = minute >= 60;
+  const chasing = late && scoreDelta < 0;
+  const protecting = minute >= 70 && scoreDelta > 0;
+  const rivalryBoost = setup.rivalryLevel / 100;
+
+  return {
+    ...base,
+    pressing: clamp(base.pressing + (chasing ? 16 : protecting ? -12 : 0) + rivalryBoost * 5, 15, 100),
+    tempo: clamp(base.tempo + (chasing ? 14 : protecting ? -9 : 0), 20, 100),
+    defensiveLine: clamp(base.defensiveLine + (chasing ? 10 : protecting ? -12 : 0), 15, 100),
+    aggression: clamp(base.aggression + rivalryBoost * 8 + (chasing ? 5 : 0), 15, 100),
+    risk: clamp(base.risk + (chasing ? 18 : protecting ? -18 : 0), 10, 100),
+  };
+}
+
 export function getFoundationAiInput(player: MatchPlayerState, state: MatchCoreState): MatchInputFrame {
   if (!player.active || player.controlled || state.restart || player.redCard) return normalizeMatchInput();
 
   const setup = state.teamSetup[player.side];
-  const tactic = setup.tactic;
+  const tactic = dynamicTactic(player, state);
   const quality = difficultyQuality(setup.difficulty);
   const reactionWindow = difficultyReaction(setup.difficulty);
   const ratings = player.ratings ?? { pace: 65, shooting: 62, passing: 64, dribbling: 64, defending: 62, physical: 65, goalkeeping: 20 };

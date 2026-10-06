@@ -44,10 +44,43 @@ export type PlayableMatchResult = {
   statistics: MatchStatistics;
 };
 
-const homeShape = [
-  [6, 34], [20, 8], [18, 25], [18, 43], [20, 60],
-  [38, 20], [38, 48], [54, 34], [58, 10], [58, 58], [68, 34],
-] as const;
+const formationShapes: Record<string, ReadonlyArray<readonly [number, number]>> = {
+  "4-3-3": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[38,18],[38,34],[38,50],[60,10],[66,34],[60,58],
+  ],
+  "5-4-1": [
+    [6,34],[18,6],[16,20],[15,34],[16,48],[18,62],[38,10],[36,27],[36,43],[38,58],[63,34],
+  ],
+  "4-2-3-1": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[35,27],[35,41],[52,10],[50,34],[52,58],[68,34],
+  ],
+  "4-1-4-1": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[33,34],[49,9],[47,26],[47,42],[49,59],[68,34],
+  ],
+  "4-4-2": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[42,8],[40,26],[40,42],[42,60],[66,27],[66,41],
+  ],
+  "4-2-2-2": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[35,27],[35,41],[51,20],[51,48],[67,27],[67,41],
+  ],
+  "3-4-3": [
+    [6,34],[18,18],[16,34],[18,50],[39,7],[37,25],[37,43],[39,61],[61,11],[66,34],[61,57],
+  ],
+  "4-3-1-2": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[38,20],[35,34],[38,48],[53,34],[67,27],[67,41],
+  ],
+  "3-5-2": [
+    [6,34],[18,18],[16,34],[18,50],[38,7],[35,22],[34,34],[35,46],[38,61],[67,27],[67,41],
+  ],
+  "4-2-4": [
+    [6,34],[20,8],[18,25],[18,43],[20,60],[37,27],[37,41],[60,8],[66,26],[66,42],[60,60],
+  ],
+  "5-3-2": [
+    [6,34],[18,6],[16,20],[15,34],[16,48],[18,62],[38,20],[35,34],[38,48],[66,27],[66,41],
+  ],
+};
+
+const homeShape = formationShapes["4-3-3"];
 
 function mirrorX(x: number) { return 105 - x; }
 function clamp(value: number, min=35, max=95) { return Math.max(min, Math.min(max, Math.round(value))); }
@@ -82,9 +115,11 @@ function teamPlayers(
   side: MatchSide,
   controlledPlayerId: string | null,
   career?: CareerState,
+  formation = "4-3-3",
 ): MatchPlayerState[] {
+  const shape = formationShapes[formation] ?? homeShape;
   return team.squad.slice(0, 11).map((player, index) => {
-    const base = homeShape[index] ?? homeShape[homeShape.length - 1];
+    const base = shape[index] ?? shape[shape.length - 1];
     const position = side === "home" ? { x: base[0], y: base[1] } : { x: mirrorX(base[0]), y: base[1] };
     const controlled = Boolean(controlledPlayerId && index === 7);
     return {
@@ -151,8 +186,20 @@ export function createPlayableMatchState(
   const matchPlan = generateMatchPlan(career, fixture);
 
   const players = [
-    ...teamPlayers(homeTeam, "home", playerSide === "home" ? controlledPlayerId : null, playerSide === "home" ? career : undefined),
-    ...teamPlayers(awayTeam, "away", playerSide === "away" ? controlledPlayerId : null, playerSide === "away" ? career : undefined),
+    ...teamPlayers(
+      homeTeam,
+      "home",
+      playerSide === "home" ? controlledPlayerId : null,
+      playerSide === "home" ? career : undefined,
+      playerSide === "home" ? balancedProfile.formation : matchPlan.opponentTactic.formation,
+    ),
+    ...teamPlayers(
+      awayTeam,
+      "away",
+      playerSide === "away" ? controlledPlayerId : null,
+      playerSide === "away" ? career : undefined,
+      playerSide === "away" ? balancedProfile.formation : matchPlan.opponentTactic.formation,
+    ),
   ];
   if (players.length !== 22) throw new Error(`Partida jogável exige 22 jogadores; recebidos ${players.length}`);
   if (players.filter((player) => player.controlled).length !== 1) throw new Error("Partida jogável exige exatamente um atleta controlado");

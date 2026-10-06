@@ -50,6 +50,7 @@ function player(id, side, x, y, options = {}) {
 
 assert.equal(OPPONENT_TACTICS.length, 12, "a 0.5.3 deve manter exatamente 12 perfis táticos");
 assert.equal(new Set(OPPONENT_TACTICS.map((item) => item.id)).size, 12, "táticas precisam de ids únicos");
+assert.ok(new Set(OPPONENT_TACTICS.map((item) => item.formation)).size >= 8, "as táticas precisam produzir formações estruturalmente diferentes");
 
 // Dificuldade muda comportamento da IA, não placar.
 {
@@ -90,6 +91,48 @@ assert.equal(new Set(OPPONENT_TACTICS.map((item) => item.id)).size, 12, "tática
   const legend = getFoundationAiInput(legendState.players[1], legendState);
   assert.equal(promise.sprint, false, "Promessa não deve pressionar de tão longe");
   assert.equal(legend.sprint, true, "Lenda deve reagir e pressionar de mais longe");
+}
+
+// Formação tática altera posições reais de início.
+{
+  const career = migrateCareer({ id: "shape-v053", name: "Shape", countryId: "BR", division: 1, careerSeed: 53054, difficulty: "Lenda" });
+  const seen = new Map();
+  for (let offset = 0; offset < 40 && seen.size < 4; offset += 1) {
+    const sample = migrateCareer({ ...career, matches: offset, seasonRound: (offset % 10) + 1 });
+    const fixture = createFixture(sample);
+    const created = createPlayableMatchState(sample, fixture);
+    const opponentSide = created.context.playerSide === "home" ? "away" : "home";
+    const setup = created.state.teamSetup[opponentSide];
+    const signature = created.state.players
+      .filter((item) => item.side === opponentSide)
+      .map((item) => `${item.homePosition.x.toFixed(1)}:${item.homePosition.y.toFixed(1)}`)
+      .join("|");
+    seen.set(setup.tactic.formation, signature);
+  }
+  assert.ok(seen.size >= 3, "diferentes formações precisam chegar ao campo com posições diferentes");
+  assert.equal(new Set(seen.values()).size, seen.size, "formações distintas não podem compartilhar exatamente o mesmo shape");
+}
+
+// Postura muda com o placar e o minuto.
+{
+  const tactic = { id: "posture", name: "Postura", formation: "4-3-3", pressing: 60, tempo: 50, defensiveLine: 55, width: 60, aggression: 55, risk: 45 };
+  const base = createMatchCoreState({
+    matchId: "posture-v053",
+    players: [
+      player("owner", "home", 50, 34),
+      player("ai", "away", 67, 34, { homePosition: { x: 87, y: 52 } }),
+      player("a2", "away", 90, 12),
+    ],
+    teamSetup: { away: { difficulty: "Profissional", tactic, rivalryLevel: 80 } },
+  });
+  const common = {
+    ...base,
+    clock: { ...base.clock, phase: "second-half", running: true, minute: 78, matchSeconds: 78 * 60, periodSeconds: 33 * 60 },
+    ball: { ...base.ball, position: { x: 50, y: 34 }, possessionPlayerId: "owner", lastTouchPlayerId: "owner", lastTouchSide: "home" },
+  };
+  const losing = getFoundationAiInput(common.players[1], { ...common, score: { home: 2, away: 0 } });
+  const winning = getFoundationAiInput(common.players[1], { ...common, score: { home: 0, away: 2 } });
+  assert.ok(losing.sprint || Math.hypot(losing.moveX, losing.moveY) >= Math.hypot(winning.moveX, winning.moveY), "time perdendo deve assumir postura ao menos tão agressiva quanto time vencendo");
 }
 
 // Atributos alteram velocidade real.
