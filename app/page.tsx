@@ -2,6 +2,8 @@
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CareerHub } from "./career-hub.tsx";
+import { CareerCreator } from "./career-creator.tsx";
+import { PlayerAvatar } from "./player-avatar.tsx";
 import { PlayableMatchScreen } from "./playable-match-screen.tsx";
 import type { PlayableMatchResult } from "./gameplay-integration.ts";
 import {
@@ -188,22 +190,6 @@ function TeamCrest({ short, color, small = false }: { short: string; color: stri
   return <span className={`team-crest ${small ? "is-small" : ""}`} style={{ "--crest-color": color } as React.CSSProperties}>{short}</span>;
 }
 
-function PlayerAvatar({ career, large = false }: { career: CareerState; large?: boolean }) {
-  const hairClasses: Record<string, string> = {
-    Curto: "hair-short",
-    Raspado: "hair-shaved",
-    Cacheado: "hair-curly",
-    Tranças: "hair-braids",
-  };
-  return (
-    <div className={`player-avatar ${large ? "is-large" : ""}`} style={{ "--skin": career.skinTone, "--kit": career.clubColor } as React.CSSProperties} aria-label={`Avatar de ${career.name}`}>
-      <span className={`avatar-hair ${hairClasses[career.hairStyle] ?? "hair-short"}`} />
-      <span className="avatar-head" />
-      <span className="avatar-body"><b>{career.shirtNumber}</b></span>
-    </div>
-  );
-}
-
 function Brand({ dark = false }: { dark?: boolean }) {
   return <div className={`game-brand ${dark ? "is-dark" : ""}`}><span className="brand-symbol">L</span><div><strong>LEGADO FC</strong><small>0.5.2 · CAMPO 2D</small></div></div>;
 }
@@ -300,166 +286,6 @@ function Lobby({
         <span>12 PAÍSES · {TEAMS.length} CLUBES · {WORLD_TEAMS.reduce((total, team) => total + team.squad.length, 0)} CARREIRAS SIMULADAS</span>
       </footer>
     </main>
-  );
-}
-
-function OptionPill({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
-  return <button type="button" className={`option-pill ${active ? "is-active" : ""}`} onClick={onClick}>{children}</button>;
-}
-
-function CareerCreator({
-  onCreate,
-  onClose,
-  slot,
-}: {
-  onCreate: (career: CareerState) => void;
-  onClose: () => void;
-  slot: number;
-}) {
-  const [name, setName] = useState("");
-  const [position, setPosition] = useState<Position>("Meia");
-  const [origin, setOrigin] = useState<OriginType>("Clube de bairro");
-  const [nationality, setNationality] = useState("Brasil");
-  const [countryId, setCountryId] = useState<CountryId>("BR");
-  const [division, setDivision] = useState<DivisionLevel>(2);
-  const [foot, setFoot] = useState<Foot>("Direito");
-  const [archetype, setArchetype] = useState<Archetype>("Maestro");
-  const [difficulty, setDifficulty] = useState<Difficulty>("Profissional");
-  const [age, setAge] = useState(18);
-  const [shirtNumber, setShirtNumber] = useState(18);
-  const [skinTone, setSkinTone] = useState("#b97850");
-  const [hairStyle, setHairStyle] = useState("Curto");
-
-  const selectedCountry = useMemo(() => COUNTRIES.find((country) => country.id === countryId) ?? COUNTRIES[0], [countryId]);
-  const selectedLeague = useMemo(() => getLeagueDefinition(countryId, division), [countryId, division]);
-  const selectedClub = useMemo(() => getStartingClub(countryId, division, origin), [countryId, division, origin]);
-  const preview = useMemo(() => migrateCareer({
-    name: name.trim() || "Novo Talento",
-    position,
-    origin,
-    nationality,
-    countryId,
-    countryName: selectedCountry.name,
-    division,
-    leagueId: selectedLeague.id,
-    leagueName: selectedLeague.name,
-    clubId: selectedClub.id,
-    clubName: selectedClub.name,
-    clubShort: selectedClub.short,
-    clubColor: selectedClub.color,
-    clubStrength: selectedClub.strength,
-    salary: getSalary(countryId, division),
-    foot,
-    archetype,
-    difficulty,
-    age,
-    shirtNumber,
-    skinTone,
-    hairStyle,
-  }), [name, position, origin, nationality, countryId, selectedCountry.name, division, selectedLeague.id, selectedLeague.name, selectedClub, foot, archetype, difficulty, age, shirtNumber, skinTone, hairStyle]);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    onCreate(migrateCareer({
-      ...preview,
-      id: `slot-${slot + 1}-${hashText(`${name}:${Date.now()}`).toString(36)}`,
-      name: name.trim() || "Alex Silva",
-      matches: 0,
-      recentResults: [],
-    }));
-  }
-
-  return (
-    <div className="creator-backdrop">
-      <section className="creator-window" role="dialog" aria-modal="true" aria-labelledby="creator-title">
-        <aside className="creator-preview">
-          <button className="creator-close light" onClick={onClose} aria-label="Fechar criação">←</button>
-          <Brand dark />
-          <span className="overline">NOVO ATLETA · SLOT 0{slot + 1}</span>
-          <div className="preview-stage">
-            <div className="preview-spotlight" />
-            <PlayerAvatar career={preview} large />
-            <span className="preview-shirt">{shirtNumber}</span>
-          </div>
-          <div className="preview-name">
-            <small>{position.toUpperCase()} · {foot.toUpperCase()}</small>
-            <h2>{name.trim() || "NOVO TALENTO"}</h2>
-            <span>{selectedCountry.flag} {selectedLeague.name} · OVR {getOverall(preview)}</span>
-          </div>
-          <div className="preview-club"><TeamCrest short={selectedClub.short} color={selectedClub.color} /><div><small>CLUBE INICIAL · FORÇA {selectedClub.strength}</small><strong>{selectedClub.name}</strong></div></div>
-        </aside>
-
-        <div className="creator-form-pane">
-          <button className="creator-close" onClick={onClose} aria-label="Fechar criação">×</button>
-          <span className="step-label">PERSONALIZAÇÃO COMPLETA</span>
-          <h1 id="creator-title">Quem será você<br />dentro de campo?</h1>
-          <form onSubmit={submit}>
-            <div className="creator-section">
-              <div className="creator-section-title"><span>01</span><div><strong>Identidade</strong><small>As bases da sua história</small></div></div>
-              <label className="field-label">Nome do jogador<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Alex Silva" maxLength={24} autoFocus /></label>
-              <div className="field-grid three">
-                <label className="field-label">Idade<input type="number" min="16" max="23" value={age} onChange={(event) => setAge(Number(event.target.value))} /></label>
-                <label className="field-label">Nacionalidade<select value={nationality} onChange={(event) => setNationality(event.target.value)}>{COUNTRIES.map((country) => <option key={country.id}>{country.name}</option>)}<option>Colômbia</option><option>Uruguai</option></select></label>
-                <label className="field-label">Número<input type="number" min="1" max="99" value={shirtNumber} onChange={(event) => setShirtNumber(Number(event.target.value))} /></label>
-              </div>
-            </div>
-
-            <div className="creator-section">
-              <div className="creator-section-title"><span>02</span><div><strong>Onde tudo começa</strong><small>País, divisão e história de origem</small></div></div>
-              <div className="country-choice-grid">
-                {COUNTRIES.map((country) => (
-                  <button type="button" className={`country-choice ${countryId === country.id ? "is-active" : ""}`} onClick={() => setCountryId(country.id)} key={country.id}>
-                    <span>{country.flag}</span><div><strong>{country.name}</strong><small>{country.style}</small></div>
-                  </button>
-                ))}
-              </div>
-              <div className="division-choice">
-                <button type="button" className={division === 2 ? "is-active" : ""} onClick={() => setDivision(2)}><span>CAMINHO DA ASCENSÃO</span><strong>{selectedCountry.leagues[1].name}</strong><small>Suba construindo seu nome desde baixo</small></button>
-                <button type="button" className={division === 1 ? "is-active" : ""} onClick={() => setDivision(1)}><span>DESAFIO DA ELITE</span><strong>{selectedCountry.leagues[0].name}</strong><small>Mais salário, pressão e risco de queda</small></button>
-              </div>
-              <div className="origin-choice-grid">
-                {ORIGINS.map((item) => (
-                  <button type="button" className={origin === item.id ? "is-active" : ""} onClick={() => setOrigin(item.id)} key={item.id}>
-                    <strong>{item.id}</strong><small>{item.description}</small>
-                  </button>
-                ))}
-              </div>
-              <div className="starting-contract"><TeamCrest short={selectedClub.short} color={selectedClub.color} small /><div><small>CONTRATO INICIAL</small><strong>{selectedClub.name}</strong><span>{money(getSalary(countryId, division))}/mês · {selectedLeague.name}</span></div></div>
-            </div>
-
-            <div className="creator-section">
-              <div className="creator-section-title"><span>03</span><div><strong>Perfil de jogo</strong><small>Define atributos e tipos de lance</small></div></div>
-              <label className="field-label">Posição<select value={position} onChange={(event) => setPosition(event.target.value as Position)}><option>Atacante</option><option>Ponta</option><option>Meia</option><option>Lateral</option><option>Zagueiro</option></select></label>
-              <div className="choice-row" aria-label="Pé dominante">
-                <span>PÉ DOMINANTE</span>
-                <div><OptionPill active={foot === "Direito"} onClick={() => setFoot("Direito")}>Direito</OptionPill><OptionPill active={foot === "Esquerdo"} onClick={() => setFoot("Esquerdo")}>Esquerdo</OptionPill></div>
-              </div>
-              <div className="archetype-grid">
-                {(["Maestro", "Finalizador", "Velocista", "Operário", "Muralha"] as Archetype[]).map((item) => (
-                  <button type="button" className={`archetype-card ${archetype === item ? "is-active" : ""}`} onClick={() => setArchetype(item)} key={item}>
-                    <span>{item === "Maestro" ? "◎" : item === "Finalizador" ? "◉" : item === "Velocista" ? "↯" : item === "Operário" ? "◆" : "⬢"}</span>
-                    <strong>{item}</strong>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="creator-section appearance-section">
-              <div className="creator-section-title"><span>04</span><div><strong>Aparência e desafio</strong><small>Visual do avatar e ritmo da carreira</small></div></div>
-              <div className="appearance-row">
-                <label>PELE<div className="swatches">{["#f2c5a0", "#d89a70", "#b97850", "#75442f", "#4a2a22"].map((tone) => <button type="button" aria-label={`Tom de pele ${tone}`} className={skinTone === tone ? "is-active" : ""} style={{ background: tone }} onClick={() => setSkinTone(tone)} key={tone} />)}</div></label>
-                <label>CABELO<select value={hairStyle} onChange={(event) => setHairStyle(event.target.value)}><option>Curto</option><option>Raspado</option><option>Cacheado</option><option>Tranças</option></select></label>
-              </div>
-              <div className="difficulty-row">
-                {(["Promessa", "Profissional", "Lenda"] as Difficulty[]).map((item) => <OptionPill active={difficulty === item} onClick={() => setDifficulty(item)} key={item}>{item}</OptionPill>)}
-              </div>
-            </div>
-
-            <button className="create-career-button" type="submit"><span>INICIAR CARREIRA</span><b>Entrar na {selectedLeague.name} →</b></button>
-          </form>
-        </div>
-      </section>
-    </div>
   );
 }
 

@@ -257,6 +257,9 @@ export type CareerState = {
   shirtNumber: number;
   skinTone: string;
   hairStyle: string;
+  hairColor?: string;
+  facialHair?: string;
+  faceShape?: string;
   clubId: string;
   clubName: string;
   clubShort: string;
@@ -2430,6 +2433,9 @@ export function migrateCareer(input: Partial<CareerState> | null): CareerState {
     shirtNumber: input?.shirtNumber ?? 18,
     skinTone: input?.skinTone ?? "#b97850",
     hairStyle: input?.hairStyle ?? "Curto",
+    hairColor: input?.hairColor ?? "#171917",
+    facialHair: input?.facialHair ?? "Sem barba",
+    faceShape: input?.faceShape ?? "Oval",
     clubId: input?.clubId ?? selectedClub.id,
     clubName: input?.clubName ?? selectedClub.name,
     clubShort: input?.clubShort ?? selectedClub.short,
