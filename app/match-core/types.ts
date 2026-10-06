@@ -35,6 +35,7 @@ export type MatchPlayerState = {
   controlled: boolean;
   active: boolean;
   position: Vector2;
+  homePosition?: Vector2;
   velocity: Vector2;
   stamina: number;
 };
@@ -45,7 +46,7 @@ export type MatchScoreState = {
 };
 
 export type MatchCoreEvent =
-  | { tick: number; type: "kickoff" | "half-time" | "second-half" | "full-time" | "pause" | "resume" }
+  | { tick: number; type: "kickoff" | "half-time" | "second-half" | "full-time" | "pause" | "resume" | "abandon" }
   | { tick: number; type: "goal"; side: MatchSide }
   | { tick: number; type: "ball-out"; side: "left" | "right" | "top" | "bottom" };
 

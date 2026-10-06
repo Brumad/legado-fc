@@ -52,6 +52,7 @@ function teamPlayers(team: Team, side: MatchSide, controlledPlayerId: string | n
       controlled: Boolean(controlledPlayerId && index === 7),
       active: true,
       position,
+      homePosition: { ...position },
       velocity: { x: 0, y: 0 },
       stamina: 100,
     };
@@ -70,7 +71,6 @@ export function createPlayableMatchState(
 ): { state: MatchCoreState; context: PlayableMatchContext } {
   const careerTeam = findCareerTeam(career);
   const playerSide: MatchSide = fixture.home ? "home" : "away";
-  const opponentSide: MatchSide = fixture.home ? "away" : "home";
   const controlledPlayerId = `career-player-${career.id}`;
   const homeTeam = fixture.home ? careerTeam : fixture.opponent;
   const awayTeam = fixture.home ? fixture.opponent : careerTeam;

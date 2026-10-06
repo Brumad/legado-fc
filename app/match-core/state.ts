@@ -1,5 +1,5 @@
-import { DEFAULT_PITCH } from "./config.ts";
-import {
+import { DEFAULT_PITCH, MATCH_CORE_SCHEMA_VERSION } from "./config.ts";
+import type {
   MatchClockState,
   MatchCoreEvent,
   MatchCoreState,
@@ -31,7 +31,7 @@ export function createMatchCoreState(options: {
 }): MatchCoreState {
   const pitch = options.pitch ?? DEFAULT_PITCH;
   return {
-    version: 1,
+    version: MATCH_CORE_SCHEMA_VERSION,
     matchId: options.matchId,
     tick: 0,
     pitch: { ...pitch },
@@ -47,6 +47,7 @@ export function createMatchCoreState(options: {
     players: (options.players ?? []).map((player) => ({
       ...player,
       position: cloneVector(player.position),
+      homePosition: cloneVector(player.homePosition ?? player.position),
       velocity: cloneVector(player.velocity),
     })),
     paused: false,
@@ -70,7 +71,7 @@ export function validateMatchCoreState(state: MatchCoreState): MatchStateValidat
   };
 
   if (!state.matchId) errors.push("matchId vazio");
-  if (state.version !== 1) errors.push(`versão inesperada: ${state.version}`);
+  if (state.version !== MATCH_CORE_SCHEMA_VERSION) errors.push(`versão inesperada: ${state.version}`);
   finite(state.tick, "tick");
   finite(state.pitch.length, "pitch.length");
   finite(state.pitch.width, "pitch.width");
@@ -94,6 +95,10 @@ export function validateMatchCoreState(state: MatchCoreState): MatchStateValidat
     finite(player.velocity.x, `${player.id}.velocity.x`);
     finite(player.velocity.y, `${player.id}.velocity.y`);
     finite(player.stamina, `${player.id}.stamina`);
+    if (player.homePosition) {
+      finite(player.homePosition.x, `${player.id}.homePosition.x`);
+      finite(player.homePosition.y, `${player.id}.homePosition.y`);
+    }
     if (player.stamina < 0 || player.stamina > 100) errors.push(`${player.id}.stamina fora de 0..100`);
   }
 

@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_MATCH_CORE_CONFIG,
   FixedStepMatchRuntime,
+  abandonMatch,
   createMatchCoreState,
+  evaluateBallBoundary,
   gamepadInputFromAxes,
+  getFoundationAiInput,
   keyboardInputFromKeys,
   normalizeMatchInput,
+  pitchToCanvas,
   startSecondHalf,
   touchInputFromVector,
   validateMatchCoreState,
@@ -62,6 +66,40 @@ sixtyFps.advanceFrame(0.2);
 assert.equal(sixtyFps.state.tick, pausedTick);
 sixtyFps.resume();
 
+const aiState = createMatchCoreState({
+  matchId: "ai-foundation",
+  players: [{
+    id: "ai-midfielder",
+    side: "away",
+    role: "MEI",
+    controlled: false,
+    active: true,
+    position: { x: 60, y: 34 },
+    homePosition: { x: 70, y: 34 },
+    velocity: { x: 0, y: 0 },
+    stamina: 100,
+  }],
+});
+const aiInput = getFoundationAiInput(aiState.players[0], aiState);
+assert.ok(aiInput.moveX !== 0 || aiInput.moveY !== 0);
+
+assert.deepEqual(
+  evaluateBallBoundary({ x: 106, y: 34 }, aiState.pitch),
+  { kind: "goal", side: "home" },
+);
+assert.deepEqual(
+  evaluateBallBoundary({ x: 50, y: -1 }, aiState.pitch),
+  { kind: "out", edge: "top" },
+);
+
+const canvasPoint = pitchToCanvas(
+  { x: 52.5, y: 34 },
+  aiState,
+  { width: 1050, height: 680, padding: 20 },
+);
+assert.ok(Math.abs(canvasPoint.x - 525) < 0.001);
+assert.ok(Math.abs(canvasPoint.y - 340) < 0.001);
+
 const lifecycle = createRuntime("lifecycle");
 lifecycle.start();
 for (let frame = 0; frame < 120; frame += 1) lifecycle.advanceFrame(1 / 60);
@@ -80,6 +118,11 @@ const validation = validateMatchCoreState(lifecycle.state);
 assert.equal(validation.valid, true, validation.errors.join("; "));
 assert.equal(lifecycle.state.clock.matchSeconds, 4);
 assert.equal(lifecycle.state.tick, 240);
+
+const abandoned = abandonMatch(createRuntime("abandon").state);
+assert.equal(abandoned.finished, true);
+assert.equal(abandoned.clock.phase, "abandoned");
+assert.equal(abandoned.events.at(-1)?.type, "abandon");
 
 const invalid = createMatchCoreState({
   matchId: "invalid",
@@ -102,4 +145,8 @@ console.log(JSON.stringify({
   lifecycle: lifecycle.state.events.map((event) => event.type),
   finalPhase: lifecycle.state.clock.phase,
   finiteStateValidation: validation.valid,
+  aiFoundation: true,
+  rulesFoundation: true,
+  rendererMapping: true,
+  safeAbandon: true,
 }));

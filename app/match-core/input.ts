@@ -1,5 +1,5 @@
 import { DEFAULT_MATCH_INPUT } from "./config.ts";
-import { MatchInputFrame } from "./types.ts";
+import type { MatchInputFrame } from "./types.ts";
 
 function clampAxis(value: number) {
   if (!Number.isFinite(value)) return 0;
