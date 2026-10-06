@@ -68,3 +68,19 @@ jobs:
         run: pnpm build:github
         env:
           GITHUB_PAGES_BASE: /legado-fc/
+
+      - name: Instalar navegador para validação visual 0.5.1
+        if: startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1')
+        run: pnpm dlx @playwright/test@1.56.0 install --with-deps chromium
+
+      - name: Validar UI real em 360px tablet e desktop
+        if: startsWith(github.ref_name, 'feat/v0.5.1') || startsWith(github.head_ref, 'feat/v0.5.1')
+        run: |
+          pnpm exec vite preview --config vite.github.config.ts --host 127.0.0.1 --port 4173 > /tmp/legado-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/legado-fc/ > /dev/null; then break; fi
+            sleep 1
+          done
+          pnpm dlx @playwright/test@1.56.0 test tests/career-ui.visual.spec.mjs --reporter=line
+        env:
+          GITHUB_PAGES_BASE: /legado-fc/
