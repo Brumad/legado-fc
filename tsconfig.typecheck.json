@@ -16,5 +16,8 @@
     "github-dist",
     ".next",
     ".vinext"
-  ]
+  ],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  }
 }
