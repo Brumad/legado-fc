@@ -43,7 +43,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /0\.5\.0 · FUNDAÇÃO JOGÁVEL/);
+  assert.match(page, /0\.5\.1 · CARREIRA/);
   assert.match(page, /<CareerHub/);
   assert.match(page, /country-choice-grid/);
   assert.match(page, /getLeagueDefinition/);
