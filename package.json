@@ -1,6 +1,6 @@
 {
   "name": "carreira-futebol-game",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -12,14 +12,15 @@
     "verify:variation": "node --experimental-strip-types scripts/verify-variation.mjs",
     "verify:world": "node --experimental-strip-types scripts/verify-world.mjs",
     "start": "vinext start",
-    "test": "npm run typecheck && npm run build && npm run verify:variation && npm run verify:world && npm run verify:match-core && npm run verify:match-integration && npm run verify:career-ui && npm run test:render",
+    "test": "npm run typecheck && npm run build && npm run verify:variation && npm run verify:world && npm run verify:match-core && npm run verify:match-integration && npm run verify:career-ui && npm run verify:playable-match && npm run test:render",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .vinext --ignore-pattern github-dist --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "verify:match-core": "node --experimental-strip-types scripts/verify-match-core.mjs",
     "test:render": "node --test tests/rendered-html.test.mjs",
     "verify:match-integration": "node --experimental-strip-types scripts/verify-match-integration.mjs",
-    "verify:career-ui": "node scripts/verify-career-ui.mjs"
+    "verify:career-ui": "node scripts/verify-career-ui.mjs",
+    "verify:playable-match": "node --experimental-strip-types scripts/verify-playable-match.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

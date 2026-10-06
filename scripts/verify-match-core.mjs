@@ -17,6 +17,7 @@ import {
 
 const testConfig = {
   ...DEFAULT_MATCH_CORE_CONFIG,
+  matchClockRate: 1,
   halfDurationSeconds: 2,
   maxCatchUpSteps: 24,
 };

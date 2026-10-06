@@ -39,6 +39,7 @@ for (const home of [true, false]) {
 
   const config = {
     ...DEFAULT_MATCH_CORE_CONFIG,
+    matchClockRate: 1,
     halfDurationSeconds: 0.5,
     maxCatchUpSteps: 60,
   };

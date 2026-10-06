@@ -52,6 +52,9 @@ jobs:
       - name: Validar interface de carreira 0.5.1
         run: pnpm verify:career-ui
 
+      - name: Validar partida 2D jogável 0.5.2
+        run: pnpm verify:playable-match
+
       - name: Testar 5.000 partidas legadas
         run: pnpm verify:variation
 
