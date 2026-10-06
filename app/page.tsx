@@ -543,7 +543,7 @@ function SeasonView({ career }: { career: CareerState }) {
   const goalRank = Math.max(1, scorers.findIndex((player) => player.id === careerPlayerId) + 1);
   const assistRank = Math.max(1, assisters.findIndex((player) => player.id === careerPlayerId) + 1);
   return (
-    <main className="career-content inner-view">
+    <main className="career-content inner-view career-secondary-v051 season-v051">
       <section className="view-heading"><div><span className="overline">{career.countryName.toUpperCase()} · TEMPORADA {career.season}</span><h1>{titleRace ? "A corrida pelo título." : "A corrida pelo acesso."}</h1><p>{career.leagueName}: {format.note}. Cada rodada simula {format.matchesPerRound} partidas e atualiza todos os atletas.</p></div><div className="season-progress-ring"><strong>{career.seasonRound}</strong><span>DE {format.rounds}<br />RODADAS</span></div></section>
       <section className="season-layout">
         <article className="hud-card full-table-card">
@@ -681,7 +681,7 @@ const attributeLabels: Array<[keyof CareerState["attributes"], string]> = [
 
 function PlayerView({ career }: { career: CareerState }) {
   return (
-    <main className="career-content inner-view">
+    <main className="career-content inner-view career-secondary-v051 player-v051">
       <section className="player-profile-hero">
         <div className="profile-back-number">{career.shirtNumber}</div>
         <PlayerAvatar career={career} large />
@@ -868,8 +868,8 @@ function LifeView({ career, onAction }: { career: CareerState; onAction: (action
     ["ambition", "Ambição", "Acomodado", "Ambicioso"],
   ];
   return (
-    <main className="career-content inner-view">
-      <section className="view-heading"><div><span className="overline">0.5.0 · FUNDAÇÃO JOGÁVEL</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
+    <main className="career-content inner-view career-secondary-v051 life-v051">
+      <section className="view-heading"><div><span className="overline">0.5.1 · VIDA E FINANÇAS</span><h1>Toda escolha deixa uma marca.</h1><p>Decisões agora atravessam partidas, treinador, elenco, saúde, família, reputação e mercado — e podem voltar semanas depois.</p></div><div className="market-value-block"><small>PATRIMÔNIO LÍQUIDO</small><strong>{money(netWorth)}</strong><span>Aposentadoria: {money(career.retirementFund)}</span></div></section>
 
       {event && <section className="life-story-event"><span className="overline">EVENTO ENCADEADO · {career.queuedLifeEvents.length} NA FILA</span><h2>{event.title}</h2><p>{event.text}</p><div>{event.choices.map((choice) => <button onClick={() => onAction(choice.id)} key={choice.id}><strong>{choice.label}</strong><small>{choice.hint}</small></button>)}</div></section>}
 
