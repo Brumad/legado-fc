@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 
 const baseURL = "http://127.0.0.1:4173/legado-fc/";
 
-test.describe.configure({ mode: "serial" });
 test.setTimeout(60_000);
 
 const careerFixture = {

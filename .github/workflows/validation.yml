@@ -83,6 +83,6 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/legado-fc/ > /dev/null; then break; fi
             sleep 1
           done
-          pnpm exec playwright test tests/career-ui.visual.spec.mjs --reporter=line
+          pnpm exec playwright test tests/career-ui.visual.spec.mjs --reporter=line --workers=1
         env:
           GITHUB_PAGES_BASE: /legado-fc/
