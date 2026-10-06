@@ -3,14 +3,51 @@ import type {
   MatchClockState,
   MatchCoreEvent,
   MatchCoreState,
+  MatchPlayerRuntimeStats,
   MatchPlayerState,
+  MatchRuntimeStats,
   MatchStateValidation,
+  MatchTeamRuntimeStats,
   PitchDimensions,
   Vector2,
 } from "./types.ts";
 
 function cloneVector(vector: Vector2): Vector2 {
   return { x: vector.x, y: vector.y };
+}
+
+export function createEmptyTeamStats(): MatchTeamRuntimeStats {
+  return {
+    possessionTicks: 0,
+    shots: 0,
+    passes: 0,
+    completedPasses: 0,
+    tackles: 0,
+    fouls: 0,
+    corners: 0,
+    throwIns: 0,
+  };
+}
+
+export function createEmptyPlayerStats(): MatchPlayerRuntimeStats {
+  return {
+    goals: 0,
+    assists: 0,
+    shots: 0,
+    passes: 0,
+    completedPasses: 0,
+    tackles: 0,
+    fouls: 0,
+    touches: 0,
+  };
+}
+
+export function createRuntimeStats(players: MatchPlayerState[]): MatchRuntimeStats {
+  return {
+    home: createEmptyTeamStats(),
+    away: createEmptyTeamStats(),
+    players: Object.fromEntries(players.map((player) => [player.id, createEmptyPlayerStats()])),
+  };
 }
 
 export function createMatchClock(): MatchClockState {
@@ -30,6 +67,14 @@ export function createMatchCoreState(options: {
   players?: MatchPlayerState[];
 }): MatchCoreState {
   const pitch = options.pitch ?? DEFAULT_PITCH;
+  const players = (options.players ?? []).map((player) => ({
+    ...player,
+    position: cloneVector(player.position),
+    homePosition: cloneVector(player.homePosition ?? player.position),
+    velocity: cloneVector(player.velocity),
+    facing: cloneVector(player.facing ?? { x: player.side === "home" ? 1 : -1, y: 0 }),
+    actionCooldownTicks: player.actionCooldownTicks ?? 0,
+  }));
   return {
     version: MATCH_CORE_SCHEMA_VERSION,
     matchId: options.matchId,
@@ -43,13 +88,13 @@ export function createMatchCoreState(options: {
       radius: 0.11,
       possessionPlayerId: null,
       lastTouchSide: null,
+      lastTouchPlayerId: null,
+      previousTouchPlayerId: null,
+      pickupCooldownTicks: 0,
     },
-    players: (options.players ?? []).map((player) => ({
-      ...player,
-      position: cloneVector(player.position),
-      homePosition: cloneVector(player.homePosition ?? player.position),
-      velocity: cloneVector(player.velocity),
-    })),
+    players,
+    restart: null,
+    stats: createRuntimeStats(players),
     paused: false,
     finished: false,
     events: [],
@@ -60,7 +105,7 @@ export function appendMatchEvent(state: MatchCoreState, event: MatchCoreEvent): 
   const events = [...state.events, event];
   return {
     ...state,
-    events: events.length > 120 ? events.slice(-120) : events,
+    events: events.length > 180 ? events.slice(-180) : events,
   };
 }
 
@@ -95,11 +140,24 @@ export function validateMatchCoreState(state: MatchCoreState): MatchStateValidat
     finite(player.velocity.x, `${player.id}.velocity.x`);
     finite(player.velocity.y, `${player.id}.velocity.y`);
     finite(player.stamina, `${player.id}.stamina`);
+    if (player.facing) {
+      finite(player.facing.x, `${player.id}.facing.x`);
+      finite(player.facing.y, `${player.id}.facing.y`);
+    }
     if (player.homePosition) {
       finite(player.homePosition.x, `${player.id}.homePosition.x`);
       finite(player.homePosition.y, `${player.id}.homePosition.y`);
     }
     if (player.stamina < 0 || player.stamina > 100) errors.push(`${player.id}.stamina fora de 0..100`);
+  }
+
+  if (state.ball.possessionPlayerId && !ids.has(state.ball.possessionPlayerId)) {
+    errors.push("posse aponta para jogador inexistente");
+  }
+  if (state.restart) {
+    finite(state.restart.position.x, "restart.position.x");
+    finite(state.restart.position.y, "restart.position.y");
+    finite(state.restart.ticksRemaining, "restart.ticksRemaining");
   }
 
   return { valid: errors.length === 0, errors };
