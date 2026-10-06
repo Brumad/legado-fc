@@ -13,6 +13,7 @@ export type MatchClockState = {
   periodSeconds: number;
   minute: number;
   second: number;
+  addedTimeSeconds: number;
 };
 
 export type BallState = {

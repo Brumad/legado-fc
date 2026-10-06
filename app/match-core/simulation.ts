@@ -4,11 +4,12 @@ import {
   claimLooseBall,
   giveRestartPossession,
   recordRestartStat,
+  resolveAutomaticSubstitutions,
   resolvePossessionAction,
   resolveTackles,
   tickRestart,
 } from "./actions.ts";
-import { advanceMatchClock, pauseMatchClock, resumeMatchClock, startMatchClock, startSecondHalfClock } from "./clock.ts";
+import { addMatchStoppage, advanceMatchClock, pauseMatchClock, resumeMatchClock, startMatchClock, startSecondHalfClock } from "./clock.ts";
 import { DEFAULT_MATCH_CORE_CONFIG } from "./config.ts";
 import { normalizeMatchInput } from "./input.ts";
 import { integrateBall, moveMatchPlayer } from "./physics.ts";
@@ -70,7 +71,7 @@ export function startSecondHalf(
   state: MatchCoreState,
   config: MatchCoreConfig = DEFAULT_MATCH_CORE_CONFIG,
 ): MatchCoreState {
-  const clock = startSecondHalfClock(state.clock);
+  const clock = startSecondHalfClock(state.clock, config);
   if (clock === state.clock) return state;
   const next: MatchCoreState = {
     ...state,
@@ -157,7 +158,7 @@ function resolveBoundary(state: MatchCoreState, config: MatchCoreConfig): MatchC
   }
 
   const restart = createRestartForBoundary(state, boundary.edge, config.restartDelayTicks);
-  let next = appendMatchEvent(state, { tick: state.tick, type: "ball-out", edge: boundary.edge });
+  let next = appendMatchEvent({ ...state, clock: addMatchStoppage(state.clock, 6) }, { tick: state.tick, type: "ball-out", edge: boundary.edge });
   next = recordRestartStat(next, restart);
   next = {
     ...next,
@@ -217,6 +218,7 @@ export function stepMatchCore(
     next = resolveBoundary(next, config);
   }
 
+  next = resolveAutomaticSubstitutions(next);
   next = withPossessionTick(next);
 
   if (previousPhase === "first-half" && next.clock.phase === "half-time") {
