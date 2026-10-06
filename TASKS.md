@@ -580,9 +580,13 @@ O monólito de carreira continua sendo reduzido por integração, não por reesc
 
 # 0.5.3 - Futebol, controles e criação de atleta
 
-Status: **EM DESENVOLVIMENTO**
+Status: **IMPLEMENTADO E VALIDADO**
 
 Branch: `feat/v0.5.3-gameplay-ux-overhaul`
+
+PR: **#4**
+
+Gate final: **typecheck + lint + Match Core + integração + 100 IA x IA + 5.000 partidas legadas + 25 temporadas + build + Pages + Playwright desktop/mobile**.
 
 ## Objetivo
 
@@ -597,120 +601,120 @@ A 0.5.3 passa a ter quatro frentes obrigatórias:
 
 ## A. IA, tática e regras em campo
 
-- [ ] Criar posicionamento por formação.
-- [ ] Criar comportamento com posse.
-- [ ] Criar comportamento sem posse.
-- [ ] Criar apoio ao portador da bola.
-- [ ] Criar linhas de passe.
-- [ ] Criar corrida em profundidade.
-- [ ] Criar recomposição.
-- [ ] Criar pressão.
-- [ ] Criar marcação.
-- [ ] Criar cobertura.
-- [ ] Criar comportamento específico do goleiro.
-- [ ] Melhorar seleção de passe da IA.
-- [ ] Melhorar seleção de chute da IA.
-- [ ] Integrar os 12 estilos táticos existentes.
-- [ ] Integrar postura do adversário.
-- [ ] Integrar rivalidade.
-- [ ] Integrar adaptação ao histórico.
-- [ ] Implementar impedimento baseado na posição real do campo.
-- [ ] Melhorar faltas baseadas em disputas reais.
-- [ ] Implementar cartões.
-- [ ] Implementar lesões.
-- [ ] Implementar substituições.
-- [ ] Implementar vantagem.
-- [ ] Implementar acréscimos.
-- [ ] Integrar stamina e fadiga de forma mais forte.
-- [ ] Fazer atributos do atleta alterarem controle, passe, chute, sprint e desarme.
+- [x] Criar posicionamento por formação.
+- [x] Criar comportamento com posse.
+- [x] Criar comportamento sem posse.
+- [x] Criar apoio ao portador da bola.
+- [x] Criar linhas de passe.
+- [x] Criar corrida em profundidade.
+- [x] Criar recomposição.
+- [x] Criar pressão.
+- [x] Criar marcação.
+- [x] Criar cobertura.
+- [x] Criar comportamento específico do goleiro.
+- [x] Melhorar seleção de passe da IA.
+- [x] Melhorar seleção de chute da IA.
+- [x] Integrar os 12 estilos táticos existentes.
+- [x] Integrar postura do adversário.
+- [x] Integrar rivalidade.
+- [x] Integrar adaptação ao histórico.
+- [x] Implementar impedimento baseado na posição real do campo.
+- [x] Melhorar faltas baseadas em disputas reais.
+- [x] Implementar cartões.
+- [x] Implementar lesões.
+- [x] Implementar substituições.
+- [x] Implementar vantagem.
+- [x] Implementar acréscimos.
+- [x] Integrar stamina e fadiga de forma mais forte.
+- [x] Fazer atributos do atleta alterarem controle, passe, chute, sprint e desarme.
 
 ## B. Controles mobile e qualidade de controle
 
-- [ ] Substituir o D-pad mobile por joystick analógico virtual.
-- [ ] Permitir intensidade/direção contínua de movimento pelo touch.
-- [ ] Criar zona morta e normalização do joystick.
-- [ ] Reposicionar botões de ação para ergonomia de polegar.
-- [ ] Aumentar áreas de toque sem aumentar visualmente todos os botões.
-- [ ] Impedir perda de input ao arrastar o dedo para fora do botão.
-- [ ] Permitir sprint por botão segurado.
-- [ ] Melhorar feedback visual de botão pressionado.
-- [ ] Impedir seleção de texto/scroll/zoom acidental durante partida.
-- [ ] Criar opção de tamanho dos controles mobile.
-- [ ] Criar opção de opacidade dos controles mobile.
-- [ ] Criar opção de inverter lado do joystick/botões.
-- [ ] Preservar teclado e gamepad.
-- [ ] Validar controles reais em viewport mobile.
+- [x] Substituir o D-pad mobile por joystick analógico virtual.
+- [x] Permitir intensidade/direção contínua de movimento pelo touch.
+- [x] Criar zona morta e normalização do joystick.
+- [x] Reposicionar botões de ação para ergonomia de polegar.
+- [x] Aumentar áreas de toque sem aumentar visualmente todos os botões.
+- [x] Impedir perda de input ao arrastar o dedo para fora do botão.
+- [x] Permitir sprint por botão segurado.
+- [x] Melhorar feedback visual de botão pressionado.
+- [x] Impedir seleção de texto/scroll/zoom acidental durante partida.
+- [x] Criar opção de tamanho dos controles mobile.
+- [x] Criar opção de opacidade dos controles mobile.
+- [x] Criar opção de inverter lado do joystick/botões.
+- [x] Preservar teclado e gamepad.
+- [x] Validar controles reais em viewport mobile.
 
 ## C. Tempo, dificuldade e configuração da partida
 
-- [ ] Corrigir sensação/duração do relógio da partida 0.5.2.
-- [ ] Separar tempo visual da partida de velocidade interna de simulação.
-- [ ] Criar opções de duração de partida.
-- [ ] Permitir partidas curtas, médias e longas.
-- [ ] Exibir duração escolhida nas configurações.
-- [ ] Fazer a duração escolhida valer na partida 2D.
-- [ ] Manter os dois tempos e intervalo corretos em qualquer duração.
-- [ ] Criar níveis de dificuldade reais sem manipular placar.
-- [ ] Fazer dificuldade alterar reação, pressão, posicionamento, precisão e tomada de decisão da IA.
-- [ ] Permitir selecionar dificuldade na criação de atleta.
-- [ ] Permitir alterar dificuldade nas configurações da carreira.
-- [ ] Preservar compatibilidade com saves existentes.
-- [ ] Criar testes de duração e dificuldade.
+- [x] Corrigir sensação/duração do relógio da partida 0.5.2.
+- [x] Separar tempo visual da partida de velocidade interna de simulação.
+- [x] Criar opções de duração de partida.
+- [x] Permitir partidas curtas, médias e longas.
+- [x] Exibir duração escolhida nas configurações.
+- [x] Fazer a duração escolhida valer na partida 2D.
+- [x] Manter os dois tempos e intervalo corretos em qualquer duração.
+- [x] Criar níveis de dificuldade reais sem manipular placar.
+- [x] Fazer dificuldade alterar reação, pressão, posicionamento, precisão e tomada de decisão da IA.
+- [x] Permitir selecionar dificuldade na criação de atleta.
+- [x] Permitir alterar dificuldade nas configurações da carreira.
+- [x] Preservar compatibilidade com saves existentes.
+- [x] Criar testes de duração e dificuldade.
 
 ## D. Criação de atleta / personagem
 
-- [ ] Fazer grande redesign da tela de criação.
-- [ ] Melhorar leitura visual e hierarquia das etapas.
-- [ ] Melhorar preview do personagem.
-- [ ] Redesenhar visual do personagem/rosto/corpo sem depender de assets externos.
-- [ ] Melhorar representação de cabelo.
-- [ ] Melhorar tons de pele.
-- [ ] Adicionar opções visuais suficientes para personagens mais distintos.
-- [ ] Melhorar camisa, número e leitura do clube.
-- [ ] Mostrar atributos iniciais de forma visual.
-- [ ] Mostrar efeito do arquétipo antes de criar.
-- [ ] Mostrar efeito da dificuldade antes de criar.
-- [ ] Melhorar seleção de posição e pé dominante.
-- [ ] Melhorar fluxo de escolha de país/divisão/origem.
-- [ ] Garantir que todos os 12 países fiquem acessíveis.
-- [ ] Corrigir os dois países que hoje ultrapassam o limite inferior da HUD.
-- [ ] Garantir scroll interno claro quando necessário.
-- [ ] Garantir que o botão de criar carreira nunca fique inacessível.
-- [ ] Validar criação em 360x800, 390x844, tablet e desktop.
-- [ ] Validar criação em orientação landscape mobile.
+- [x] Fazer grande redesign da tela de criação.
+- [x] Melhorar leitura visual e hierarquia das etapas.
+- [x] Melhorar preview do personagem.
+- [x] Redesenhar visual do personagem/rosto/corpo sem depender de assets externos.
+- [x] Melhorar representação de cabelo.
+- [x] Melhorar tons de pele.
+- [x] Adicionar opções visuais suficientes para personagens mais distintos.
+- [x] Melhorar camisa, número e leitura do clube.
+- [x] Mostrar atributos iniciais de forma visual.
+- [x] Mostrar efeito do arquétipo antes de criar.
+- [x] Mostrar efeito da dificuldade antes de criar.
+- [x] Melhorar seleção de posição e pé dominante.
+- [x] Melhorar fluxo de escolha de país/divisão/origem.
+- [x] Garantir que todos os 12 países fiquem acessíveis.
+- [x] Corrigir os dois países que hoje ultrapassam o limite inferior da HUD.
+- [x] Garantir scroll interno claro quando necessário.
+- [x] Garantir que o botão de criar carreira nunca fique inacessível.
+- [x] Validar criação em 360x800, 390x844, tablet e desktop.
+- [x] Validar criação em orientação landscape mobile.
 
 ## E. Qualidade e regressão
 
-- [ ] Preservar Career Hub 0.5.1.
-- [ ] Preservar Match Core 0.5.0.
-- [ ] Preservar modo rápido legado.
-- [ ] Preservar saves existentes.
-- [ ] Criar gate `verify:0.5.3`.
-- [ ] Criar browser tests específicos para controles mobile.
-- [ ] Criar browser tests específicos para creator/12 países.
-- [ ] Criar browser tests de tempo/dificuldade.
-- [ ] Rodar 100 partidas IA x IA sem soft lock.
-- [ ] Validar distribuição de gols e resultados dentro de faixas configuradas.
-- [ ] Manter 5.000 partidas legadas e 25 temporadas verdes.
+- [x] Preservar Career Hub 0.5.1.
+- [x] Preservar Match Core 0.5.0.
+- [x] Preservar modo rápido legado.
+- [x] Preservar saves existentes.
+- [x] Criar gate `verify:0.5.3`.
+- [x] Criar browser tests específicos para controles mobile.
+- [x] Criar browser tests específicos para creator/12 países.
+- [x] Criar browser tests de tempo/dificuldade.
+- [x] Rodar 100 partidas IA x IA sem soft lock.
+- [x] Validar distribuição de gols e resultados dentro de faixas configuradas.
+- [x] Manter 5.000 partidas legadas e 25 temporadas verdes.
 
 ## Critérios de aceite
 
-- [ ] Joystick mobile permite movimento analógico contínuo e confortável.
-- [ ] Touch não perde movimento por pointer capture/arrasto.
-- [ ] Usuário escolhe duração da partida e o relógio respeita essa escolha.
-- [ ] Usuário escolhe dificuldade e a diferença aparece no comportamento, não no placar forçado.
-- [ ] Todos os 12 países são acessíveis e visíveis na criação.
-- [ ] Nenhum país fica escondido atrás do limite inferior da tela.
-- [ ] Criador não apresenta overflow horizontal em 360 px.
-- [ ] Botão final de criação permanece alcançável por scroll em todos os viewports testados.
-- [ ] A IA consegue marcar gols sem scripts de placar.
-- [ ] A IA consegue defender sem teleportes.
-- [ ] Impedimentos dependem da posição real.
-- [ ] Cartões/faltas derivam de eventos reais.
-- [ ] Stamina altera velocidade e recuperação.
-- [ ] Atributos alteram eficácia das ações.
-- [ ] Cem partidas IA x IA terminam sem travamento.
-- [ ] Não existe manipulação invisível que force vitória ou derrota.
+- [x] Joystick mobile permite movimento analógico contínuo e confortável.
+- [x] Touch não perde movimento por pointer capture/arrasto.
+- [x] Usuário escolhe duração da partida e o relógio respeita essa escolha.
+- [x] Usuário escolhe dificuldade e a diferença aparece no comportamento, não no placar forçado.
+- [x] Todos os 12 países são acessíveis e visíveis na criação.
+- [x] Nenhum país fica escondido atrás do limite inferior da tela.
+- [x] Criador não apresenta overflow horizontal em 360 px.
+- [x] Botão final de criação permanece alcançável por scroll em todos os viewports testados.
+- [x] A IA consegue marcar gols sem scripts de placar.
+- [x] A IA consegue defender sem teleportes.
+- [x] Impedimentos dependem da posição real.
+- [x] Cartões/faltas derivam de eventos reais.
+- [x] Stamina altera velocidade e recuperação.
+- [x] Atributos alteram eficácia das ações.
+- [x] Cem partidas IA x IA terminam sem travamento.
+- [x] Não existe manipulação invisível que force vitória ou derrota.
 
 ---
 

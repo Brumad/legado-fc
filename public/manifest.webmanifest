@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Legado FC 0.5.2: primeira partida 2D jogável com jogador controlável, bola, passe, chute, desarme, IA, câmera e controles para teclado e toque.",
+  "description": "Legado FC 0.5.3: futebol 2D com IA tática, controles mobile analógicos, duração e dificuldade configuráveis, regras reais e criação de atleta redesenhada.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07140e",

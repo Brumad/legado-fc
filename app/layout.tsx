@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.5.2 — Partida 2D Jogável",
+    title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
     description:
-      "Primeira partida 2D realmente jogável do Legado FC, com controle do atleta da carreira, bola, passe, chute, desarme, IA, câmera, reinícios e suporte a teclado e toque.",
+      "Gameplay 2D com IA tática, joystick analógico mobile, duração e dificuldade configuráveis, regras reais em campo e criação de atleta redesenhada.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.5.2 — Partida 2D Jogável",
+      title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
       description:
-        "A carreira agora entra diretamente em um campo 2D jogável, preservando a interface 0.5.1 e o modo rápido legado como fallback.",
+        "A 0.5.3 aprofunda o futebol jogável com táticas, dificuldade real, regras de campo, controles mobile analógicos e creator responsivo.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.2 — Partida 2D Jogável" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.5.2 — Partida 2D Jogável",
-      description: "Campo 2D, 22 jogadores, controles arcade, câmera dinâmica e partidas completas validadas em desktop e mobile.",
+      title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
+      description: "Campo 2D, 12 estilos táticos, joystick analógico, dificuldade real, creator renovado e partidas validadas em desktop e mobile.",
       images: [imageUrl],
     },
   };

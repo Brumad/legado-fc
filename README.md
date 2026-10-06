@@ -6,30 +6,90 @@ e sistemas construídos na 0.4.x.
 
 ## Versão atual
 
-`0.5.2 — Partida 2D Jogável`
+`0.5.3 — Futebol, Controles e Criação de Atleta`
 
-A 0.5.2 é o primeiro grande marco de gameplay da série 0.5: a carreira agora
-entra em um campo 2D realmente jogável. O usuário controla somente seu atleta,
-enquanto os outros 21 jogadores são comandados pela IA.
+A 0.5.3 transforma o vertical slice da 0.5.2 em uma experiência muito mais
+próxima de um jogo: controles mobile analógicos, duração configurável, dificuldade
+real, IA tática, regras derivadas do estado físico da partida e um creator
+totalmente redesenhado.
 
-### Partida 2D
+### Gameplay 2D
 
-- campo superior com câmera acompanhando o atleta;
 - 22 jogadores em campo;
-- aceleração, desaceleração e sprint;
-- stamina ligada ao sprint;
-- bola livre com velocidade e desaceleração;
-- posse, domínio e recepção;
-- passe curto e profundidade;
-- chute e gol;
-- desarme e disputa de posse;
-- faltas e reinício em cobrança 2D;
-- lateral, tiro de meta e escanteio;
-- reinício após gol;
-- placar, cronômetro, pausa e intervalo;
-- teclado, touch e gamepad;
-- resultado integrado à progressão da carreira;
+- controle de um único atleta da carreira;
+- joystick analógico virtual no mobile;
+- teclado e gamepad preservados;
+- passe, profundidade, chute, sprint e desarme;
+- passe e chute influenciados pelos atributos;
+- pace, drible, físico e stamina alteram comportamento real;
+- impedimento calculado pela posição da bola e segunda linha defensiva;
+- faltas originadas de disputas reais;
+- vantagem;
+- cartões amarelos, segundo amarelo e vermelho;
+- lesões leves e moderadas;
+- substituições automáticas por lesão/fadiga;
+- acréscimos derivados de paralisações;
+- laterais, tiros de meta, escanteios, faltas e reinícios;
 - modo rápido legado preservado como fallback.
+
+### IA e tática
+
+Os 12 estilos táticos existentes agora alimentam o Match Core. Formação,
+pressão, linha defensiva, amplitude, agressividade, risco e ritmo modificam o
+comportamento em campo.
+
+A postura também muda durante a partida:
+
+- time perdendo no trecho final aumenta pressão, ritmo, linha e risco;
+- time vencendo pode baixar bloco e reduzir risco;
+- rivalidade aumenta agressividade;
+- histórico contra o adversário continua influenciando a escolha tática;
+- dificuldade altera reação, alcance de pressão, decisões e precisão técnica da IA;
+- dificuldade não adiciona gols nem força vitória/derrota.
+
+### Duração da partida
+
+A física continua em passo fixo e o relógio visual possui ritmos configuráveis:
+
+- **Curta:** aproximadamente 3 minutos;
+- **Padrão:** aproximadamente 6 minutos;
+- **Longa:** aproximadamente 10 minutos.
+
+Dois tempos, intervalo e acréscimos continuam representando uma partida de 90
+minutos dentro do jogo.
+
+### Controles mobile
+
+- joystick analógico com zona morta;
+- intensidade contínua de direção;
+- pointer capture durante arrasto;
+- sprint segurado;
+- áreas de toque ampliadas;
+- feedback de botão pressionado;
+- opção P/M/G para tamanho;
+- opacidade 55/75/100%;
+- opção de inverter joystick e botões;
+- bloqueio de seleção/scroll acidental na área de controles.
+
+### Criação de atleta
+
+O creator foi separado do monólito principal e redesenhado:
+
+- preview maior e mais legível;
+- rosto com formatos diferentes;
+- seis tons de pele;
+- novos estilos de cabelo;
+- cores de cabelo;
+- barba curta, bigode ou sem barba;
+- camisa e clube inicial;
+- atributos iniciais exibidos visualmente;
+- posição em cards;
+- descrição de arquétipos;
+- explicação dos níveis de dificuldade;
+- seleção de país/divisão/origem reorganizada;
+- todos os **12 países** acessíveis em mobile;
+- scroll interno específico para a grade de países;
+- botão final alcançável em 360×800, 390×844 e landscape.
 
 ### Controles de teclado
 
@@ -43,31 +103,45 @@ Espaço        desarme
 Esc           pausa
 ```
 
-### Validação do campo
+### Validação da 0.5.3
 
-O gate `verify:playable-match` executa testes headless do vertical slice e dez
-partidas completas consecutivas. O CI também abre Chromium e conclui partidas
-reais com teclado e touch.
+O gate `verify:0.5.3` valida:
 
-### Interface de carreira preservada
+- 12 perfis táticos;
+- dificuldade comportamental;
+- formações com posicionamento diferente;
+- postura adaptativa pelo placar/minuto;
+- influência de atributos;
+- impedimento real;
+- cartões;
+- lesões;
+- substituições;
+- acréscimos;
+- **100 partidas IA x IA** sem soft lock;
+- distribuição segura de gols.
 
-A 0.5.1 continua disponível integralmente:
+O CI também mantém verdes:
 
-- Career Hub;
-- Temporada;
-- Mundo;
-- Perfil;
-- Vida e Finanças;
-- Mercado e Contrato;
-- layouts mobile, tablet e desktop.
+- 5.000 partidas legadas;
+- 25 temporadas do mundo;
+- Match Core;
+- integração carreira ↔ partida;
+- build de produção;
+- build GitHub Pages;
+- testes de renderização;
+- Career UI em 360 px, tablet e desktop;
+- partida real em Chromium com teclado e touch;
+- creator em 360×800, 390×844, tablet, desktop e landscape.
 
-### Fundação técnica
+### Fundação técnica preservada
 
 - Match Core independente de React;
 - simulação em passo fixo;
 - regras, física, IA e renderer desacoplados;
-- bridge carreira -> partida -> resultado;
-- modo rápido legado preservado.
+- bridge carreira → partida → resultado;
+- Career Hub 0.5.1 preservado;
+- modo rápido legado preservado;
+- saves anteriores continuam migrando.
 
 ## Desenvolvimento
 
@@ -88,6 +162,7 @@ pnpm verify:match-core
 pnpm verify:match-integration
 pnpm verify:career-ui
 pnpm verify:playable-match
+pnpm verify:0.5.3
 pnpm verify:variation
 pnpm verify:world
 pnpm test:render
