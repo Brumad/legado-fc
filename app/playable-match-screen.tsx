@@ -65,6 +65,12 @@ export function PlayableMatchScreen({
   const clockMinuteLabel = addedMinutes > 0 ? `${addedBase}+${addedMinutes}` : String(snapshot.clock.minute).padStart(2, "0");
   const homeKit = playerSide === "home" ? career.clubColor : fixture.opponent.color;
   const awayKit = playerSide === "away" ? career.clubColor : fixture.opponent.color;
+  const renderTheme = useMemo(() => ({
+    homePlayer: homeKit,
+    awayPlayer: awayKit,
+    homeTrim: homeKit === "#ffffff" ? "#152018" : "#f1f5ef",
+    awayTrim: awayKit === "#ffffff" ? "#152018" : "#f1f5ef",
+  }), [awayKit, homeKit]);
 
   function finishPlayableMatch() {
     const state = finalState ?? canvasRef.current?.getState();
@@ -127,12 +133,7 @@ export function PlayableMatchScreen({
               visualQuality={visualQuality}
               visualEffects={visualEffects}
               crowd={visualQuality !== "low"}
-              renderTheme={{
-                homePlayer: homeKit,
-                awayPlayer: awayKit,
-                homeTrim: homeKit === "#ffffff" ? "#152018" : "#f1f5ef",
-                awayTrim: awayKit === "#ffffff" ? "#152018" : "#f1f5ef",
-              }}
+              renderTheme={renderTheme}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />
