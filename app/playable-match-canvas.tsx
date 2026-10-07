@@ -13,7 +13,7 @@ import {
   normalizeMatchInput,
   touchInputFromVector,
 } from "./match-core/index.ts";
-import { createFollowCamera, drawMatchFrame } from "./match-core/renderer.ts";
+import { DEFAULT_MATCH_RENDER_THEME, createMatchCamera, drawMatchFrame, type MatchCameraMode, type MatchRenderTheme, type MatchVisualQuality } from "./match-core/renderer.ts";
 import { FixedStepMatchRuntime } from "./match-core/simulation.ts";
 import type { MatchCoreConfig, MatchCoreState, MatchInputFrame } from "./match-core/types.ts";
 
@@ -34,6 +34,13 @@ export type PlayableMatchCanvasProps = {
   controlSize?: "small" | "medium" | "large";
   controlOpacity?: 0.55 | 0.75 | 1;
   controlsSide?: "standard" | "inverted";
+  cameraMode?: MatchCameraMode;
+  visualQuality?: MatchVisualQuality;
+  visualEffects?: boolean;
+  crowd?: boolean;
+  replayEnabled?: boolean;
+  renderTheme?: Partial<MatchRenderTheme>;
+  onReplayChange?: (active: boolean) => void;
   onSnapshot?: (state: MatchCoreState) => void;
   onFinished?: (state: MatchCoreState) => void;
 };
@@ -107,6 +114,13 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     controlSize = "medium",
     controlOpacity = 0.75,
     controlsSide = "standard",
+    cameraMode = "follow",
+    visualQuality = "high",
+    visualEffects = true,
+    crowd = true,
+    replayEnabled = true,
+    renderTheme,
+    onReplayChange,
     onSnapshot,
     onFinished,
   }, ref) {
@@ -120,9 +134,29 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     const finishedReportedRef = useRef(false);
     const onSnapshotRef = useRef(onSnapshot);
     const onFinishedRef = useRef(onFinished);
+    const cameraModeRef = useRef(cameraMode);
+    const visualQualityRef = useRef(visualQuality);
+    const visualEffectsRef = useRef(visualEffects);
+    const crowdRef = useRef(crowd);
+    const renderThemeRef = useRef(renderTheme);
+    const replayEnabledRef = useRef(replayEnabled);
+    const onReplayChangeRef = useRef(onReplayChange);
+    const replayActiveRef = useRef(false);
+    const replayFramesRef = useRef<MatchCoreState[]>([]);
+    const replayFrameRef = useRef(0);
+    const lastGoalTickRef = useRef(-1);
+    const historyRef = useRef<MatchCoreState[]>([]);
+    const historyCadenceRef = useRef(0);
 
     onSnapshotRef.current = onSnapshot;
     onFinishedRef.current = onFinished;
+    cameraModeRef.current = cameraMode;
+    visualQualityRef.current = visualQuality;
+    visualEffectsRef.current = visualEffects;
+    crowdRef.current = crowd;
+    renderThemeRef.current = renderTheme;
+    replayEnabledRef.current = replayEnabled;
+    onReplayChangeRef.current = onReplayChange;
 
     useImperativeHandle(ref, () => ({
       pause() { runtimeRef.current?.pause(); },
@@ -170,6 +204,48 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
       let animationFrame = 0;
       let previous = performance.now();
       let snapshotCounter = 0;
+
+      function drawPresentationFrame(
+        context: CanvasRenderingContext2D,
+        state: MatchCoreState,
+        width: number,
+        height: number,
+        pixelRatio: number,
+        replay = false,
+      ) {
+        const padding = Math.max(7 * pixelRatio, Math.min(width, height) * 0.018);
+        drawMatchFrame(
+          context,
+          state,
+          {
+            width,
+            height,
+            padding,
+            camera: createMatchCamera(state, { width, height, padding }, cameraModeRef.current),
+          },
+          { ...DEFAULT_MATCH_RENDER_THEME, ...(renderThemeRef.current ?? {}) },
+          {
+            quality: visualQualityRef.current,
+            effects: visualEffectsRef.current,
+            crowd: crowdRef.current,
+          },
+        );
+        if (replay) {
+          context.save();
+          context.fillStyle = "rgba(4,18,11,.86)";
+          context.strokeStyle = DEFAULT_MATCH_RENDER_THEME.controlledPlayer;
+          context.lineWidth = Math.max(1, pixelRatio);
+          context.fillRect(width * 0.035, height * 0.055, width * 0.16, height * 0.062);
+          context.strokeRect(width * 0.035, height * 0.055, width * 0.16, height * 0.062);
+          context.fillStyle = DEFAULT_MATCH_RENDER_THEME.controlledPlayer;
+          context.font = `900 ${Math.max(10, Math.min(24, width * 0.018))}px monospace`;
+          context.textAlign = "center";
+          context.textBaseline = "middle";
+          context.fillText("REPLAY", width * 0.115, height * 0.086);
+          context.restore();
+        }
+      }
+
       const render = (now: number) => {
         const rect = canvas.getBoundingClientRect();
         const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
@@ -178,6 +254,33 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         if (canvas.width !== width || canvas.height !== height) {
           canvas.width = width;
           canvas.height = height;
+        }
+
+        const context = canvas.getContext("2d");
+
+        if (replayActiveRef.current && replayFramesRef.current.length && context) {
+          previous = now;
+          const frameIndex = Math.min(
+            replayFramesRef.current.length - 1,
+            Math.floor(replayFrameRef.current / 1.45),
+          );
+          drawPresentationFrame(
+            context,
+            replayFramesRef.current[frameIndex],
+            width,
+            height,
+            pixelRatio,
+            true,
+          );
+          replayFrameRef.current += 1;
+          if (frameIndex >= replayFramesRef.current.length - 1) {
+            replayActiveRef.current = false;
+            replayFramesRef.current = [];
+            replayFrameRef.current = 0;
+            onReplayChangeRef.current?.(false);
+          }
+          animationFrame = window.requestAnimationFrame(render);
+          return;
         }
 
         runtime.setInput(mergeInputs(
@@ -190,16 +293,27 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         previous = now;
         runtime.advanceFrame(deltaSeconds);
 
-        const context = canvas.getContext("2d");
-        if (context) {
-          const padding = Math.max(7 * pixelRatio, Math.min(width, height) * 0.018);
-          drawMatchFrame(context, runtime.state, {
-            width,
-            height,
-            padding,
-            camera: createFollowCamera(runtime.state, { width, height, padding }),
-          });
+        historyCadenceRef.current += 1;
+        if (historyCadenceRef.current >= 2) {
+          historyCadenceRef.current = 0;
+          historyRef.current = [...historyRef.current, runtime.state].slice(-100);
         }
+
+        const latestGoal = [...runtime.state.events].reverse().find((event) => event.type === "goal");
+        if (
+          replayEnabledRef.current &&
+          latestGoal &&
+          latestGoal.tick > lastGoalTickRef.current &&
+          historyRef.current.length >= 16
+        ) {
+          lastGoalTickRef.current = latestGoal.tick;
+          replayFramesRef.current = historyRef.current.slice(-78);
+          replayFrameRef.current = 0;
+          replayActiveRef.current = true;
+          onReplayChangeRef.current?.(true);
+        }
+
+        if (context) drawPresentationFrame(context, runtime.state, width, height, pixelRatio);
 
         snapshotCounter += 1;
         if (snapshotCounter >= 6 || runtime.state.clock.phase === "half-time" || runtime.state.finished) {
@@ -218,6 +332,10 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         window.removeEventListener("keydown", onKeyDown);
         window.removeEventListener("keyup", onKeyUp);
         runtime.pause();
+        replayActiveRef.current = false;
+        replayFramesRef.current = [];
+        historyRef.current = [];
+        onReplayChangeRef.current?.(false);
         runtimeRef.current = null;
       };
     }, [autoStart, config, initialState]);
@@ -290,6 +408,10 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         data-playable-canvas
         data-control-size={controlSize}
         data-control-side={controlsSide}
+        data-camera-mode={cameraMode}
+        data-visual-quality={visualQuality}
+        data-visual-effects={visualEffects ? "on" : "off"}
+        data-replay-enabled={replayEnabled ? "yes" : "no"}
         style={{ "--mobile-control-opacity": controlOpacity } as React.CSSProperties}
       >
         <canvas ref={canvasRef} className="playable-match-canvas" tabIndex={0} aria-label="Campo 2D jogável do Legado FC" />

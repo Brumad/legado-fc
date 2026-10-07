@@ -720,7 +720,13 @@ A 0.5.3 passa a ter quatro frentes obrigatórias:
 
 # 0.5.4 - Visual retrô original e apresentação da partida
 
-Status: **PLANEJADO**
+Branch: `feat/v0.5.4-retro-match-presentation`
+
+PR: **#5**
+
+Gate funcional validado no commit `e8a584cd` com typecheck, lint, Match Core, 0.5.3, 5.000 partidas legadas, 25 temporadas, builds e Playwright real da 0.5.4.
+
+Status: **IMPLEMENTADO E VALIDADO**
 
 ## Objetivo
 
@@ -728,35 +734,35 @@ Fazer a partida possuir identidade visual própria e leitura comparável a um bo
 
 ## Tarefas
 
-- [ ] Criar linguagem de sprites original.
-- [ ] Criar proporções próprias dos jogadores.
-- [ ] Criar animação de corrida.
-- [ ] Criar animação de passe.
-- [ ] Criar animação de chute.
-- [ ] Criar animação de carrinho/desarme.
-- [ ] Criar animação de goleiro.
-- [ ] Criar animação de comemoração.
-- [ ] Criar variações de uniforme.
-- [ ] Criar gramado e marcações.
-- [ ] Criar sombra simples.
-- [ ] Criar torcida/arquibancada estilizada.
-- [ ] Criar efeitos de gol.
-- [ ] Criar replay curto.
-- [ ] Criar HUD final.
-- [ ] Criar indicadores de jogador, stamina e posse.
-- [ ] Criar opções de câmera.
-- [ ] Criar feedback visual de passe e chute sem poluir a tela.
-- [ ] Garantir legibilidade em telas pequenas.
+- [x] Criar linguagem de sprites original.
+- [x] Criar proporções próprias dos jogadores.
+- [x] Criar animação de corrida.
+- [x] Criar animação de passe.
+- [x] Criar animação de chute.
+- [x] Criar animação de carrinho/desarme.
+- [x] Criar animação de goleiro.
+- [x] Criar animação de comemoração.
+- [x] Criar variações de uniforme.
+- [x] Criar gramado e marcações.
+- [x] Criar sombra simples.
+- [x] Criar torcida/arquibancada estilizada.
+- [x] Criar efeitos de gol.
+- [x] Criar replay curto.
+- [x] Criar HUD final.
+- [x] Criar indicadores de jogador, stamina e posse.
+- [x] Criar opções de câmera.
+- [x] Criar feedback visual de passe e chute sem poluir a tela.
+- [x] Garantir legibilidade em telas pequenas.
 
 ## Critérios de aceite
 
-- [ ] O jogador identifica rapidamente o próprio atleta.
-- [ ] Bola e linhas do campo permanecem legíveis em mobile.
-- [ ] Animações não alteram a lógica da simulação.
-- [ ] HUD não cobre áreas críticas da jogada.
-- [ ] Sprites e UI são originais.
-- [ ] A partida continua funcional com efeitos visuais desativados.
-- [ ] O renderer pode reduzir qualidade sem alterar o resultado da simulação.
+- [x] O jogador identifica rapidamente o próprio atleta.
+- [x] Bola e linhas do campo permanecem legíveis em mobile.
+- [x] Animações não alteram a lógica da simulação.
+- [x] HUD não cobre áreas críticas da jogada.
+- [x] Sprites e UI são originais.
+- [x] A partida continua funcional com efeitos visuais desativados.
+- [x] O renderer pode reduzir qualidade sem alterar o resultado da simulação.
 
 ---
 

@@ -143,7 +143,7 @@ export function CareerCreator({
           <button className="creator-close light" onClick={onClose} aria-label="Fechar criação">←</button>
           <div className="creator-preview-top">
             <span className="overline">NOVO ATLETA · SLOT 0{slot + 1}</span>
-            <strong>LEGADO FC <b>0.5.3</b></strong>
+            <strong>LEGADO FC <b>0.5.4</b></strong>
           </div>
           <div className="preview-stage">
             <div className="preview-spotlight" />
