@@ -156,6 +156,40 @@ assert.equal(directContext.goalX, 105);
   assert.ok(Math.abs(leftZ - rightZ) > 0.01, "opposite spin must bend trajectories differently");
 }
 
+// The live 3D physics must be capable of producing an actual goal without a scripted outcome.
+{
+  const scoringContext = {
+    ...directContext,
+    id: directContext.id + ":physics-goal",
+    wall: [],
+    keeper: {
+      ...directContext.keeper,
+      goalkeeping: 38,
+      reactionDelay: 0.48,
+      maxSpeed: 6,
+      reach: 1.18,
+    },
+  };
+  let physicsGoal = null;
+  outer:
+  for (const aimX of [-0.82, -0.62, -0.42, -0.22, 0.22, 0.42, 0.62, 0.82]) {
+    for (const aimY of [0.28, 0.4, 0.52, 0.64, 0.76]) {
+      for (const power of [0.72, 0.86, 1]) {
+        for (const curve of [-0.55, 0, 0.55]) {
+          const runtime = simulateSetPiece(scoringContext, { aimX, aimY, power, curve });
+          if (runtime.result?.goal) {
+            physicsGoal = runtime;
+            break outer;
+          }
+        }
+      }
+    }
+  }
+  assert.ok(physicsGoal?.result?.goal, "3D trajectory physics must be able to score a goal");
+  assert.ok(physicsGoal.samples.length > 2);
+  assert.ok(physicsGoal.samples.every(finiteVector3));
+}
+
 // Goalkeeper physically follows the trajectory after reaction delay.
 {
   const runtime = new SetPieceRuntime(directContext, { aimX: 0.8, aimY: 0.78, power: 0.9, curve: 0.2 });
