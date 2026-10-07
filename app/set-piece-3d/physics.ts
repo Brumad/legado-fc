@@ -193,7 +193,10 @@ export function buildSetPieceTrajectory(
   return points;
 }
 
-function crossingAtZ(points: SetPieceTrajectoryPoint[], targetZ: number) {
+function crossingAtZ(
+  points: SetPieceTrajectoryPoint[],
+  targetZ: number,
+): SetPieceTrajectoryPoint | null {
   for (let index = 1; index < points.length; index += 1) {
     const before = points[index - 1];
     const after = points[index];
