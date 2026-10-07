@@ -2645,3 +2645,275 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
     padding: 6px 7px;
   }
 }
+
+
+/* ============================================================
+   Legado FC 0.5.5 — 3D set pieces
+   ============================================================ */
+.set-piece-3d-overlay {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr) auto;
+  color: white;
+  background:
+    radial-gradient(circle at 50% 30%,rgba(35,105,62,.22),transparent 48%),
+    #05110b;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+.set-piece-3d-topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: max(10px,env(safe-area-inset-top)) 18px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(3,15,9,.94);
+}
+.set-piece-3d-topbar > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.set-piece-3d-topbar > div:first-child span {
+  color: var(--lime);
+  font: 900 7px var(--font-mono);
+  letter-spacing: .12em;
+}
+.set-piece-3d-topbar > div:first-child strong {
+  font-size: 18px;
+}
+.set-piece-3d-readout {
+  display: flex;
+  gap: 18px;
+}
+.set-piece-3d-readout span {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+.set-piece-3d-readout small {
+  color: rgba(255,255,255,.38);
+  font: 700 4px var(--font-mono);
+}
+.set-piece-3d-readout b {
+  font: 900 7px var(--font-mono);
+}
+.set-piece-3d-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  cursor: crosshair;
+  background: linear-gradient(#0d2e20 0 22%,#277b43 22% 100%);
+}
+.set-piece-three-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.set-piece-gesture-hint {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 7%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  padding: 11px 18px;
+  border: 1px solid rgba(212,255,99,.24);
+  border-radius: 999px;
+  background: rgba(3,15,9,.68);
+  backdrop-filter: blur(9px);
+  pointer-events: none;
+}
+.set-piece-gesture-hint strong {
+  color: var(--lime);
+  font: 900 6px var(--font-mono);
+  letter-spacing: .1em;
+}
+.set-piece-gesture-hint span {
+  color: rgba(255,255,255,.48);
+  font-size: 6px;
+}
+.set-piece-gesture-hint.is-charging {
+  border-color: var(--lime);
+  transform: translateX(-50%) scale(1.03);
+}
+.set-piece-result-flash {
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%,-50%);
+  min-width: 220px;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 18px 28px;
+  border: 1px solid var(--lime);
+  color: var(--lime);
+  background: rgba(2,13,8,.85);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.set-piece-result-flash strong {
+  font-size: clamp(26px,6vw,58px);
+  line-height: .9;
+}
+.set-piece-result-flash span {
+  font: 800 5px var(--font-mono);
+  letter-spacing: .12em;
+}
+.set-piece-result-flash.is-saved,
+.set-piece-result-flash.is-cleared {
+  color: #9dd6ff;
+  border-color: #9dd6ff;
+}
+.set-piece-result-flash.is-out {
+  color: #ffb9a7;
+  border-color: #ffb9a7;
+}
+.set-piece-3d-footer {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 18px max(10px,env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: rgba(3,15,9,.96);
+}
+.set-piece-3d-footer > span {
+  color: var(--lime);
+  font: 900 5px var(--font-mono);
+}
+.set-piece-3d-footer p {
+  margin: 0;
+  color: rgba(255,255,255,.43);
+  text-align: center;
+  font-size: 6px;
+}
+.set-piece-curve-buttons {
+  display: flex;
+  gap: 5px;
+}
+.set-piece-curve-buttons button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 8px;
+  color: white;
+  background: rgba(255,255,255,.05);
+  font: 800 5px var(--font-mono);
+}
+.set-piece-curve-buttons button:disabled {
+  opacity: .35;
+}
+.set-piece-fallback-pitch {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.025) 50%,transparent 50%) 0 0/12% 100%,
+    linear-gradient(#17482c 0 24%,#2c8148 24%);
+}
+.set-piece-fallback-pitch::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 22%;
+  bottom: 4%;
+  border: 2px solid rgba(255,255,255,.65);
+}
+.set-piece-fallback-goal {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  width: min(46vw,420px);
+  height: 22%;
+  transform: translateX(-50%);
+  border: 4px solid white;
+  border-bottom: 0;
+}
+.set-piece-fallback-goal i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,.28);
+}
+.set-piece-fallback-goal i:nth-child(1) { left: 25%; }
+.set-piece-fallback-goal i:nth-child(2) { left: 50%; }
+.set-piece-fallback-goal i:nth-child(3) { left: 75%; }
+.set-piece-fallback-wall {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  display: flex;
+  gap: 3px;
+  transform: translateX(-50%);
+}
+.set-piece-fallback-wall i {
+  width: 18px;
+  height: 42px;
+  display: block;
+  border-radius: 10px 10px 3px 3px;
+  background: #24362c;
+}
+.set-piece-fallback-ball {
+  position: absolute;
+  left: 50%;
+  bottom: 13%;
+  transform: translateX(-50%);
+  font-size: 30px;
+}
+.set-piece-fallback-target {
+  position: absolute;
+  left: calc(50% - 10px);
+  top: 36%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--lime);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(212,255,99,.12);
+}
+@media (max-width: 700px) {
+  .set-piece-3d-topbar {
+    min-height: 54px;
+    padding-inline: 10px;
+  }
+  .set-piece-3d-topbar > div:first-child span { font-size: 5px; }
+  .set-piece-3d-topbar > div:first-child strong { font-size: 14px; }
+  .set-piece-3d-readout { gap: 9px; }
+  .set-piece-3d-readout b { font-size: 6px; }
+  .set-piece-3d-footer {
+    min-height: 64px;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding-inline: 9px;
+  }
+  .set-piece-3d-footer p { display: none; }
+  .set-piece-gesture-hint {
+    bottom: 8%;
+    min-width: 190px;
+  }
+  .set-piece-curve-buttons button {
+    min-height: 38px;
+    padding-inline: 9px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .set-piece-3d-topbar { min-height: 44px; }
+  .set-piece-3d-footer { min-height: 50px; }
+  .set-piece-gesture-hint { bottom: 4%; }
+}

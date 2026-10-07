@@ -20,6 +20,9 @@ importers:
       react-dom:
         specifier: 19.2.6
         version: 19.2.6(react@19.2.6)
+      three:
+        specifier: 0.186.1
+        version: 0.186.1
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: 1.37.1
@@ -3537,6 +3540,9 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  three@0.186.1:
+    resolution: {integrity: sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==}
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -6825,3 +6831,5 @@ snapshots:
       zod: 4.4.3
 
   zod@4.4.3: {}
+
+  three@0.186.1: {}
