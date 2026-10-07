@@ -48,6 +48,8 @@ export function PlayableMatchScreen({
   const [cameraMode, setCameraMode] = useState<MatchCameraMode>("follow");
   const [visualQuality, setVisualQuality] = useState<MatchVisualQuality>("high");
   const [visualEffects, setVisualEffects] = useState(true);
+  const [replayEnabled, setReplayEnabled] = useState(true);
+  const [replayActive, setReplayActive] = useState(false);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
   const unavailable = career.suspensionMatches > 0 || career.injuryMatchesRemaining > 0;
   const controlled = snapshot.players.find((player) => player.controlled);
@@ -86,6 +88,9 @@ export function PlayableMatchScreen({
       data-player-stamina={Math.round(controlled?.stamina ?? 100)}
       data-player-x={controlled?.position.x.toFixed(2) ?? ""}
       data-player-y={controlled?.position.y.toFixed(2) ?? ""}
+      data-camera-mode={cameraMode}
+      data-visual-quality={visualQuality}
+      data-replay-active={replayActive ? "yes" : "no"}
     >
       <header className="playable-match-header">
         <button className="playable-exit" onClick={onExit} aria-label="Sair da partida">←</button>
@@ -133,10 +138,36 @@ export function PlayableMatchScreen({
               visualQuality={visualQuality}
               visualEffects={visualEffects}
               crowd={visualQuality !== "low"}
+              replayEnabled={replayEnabled}
+              onReplayChange={setReplayActive}
               renderTheme={renderTheme}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />
+
+            <div className="playable-mobile-view-controls" aria-label="Apresentação da partida">
+              <button onClick={() => setCameraMode((current) => current === "follow" ? "broadcast" : current === "broadcast" ? "wide" : "follow")}>
+                CAM {cameraMode === "follow" ? "SEGUIR" : cameraMode === "broadcast" ? "TV" : "ABERTA"}
+              </button>
+              <button onClick={() => setVisualEffects((current) => !current)}>FX {visualEffects ? "ON" : "OFF"}</button>
+            </div>
+
+            <div className="playable-arcade-hud">
+              <div className="playable-arcade-player">
+                <span>{career.shirtNumber}</span>
+                <div><small>{career.position.toUpperCase()}</small><strong>{career.name}</strong></div>
+              </div>
+              <div className="playable-arcade-stamina">
+                <small>STAMINA {Math.round(controlled?.stamina ?? 100)}%</small>
+                <i><em style={{ width: `${controlled?.stamina ?? 100}%` }} /></i>
+              </div>
+              <div className="playable-arcade-mini-stats">
+                <span><small>POSSE</small><b>{playerPossession}%</b></span>
+                <span><small>CH</small><b>{snapshot.stats[playerSide].shots}</b></span>
+              </div>
+            </div>
+
+            {replayActive && <div className="playable-replay-dom-badge">REPLAY</div>}
 
             {snapshot.paused && snapshot.clock.phase !== "half-time" && !snapshot.finished && (
               <div className="playable-overlay">
@@ -213,6 +244,9 @@ export function PlayableMatchScreen({
               </div>
               <button className={visualEffects ? "is-active is-effects" : "is-effects"} onClick={() => setVisualEffects((current) => !current)}>
                 EFEITOS {visualEffects ? "ON" : "OFF"}
+              </button>
+              <button className={replayEnabled ? "is-active is-effects" : "is-effects"} onClick={() => setReplayEnabled((current) => !current)}>
+                REPLAY {replayEnabled ? "ON" : "OFF"}
               </button>
             </section>
 
