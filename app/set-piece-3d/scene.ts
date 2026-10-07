@@ -6,6 +6,9 @@ export type SetPieceSceneVisuals = {
   awayKit: string;
   skinTone: string;
   hairColor: string;
+  hairStyle: string;
+  facialHair: string;
+  faceShape: string;
   shirtNumber: number;
 };
 
@@ -27,9 +30,13 @@ type DisposableLike = {
   dispose?: () => void;
 };
 
+type DisposableMaterialLike = DisposableLike & {
+  map?: DisposableLike | null;
+};
+
 type TraversedObject = {
   geometry?: DisposableLike;
-  material?: DisposableLike | DisposableLike[];
+  material?: DisposableMaterialLike | DisposableMaterialLike[];
 };
 
 function material(color: string, roughness = 0.78) {
@@ -134,18 +141,108 @@ function addGoal(scene: SceneLike, context: SetPieceContext) {
   }
 }
 
+function numberTexture(number: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+  context.clearRect(0, 0, 64, 64);
+  context.fillStyle = "#f7fff2";
+  context.font = "900 42px system-ui, sans-serif";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.strokeStyle = "rgba(0,0,0,.55)";
+  context.lineWidth = 5;
+  context.strokeText(String(number), 32, 34);
+  context.fillText(String(number), 32, 34);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function addHair(group: THREE.Group, hairColor: string, hairStyle: string) {
+  const hair = material(hairColor);
+  if (hairStyle === "Raspado") {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.226, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.38), hair);
+    cap.position.y = 1.85;
+    cap.scale.y = 0.62;
+    group.add(cap);
+    return;
+  }
+  if (hairStyle === "Moicano") {
+    const strip = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.32, 3, 6), hair);
+    strip.position.set(0, 2.01, 0);
+    strip.rotation.z = Math.PI / 2;
+    strip.scale.set(1, 1.15, 0.72);
+    group.add(strip);
+    return;
+  }
+  if (hairStyle === "Tranças") {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.225, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.48), hair);
+    cap.position.y = 1.86;
+    group.add(cap);
+    for (const z of [-0.13, 0.13]) {
+      const braid = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.28, 2, 5), hair);
+      braid.position.set(-0.13, 1.68, z);
+      group.add(braid);
+    }
+    return;
+  }
+  if (hairStyle === "Cacheado") {
+    for (const [x, y, z] of [[0,2.0,0],[-0.14,1.96,0.03],[0.14,1.96,0.03],[-0.08,1.91,-0.12],[0.09,1.91,-0.12]]) {
+      const curl = new THREE.Mesh(new THREE.SphereGeometry(0.105, 7, 5), hair);
+      curl.position.set(x, y, z);
+      group.add(curl);
+    }
+    return;
+  }
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.225, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), hair);
+  cap.position.y = 1.84;
+  if (hairStyle === "Ondulado") cap.scale.set(1.08, 0.88, 1);
+  group.add(cap);
+}
+
+function addFacialHair(group: THREE.Group, hairColor: string, facialHair: string) {
+  if (facialHair === "Sem barba") return;
+  const hair = material(hairColor, 0.88);
+  if (facialHair === "Bigode") {
+    const moustache = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.035, 0.045), hair);
+    moustache.position.set(0, 1.72, 0.205);
+    group.add(moustache);
+    return;
+  }
+  const beard = new THREE.Mesh(new THREE.SphereGeometry(0.18, 9, 6), hair);
+  beard.position.set(0, 1.67, 0.06);
+  beard.scale.set(0.92, 0.48, 0.92);
+  group.add(beard);
+}
+
 function createActorMesh(
   kitColor: string,
   skinTone: string,
   hairColor: string,
-  keeper = false,
-  controlled = false,
+  options: {
+    keeper?: boolean;
+    controlled?: boolean;
+    shirtNumber?: number;
+    hairStyle?: string;
+    facialHair?: string;
+    faceShape?: string;
+  } = {},
 ) {
+  const {
+    keeper = false,
+    controlled = false,
+    shirtNumber = 0,
+    hairStyle = "Curto",
+    facialHair = "Sem barba",
+    faceShape = "Oval",
+  } = options;
   const group = new THREE.Group();
   const kit = material(keeper ? "#e3c84e" : kitColor);
   const shorts = material(keeper ? "#2b302d" : controlled ? "#102419" : "#1b2520");
   const skin = material(skinTone);
-  const hair = material(hairColor);
 
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.54, 3, 7), kit);
   torso.position.y = 1.12;
@@ -154,12 +251,13 @@ function createActorMesh(
 
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 9), skin);
   head.position.y = 1.78;
+  if (faceShape === "Quadrado") head.scale.set(1.08, 0.96, 1);
+  if (faceShape === "Angular") head.scale.set(0.94, 1.08, 0.96);
   head.castShadow = true;
   group.add(head);
 
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.225, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), hair);
-  cap.position.y = 1.84;
-  group.add(cap);
+  addHair(group, hairColor, hairStyle);
+  addFacialHair(group, hairColor, facialHair);
 
   const legGeometry = new THREE.CapsuleGeometry(0.09, 0.48, 2, 6);
   for (const x of [-0.13, 0.13]) {
@@ -175,6 +273,25 @@ function createActorMesh(
     arm.position.set(x, 1.16, 0);
     arm.rotation.z = x < 0 ? 0.22 : -0.22;
     group.add(arm);
+  }
+
+  if (controlled && shirtNumber > 0) {
+    const texture = numberTexture(shirtNumber);
+    if (texture) {
+      const badgeMaterial = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      const front = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.28), badgeMaterial);
+      front.position.set(0, 1.18, 0.29);
+      group.add(front);
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.28), badgeMaterial);
+      back.position.set(0, 1.18, -0.29);
+      back.rotation.y = Math.PI;
+      group.add(back);
+    }
   }
 
   if (controlled) {
@@ -267,8 +384,14 @@ export function createSetPieceThreeScene(
       actor.side === "home" ? homeKit : awayKit,
       controlled ? visuals.skinTone : "#b97850",
       controlled ? visuals.hairColor : "#181d19",
-      actor.role === "GOL",
-      controlled,
+      {
+        keeper: actor.role === "GOL",
+        controlled,
+        shirtNumber: controlled ? visuals.shirtNumber : 0,
+        hairStyle: controlled ? visuals.hairStyle : "Curto",
+        facialHair: controlled ? visuals.facialHair : "Sem barba",
+        faceShape: controlled ? visuals.faceShape : "Oval",
+      },
     );
     mesh.position.copy(worldPosition(actor.position));
     const goalDirection = actor.side === "home" ? 1 : -1;
@@ -359,7 +482,10 @@ export function createSetPieceThreeScene(
       scene.traverse((object: TraversedObject) => {
         object.geometry?.dispose?.();
         const mats = object.material ? (Array.isArray(object.material) ? object.material : [object.material]) : [];
-        for (const item of mats) item.dispose?.();
+        for (const item of mats) {
+          item.map?.dispose?.();
+          item.dispose?.();
+        }
       });
       renderer.dispose();
       container.replaceChildren();

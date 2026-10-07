@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { MatchCameraMode, MatchVisualQuality } from "./match-core/renderer.ts";
 import type { CareerState, Fixture } from "./game-engine.ts";
 import {
@@ -14,14 +14,19 @@ import {
 } from "./playable-match-canvas.tsx";
 import { DEFAULT_MATCH_CORE_CONFIG } from "./match-core/config.ts";
 import type { MatchCoreState } from "./match-core/types.ts";
-import { SetPiece3DScreen } from "./set-piece-3d/set-piece-3d-screen.tsx";
 import {
   applySetPieceResultToMatch,
   createSetPieceContextFromMatch,
-  type SetPieceContext,
-  type SetPieceResult,
-  type SetPieceSceneVisuals,
-} from "./set-piece-3d/index.ts";
+} from "./set-piece-3d/integration.ts";
+import type {
+  SetPieceContext,
+  SetPieceResult,
+} from "./set-piece-3d/types.ts";
+import type { SetPieceSceneVisuals } from "./set-piece-3d/scene.ts";
+
+const SetPiece3DScreen = lazy(() =>
+  import("./set-piece-3d/set-piece-3d-screen.tsx").then((module) => ({ default: module.SetPiece3DScreen }))
+);
 
 export function PlayableMatchScreen({
   career,
@@ -90,8 +95,20 @@ export function PlayableMatchScreen({
     awayKit,
     skinTone: career.skinTone,
     hairColor: career.hairColor ?? "#171917",
+    hairStyle: career.hairStyle ?? "Curto",
+    facialHair: career.facialHair ?? "Sem barba",
+    faceShape: career.faceShape ?? "Oval",
     shirtNumber: career.shirtNumber,
-  }), [awayKit, career.hairColor, career.shirtNumber, career.skinTone, homeKit]);
+  }), [
+    awayKit,
+    career.faceShape,
+    career.facialHair,
+    career.hairColor,
+    career.hairStyle,
+    career.shirtNumber,
+    career.skinTone,
+    homeKit,
+  ]);
 
   useEffect(() => {
     if (unavailable || snapshot.finished || finalState || setPieceSession || replayActive) return;
@@ -212,13 +229,15 @@ export function PlayableMatchScreen({
       data-last-set-piece-outcome={lastSetPieceOutcome}
     >
       {setPieceSession && (
-        <SetPiece3DScreen
-          key={setPieceSession.context.id}
-          context={setPieceSession.context}
-          visuals={setPieceVisuals}
-          onComplete={completeSetPiece}
-          onFallback={fallbackTo2DSetPiece}
-        />
+        <Suspense fallback={<div className="set-piece-3d-loading">PREPARANDO CENA 3D…</div>}>
+          <SetPiece3DScreen
+            key={setPieceSession.context.id}
+            context={setPieceSession.context}
+            visuals={setPieceVisuals}
+            onComplete={completeSetPiece}
+            onFallback={fallbackTo2DSetPiece}
+          />
+        </Suspense>
       )}
 
       <header className="playable-match-header">
