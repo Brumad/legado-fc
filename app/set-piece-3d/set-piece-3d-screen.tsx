@@ -61,6 +61,9 @@ export function SetPiece3DScreen({
   const pathRef = useRef<Array<{ x: number; y: number }>>([]);
   const launchRef = useRef<(gesture: SetPieceGesture) => void>(() => {});
   const previousGamepadPressedRef = useRef(false);
+  const resolvedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   const [phase, setPhase] = useState<Phase>("aiming");
   const [support, setSupport] = useState<"checking" | "webgl" | "fallback">("checking");
   const [drawPath, setDrawPath] = useState<Array<{ x: number; y: number }>>([]);
@@ -118,13 +121,14 @@ export function SetPiece3DScreen({
         sceneRef.current?.update(runtime.state);
       }
 
-      if (runtime?.state.result && runtime.state.phase === "resolved" && !result) {
+      if (runtime?.state.result && runtime.state.phase === "resolved" && !resolvedRef.current) {
+        resolvedRef.current = true;
         const resolved = runtime.state.result;
         setResult(resolved);
         setPhase("resolved");
         sceneRef.current?.update(runtime.state);
         if (timeoutRef.current === null) {
-          timeoutRef.current = window.setTimeout(() => onComplete(resolved), 900);
+          timeoutRef.current = window.setTimeout(() => onCompleteRef.current(resolved), 900);
         }
       }
 
@@ -140,7 +144,7 @@ export function SetPiece3DScreen({
       sceneRef.current = null;
       runtimeRef.current = null;
     };
-  }, [context, onComplete, result, visuals]);
+  }, [context, visuals]);
 
   useEffect(() => {
     if (phase !== "aiming" || support !== "webgl" || typeof navigator === "undefined") return;
