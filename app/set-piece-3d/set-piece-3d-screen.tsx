@@ -235,6 +235,10 @@ export function SetPiece3DScreen({
       data-set-piece-kind={context.kind}
       data-webgl={support}
       data-phase={phase}
+      data-gesture-power={gesture.power.toFixed(3)}
+      data-gesture-height={gesture.aimY.toFixed(3)}
+      data-gesture-curve={gesture.curve.toFixed(3)}
+      data-result-outcome={result?.outcome ?? ""}
     >
       <div
         ref={mountRef}
