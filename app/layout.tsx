@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Legado FC 0.5.5 — Faltas e Escanteios em 3D",
     description:
-      "Futebol 2D com sprites procedurais originais, animações arcade, estádio estilizado, replay, HUD retrô e câmeras configuráveis.",
+      "Futebol 2D com bolas paradas especiais em 3D real: faltas diretas, faltas levantadas e escanteios com física própria, mouse, touch, gamepad e fallback 2D.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: "summary_large_image",
       title: "Legado FC 0.5.5 — Faltas e Escanteios em 3D",
-      description: "Sprites originais, três câmeras, qualidade ajustável, replay e HUD arcade validados em desktop e mobile.",
+      description: "Faltas e escanteios em 3D real com Three.js, física própria, goleiro reativo e integração 2D → 3D → Match Core → 2D.",
       images: [imageUrl],
     },
   };
