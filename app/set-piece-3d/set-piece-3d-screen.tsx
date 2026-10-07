@@ -110,10 +110,10 @@ export function SetPiece3DScreen({
       const delta = Math.min(0.12, Math.max(0, (now - last) / 1000));
       last = now;
 
-      if (runtime && runtime.state.phase !== "resolved") {
+      if (runtime && !runtime.state.result) {
         accumulator += delta;
         let steps = 0;
-        while (accumulator >= runtime.config.fixedDelta && steps < 18 && runtime.state.phase !== "resolved") {
+        while (accumulator >= runtime.config.fixedDelta && steps < 18 && !runtime.state.result) {
           runtime.step();
           accumulator -= runtime.config.fixedDelta;
           steps += 1;
