@@ -720,7 +720,9 @@ A 0.5.3 passa a ter quatro frentes obrigatórias:
 
 # 0.5.4 - Visual retrô original e apresentação da partida
 
-Status: **PLANEJADO**
+Branch: `feat/v0.5.4-retro-match-presentation`
+
+Status: **EM DESENVOLVIMENTO**
 
 ## Objetivo
 
