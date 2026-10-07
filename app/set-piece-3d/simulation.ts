@@ -69,17 +69,31 @@ function keeperStep(state: SetPieceRuntimeState, config: SetPieceSimulationConfi
   const keeper = state.keeper;
   if (state.elapsed < keeper.reactionDelay) return keeper;
   const dt = config.fixedDelta;
+
+  // Goalkeepers should react to the live trajectory, but weaker keepers must not
+  // mirror the ball perfectly across the full goal. Goalkeeping affects both
+  // how aggressively the keeper commits and the usable movement speed.
+  const quality = clamp((keeper.goalkeeping - 30) / 65, 0, 1);
+  const commitment = 0.48 + quality * 0.5;
+  const rawTargetZ = state.context.goalCenterZ
+    + (state.ball.position.z - state.context.goalCenterZ) * commitment;
   const desiredZ = clamp(
-    state.ball.position.z,
+    rawTargetZ,
     state.context.goalCenterZ - state.context.goalWidth / 2 + 0.35,
     state.context.goalCenterZ + state.context.goalWidth / 2 - 0.35,
   );
-  const desiredY = clamp(state.ball.position.y * 0.82, 0.65, 1.72);
+  const desiredY = clamp(
+    0.88 + (state.ball.position.y - 0.88) * (0.48 + quality * 0.42),
+    0.58,
+    1.82,
+  );
   const dz = desiredZ - keeper.position.z;
   const dy = desiredY - keeper.position.y;
   const magnitude = Math.hypot(dz, dy);
   if (magnitude <= 0.001) return keeper;
-  const step = Math.min(magnitude, keeper.maxSpeed * dt);
+
+  const effectiveSpeed = keeper.maxSpeed * (0.62 + quality * 0.38);
+  const step = Math.min(magnitude, effectiveSpeed * dt);
   return {
     ...keeper,
     position: {
@@ -93,9 +107,13 @@ function keeperStep(state: SetPieceRuntimeState, config: SetPieceSimulationConfi
 function keeperSaved(state: SetPieceRuntimeState) {
   const ball = state.ball;
   const keeper = state.keeper;
+  const beforeGoalLine = state.context.attackingSide === "home"
+    ? ball.position.x <= state.context.goalX
+    : ball.position.x >= state.context.goalX;
   const nearLine = Math.abs(ball.position.x - state.context.goalX) <= 1.15;
-  if (!nearLine || state.elapsed < keeper.reactionDelay) return false;
-  const reach = keeper.reach + keeper.goalkeeping / 250;
+  if (!beforeGoalLine || !nearLine || state.elapsed < keeper.reactionDelay) return false;
+  const quality = clamp((keeper.goalkeeping - 30) / 65, 0, 1);
+  const reach = keeper.reach + keeper.goalkeeping / 300 + quality * 0.08;
   return Math.hypot(
     ball.position.z - keeper.position.z,
     ball.position.y - keeper.position.y,
