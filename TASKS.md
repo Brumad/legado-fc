@@ -772,8 +772,8 @@ Branch: `feat/v0.5.5-3d-set-pieces`
 
 PR: **#7**
 
-Checkpoint funcional: `46e906dd`  
-Workflow funcional: `37649068050` — **PASS**
+Checkpoint final validado: `155edd90a7e407e9193b9a48b7e00cc9bfa37694`  
+Workflow final: `37653956766` — **PASS**.
 
 Gate final cobre física headless, 5.000 partidas legadas, 25 temporadas, build, Pages e WebGL real com mouse/touch/gamepad/fallback.
 

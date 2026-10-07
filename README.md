@@ -201,8 +201,8 @@ O Playwright real valida:
 - fallback sem WebGL;
 - retorno para a mesma partida 2D.
 
-Checkpoint funcional: `46e906dd`  
-Workflow funcional: `37649068050` — **PASS**.
+Checkpoint final validado: `155edd90a7e407e9193b9a48b7e00cc9bfa37694`  
+Workflow final: `37653956766` — **PASS**.
 
 O pipeline também mantém verdes:
 

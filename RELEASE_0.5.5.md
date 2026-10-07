@@ -89,8 +89,8 @@ ao campo 2D.
 
 ## Validação
 
-Checkpoint funcional: `46e906dd0007a7f87400b078862d3788c8880a60`  
-Workflow funcional: `37649068050` — **PASS**
+Checkpoint final validado: `155edd90a7e407e9193b9a48b7e00cc9bfa37694`  
+Workflow final: `37653956766` — **PASS**.
 
 ### Headless
 - física finita;
