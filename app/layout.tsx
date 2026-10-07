@@ -19,21 +19,21 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
+    title: "Legado FC 0.5.5 — Faltas e Escanteios em 3D",
     description:
       "Futebol 2D com sprites procedurais originais, animações arcade, estádio estilizado, replay, HUD retrô e câmeras configuráveis.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
+      title: "Legado FC 0.5.5 — Faltas e Escanteios em 3D",
       description:
-        "A 0.5.4 dá identidade visual própria à partida sem alterar a simulação validada na 0.5.3.",
+        "A 0.5.5 adiciona faltas diretas, faltas levantadas e escanteios jogáveis em 3D real, preservando a partida 2D e o Match Core.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.5 — Faltas e Escanteios em 3D" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
+      title: "Legado FC 0.5.5 — Faltas e Escanteios em 3D",
       description: "Sprites originais, três câmeras, qualidade ajustável, replay e HUD arcade validados em desktop e mobile.",
       images: [imageUrl],
     },
