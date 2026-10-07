@@ -153,30 +153,38 @@ export function SetPiece3DScreen({
 
   useEffect(() => {
     if (phase !== "aiming" || support !== "webgl" || typeof navigator === "undefined") return;
-    let frame = 0;
+    previousGamepadPressedRef.current = false;
+
     const poll = () => {
-      const pad = navigator.getGamepads?.()?.find?.((item) => Boolean(item))
-        ?? Array.from(navigator.getGamepads?.() ?? []).find(Boolean);
-      if (pad) {
-        const leftX = pad.axes[0] ?? 0;
-        const leftY = pad.axes[1] ?? 0;
-        const rightX = pad.axes[2] ?? 0;
-        const trigger = Math.max(pad.buttons[6]?.value ?? 0, pad.buttons[7]?.value ?? 0);
-        const next = {
-          aimX: Math.abs(leftX) > 0.08 ? leftX : 0,
-          aimY: Math.max(0.08, Math.min(1, (1 - leftY) / 2)),
-          power: Math.max(0.25, trigger || 0.68),
-          curve: Math.abs(rightX) > 0.08 ? rightX : 0,
-        };
-        setGesture(next);
-        const pressed = Boolean(pad.buttons[0]?.pressed);
-        if (pressed && !previousGamepadPressedRef.current) launch(next);
-        previousGamepadPressedRef.current = pressed;
+      const pads = navigator.getGamepads?.() ?? [];
+      const pad = Array.from(pads).find(Boolean);
+      if (!pad) {
+        previousGamepadPressedRef.current = false;
+        return;
       }
-      frame = window.requestAnimationFrame(poll);
+
+      const leftX = pad.axes[0] ?? 0;
+      const leftY = pad.axes[1] ?? 0;
+      const rightX = pad.axes[2] ?? 0;
+      const trigger = Math.max(pad.buttons[6]?.value ?? 0, pad.buttons[7]?.value ?? 0);
+      const next = {
+        aimX: Math.abs(leftX) > 0.08 ? leftX : 0,
+        aimY: Math.max(0.08, Math.min(1, (1 - leftY) / 2)),
+        power: Math.max(0.25, trigger || 0.68),
+        curve: Math.abs(rightX) > 0.08 ? rightX : 0,
+      };
+      setGesture(next);
+
+      const pressed = Boolean(pad.buttons[0]?.pressed);
+      if (pressed && !previousGamepadPressedRef.current) launch(next);
+      previousGamepadPressedRef.current = pressed;
     };
-    frame = window.requestAnimationFrame(poll);
-    return () => window.cancelAnimationFrame(frame);
+
+    // Gamepad input must not depend on WebGL frame rate. SwiftShader/mobile GPUs
+    // may render slowly, while a physical button press can be much shorter.
+    poll();
+    const interval = window.setInterval(poll, 20);
+    return () => window.clearInterval(interval);
   }, [launch, phase, support]);
 
   function localPoint(event: ReactPointerEvent<HTMLDivElement>) {

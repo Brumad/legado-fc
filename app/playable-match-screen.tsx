@@ -112,7 +112,8 @@ export function PlayableMatchScreen({
 
   useEffect(() => {
     if (unavailable || snapshot.finished || finalState || setPieceSession || replayActive) return;
-    const liveState = canvasRef.current?.getState() ?? snapshot;
+    const liveState = canvasRef.current?.getState();
+    if (!liveState) return;
     if (!liveState.restart) {
       skippedSetPieceRef.current = null;
       return;
