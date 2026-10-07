@@ -130,9 +130,19 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     const finishedReportedRef = useRef(false);
     const onSnapshotRef = useRef(onSnapshot);
     const onFinishedRef = useRef(onFinished);
+    const cameraModeRef = useRef(cameraMode);
+    const visualQualityRef = useRef(visualQuality);
+    const visualEffectsRef = useRef(visualEffects);
+    const crowdRef = useRef(crowd);
+    const renderThemeRef = useRef(renderTheme);
 
     onSnapshotRef.current = onSnapshot;
     onFinishedRef.current = onFinished;
+    cameraModeRef.current = cameraMode;
+    visualQualityRef.current = visualQuality;
+    visualEffectsRef.current = visualEffects;
+    crowdRef.current = crowd;
+    renderThemeRef.current = renderTheme;
 
     useImperativeHandle(ref, () => ({
       pause() { runtimeRef.current?.pause(); },
@@ -210,10 +220,14 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
               width,
               height,
               padding,
-              camera: createMatchCamera(runtime.state, { width, height, padding }, cameraMode),
+              camera: createMatchCamera(runtime.state, { width, height, padding }, cameraModeRef.current),
             },
-            { ...DEFAULT_MATCH_RENDER_THEME, ...(renderTheme ?? {}) },
-            { quality: visualQuality, effects: visualEffects, crowd },
+            { ...DEFAULT_MATCH_RENDER_THEME, ...(renderThemeRef.current ?? {}) },
+            {
+              quality: visualQualityRef.current,
+              effects: visualEffectsRef.current,
+              crowd: crowdRef.current,
+            },
           );
         }
 
@@ -236,7 +250,7 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         runtime.pause();
         runtimeRef.current = null;
       };
-    }, [autoStart, cameraMode, config, crowd, initialState, renderTheme, visualEffects, visualQuality]);
+    }, [autoStart, config, initialState]);
 
     function setTouchAction(key: Exclude<keyof TouchState, "moveX" | "moveY">, value: boolean) {
       touchRef.current = { ...touchRef.current, [key]: value };
@@ -306,6 +320,9 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         data-playable-canvas
         data-control-size={controlSize}
         data-control-side={controlsSide}
+        data-camera-mode={cameraMode}
+        data-visual-quality={visualQuality}
+        data-visual-effects={visualEffects ? "on" : "off"}
         style={{ "--mobile-control-opacity": controlOpacity } as React.CSSProperties}
       >
         <canvas ref={canvasRef} className="playable-match-canvas" tabIndex={0} aria-label="Campo 2D jogável do Legado FC" />
