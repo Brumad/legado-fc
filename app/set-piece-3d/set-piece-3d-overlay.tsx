@@ -67,9 +67,9 @@ export function SetPiece3DOverlay({
     let scene: ThreeSetPieceScene | null = null;
     async function load() {
       if (forceFallback || !containerRef.current) return;
-      const module = await import("./scene.mjs");
-      if (cancelled || !containerRef.current || !module.isSetPieceWebGLAvailable()) return;
-      scene = new module.ThreeSetPieceScene(containerRef.current, request, {
+      const threeScene = await import("./scene.mjs");
+      if (cancelled || !containerRef.current || !threeScene.isSetPieceWebGLAvailable()) return;
+      scene = new threeScene.ThreeSetPieceScene(containerRef.current, request, {
         quality,
         attackingColor,
         defendingColor,
@@ -77,7 +77,7 @@ export function SetPiece3DOverlay({
         hairColor: career.hairColor ?? "#171917",
       });
       sceneRef.current = scene;
-      scene.setPreview(trajectory);
+      scene.setPreview(buildSetPieceTrajectory(request, DEFAULT_SET_PIECE_INPUT));
       setRendererMode("webgl");
     }
     void load();
