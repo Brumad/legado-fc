@@ -269,7 +269,7 @@ export function applySetPieceResultToMatch(
         velocity: { ...result.endVelocity2D },
         possessionPlayerId: null,
         lastTouchPlayerId: result.receiverId ?? result.takerId,
-        lastTouchSide: result.receiverId ? undefined ?? result.attackingSide : result.attackingSide,
+        lastTouchSide: result.attackingSide,
         pickupCooldownTicks: 5,
       },
     };
