@@ -2424,3 +2424,70 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 @media (max-width: 420px) {
   .playable-match-meta-strip > span:nth-child(3) { display: none; }
 }
+
+
+/* ============================================================
+   Legado FC 0.5.4 — retro match presentation
+   ============================================================ */
+.playable-field-column {
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.025),transparent 28%),
+    #06130d;
+}
+.playable-match-canvas {
+  image-rendering: auto;
+}
+.playable-visual-settings {
+  display: grid;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 13px;
+  background: rgba(255,255,255,.045);
+}
+.playable-visual-settings > span {
+  color: var(--lime);
+  font: 800 5px var(--font-mono);
+  letter-spacing: .1em;
+}
+.playable-visual-settings > div {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 4px;
+}
+.playable-visual-settings button {
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 5px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px;
+  color: rgba(255,255,255,.46);
+  background: rgba(0,0,0,.16);
+  font: 800 4px var(--font-mono);
+  cursor: pointer;
+}
+.playable-visual-settings button.is-active {
+  color: #07140e;
+  border-color: var(--lime);
+  background: var(--lime);
+}
+.playable-visual-settings .is-effects {
+  min-height: 34px;
+}
+.playable-match-screen[data-visual-quality="low"] .playable-match-canvas {
+  image-rendering: pixelated;
+}
+@media (max-width: 980px) {
+  .playable-visual-settings { padding: 8px; }
+}
+@media (max-width: 760px) {
+  .playable-match-header {
+    background: linear-gradient(180deg,rgba(4,18,11,.99),rgba(4,18,11,.92));
+  }
+  .playable-scoreboard {
+    padding: 3px 6px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    background: rgba(0,0,0,.16);
+  }
+}

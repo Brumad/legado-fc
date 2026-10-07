@@ -13,7 +13,7 @@ import {
   normalizeMatchInput,
   touchInputFromVector,
 } from "./match-core/index.ts";
-import { createFollowCamera, drawMatchFrame } from "./match-core/renderer.ts";
+import { DEFAULT_MATCH_RENDER_THEME, createMatchCamera, drawMatchFrame, type MatchCameraMode, type MatchRenderTheme, type MatchVisualQuality } from "./match-core/renderer.ts";
 import { FixedStepMatchRuntime } from "./match-core/simulation.ts";
 import type { MatchCoreConfig, MatchCoreState, MatchInputFrame } from "./match-core/types.ts";
 
@@ -34,6 +34,11 @@ export type PlayableMatchCanvasProps = {
   controlSize?: "small" | "medium" | "large";
   controlOpacity?: 0.55 | 0.75 | 1;
   controlsSide?: "standard" | "inverted";
+  cameraMode?: MatchCameraMode;
+  visualQuality?: MatchVisualQuality;
+  visualEffects?: boolean;
+  crowd?: boolean;
+  renderTheme?: Partial<MatchRenderTheme>;
   onSnapshot?: (state: MatchCoreState) => void;
   onFinished?: (state: MatchCoreState) => void;
 };
@@ -107,6 +112,11 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     controlSize = "medium",
     controlOpacity = 0.75,
     controlsSide = "standard",
+    cameraMode = "follow",
+    visualQuality = "high",
+    visualEffects = true,
+    crowd = true,
+    renderTheme,
     onSnapshot,
     onFinished,
   }, ref) {
@@ -193,12 +203,18 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         const context = canvas.getContext("2d");
         if (context) {
           const padding = Math.max(7 * pixelRatio, Math.min(width, height) * 0.018);
-          drawMatchFrame(context, runtime.state, {
-            width,
-            height,
-            padding,
-            camera: createFollowCamera(runtime.state, { width, height, padding }),
-          });
+          drawMatchFrame(
+            context,
+            runtime.state,
+            {
+              width,
+              height,
+              padding,
+              camera: createMatchCamera(runtime.state, { width, height, padding }, cameraMode),
+            },
+            { ...DEFAULT_MATCH_RENDER_THEME, ...(renderTheme ?? {}) },
+            { quality: visualQuality, effects: visualEffects, crowd },
+          );
         }
 
         snapshotCounter += 1;
@@ -220,7 +236,7 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         runtime.pause();
         runtimeRef.current = null;
       };
-    }, [autoStart, config, initialState]);
+    }, [autoStart, cameraMode, config, crowd, initialState, renderTheme, visualEffects, visualQuality]);
 
     function setTouchAction(key: Exclude<keyof TouchState, "moveX" | "moveY">, value: boolean) {
       touchRef.current = { ...touchRef.current, [key]: value };

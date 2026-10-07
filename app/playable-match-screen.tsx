@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import type { MatchCameraMode, MatchVisualQuality } from "./match-core/renderer.ts";
 import type { CareerState, Fixture } from "./game-engine.ts";
 import {
   createPlayableMatchResult,
@@ -44,6 +45,9 @@ export function PlayableMatchScreen({
   }, [developerMode, matchDuration]);
   const canvasRef = useRef<PlayableMatchCanvasHandle>(null);
   const [snapshot, setSnapshot] = useState<MatchCoreState>(playable.state);
+  const [cameraMode, setCameraMode] = useState<MatchCameraMode>("follow");
+  const [visualQuality, setVisualQuality] = useState<MatchVisualQuality>("high");
+  const [visualEffects, setVisualEffects] = useState(true);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
   const unavailable = career.suspensionMatches > 0 || career.injuryMatchesRemaining > 0;
   const controlled = snapshot.players.find((player) => player.controlled);
@@ -59,6 +63,8 @@ export function PlayableMatchScreen({
   const addedBase = snapshot.clock.phase === "first-half" || snapshot.clock.phase === "half-time" ? 45 : 90;
   const addedMinutes = Math.max(0, snapshot.clock.minute - addedBase);
   const clockMinuteLabel = addedMinutes > 0 ? `${addedBase}+${addedMinutes}` : String(snapshot.clock.minute).padStart(2, "0");
+  const homeKit = playerSide === "home" ? career.clubColor : fixture.opponent.color;
+  const awayKit = playerSide === "away" ? career.clubColor : fixture.opponent.color;
 
   function finishPlayableMatch() {
     const state = finalState ?? canvasRef.current?.getState();
@@ -78,7 +84,7 @@ export function PlayableMatchScreen({
       <header className="playable-match-header">
         <button className="playable-exit" onClick={onExit} aria-label="Sair da partida">←</button>
         <div className="playable-competition">
-          <span>0.5.3 · FUTEBOL JOGÁVEL</span>
+          <span>0.5.4 · VISUAL RETRÔ</span>
           <strong>{fixture.competition}</strong>
           <small>{fixture.home ? "CASA" : "FORA"} · {fixture.weather} · {durationLabel}</small>
         </div>
@@ -117,6 +123,16 @@ export function PlayableMatchScreen({
               controlSize={mobileControlSize}
               controlOpacity={mobileControlOpacity}
               controlsSide={mobileControlsSide}
+              cameraMode={cameraMode}
+              visualQuality={visualQuality}
+              visualEffects={visualEffects}
+              crowd={visualQuality !== "low"}
+              renderTheme={{
+                homePlayer: homeKit,
+                awayPlayer: awayKit,
+                homeTrim: homeKit === "#ffffff" ? "#152018" : "#f1f5ef",
+                awayTrim: awayKit === "#ffffff" ? "#152018" : "#f1f5ef",
+              }}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
             />
@@ -176,6 +192,27 @@ export function PlayableMatchScreen({
               <div><kbd>ESPAÇO</kbd><p>Desarme</p></div>
               <small>Gamepad: A passe · B chute · X bote · Y profundidade · LB/RB sprint</small>
               <em>{playable.context.opponentFormation} · {playable.context.opponentTacticName}</em>
+            </section>
+
+            <section className="playable-visual-settings">
+              <span>APRESENTAÇÃO 0.5.4</span>
+              <div>
+                {(["follow","broadcast","wide"] as MatchCameraMode[]).map((mode) => (
+                  <button key={mode} className={cameraMode === mode ? "is-active" : ""} onClick={() => setCameraMode(mode)}>
+                    {mode === "follow" ? "SEGUIR" : mode === "broadcast" ? "TV" : "ABERTA"}
+                  </button>
+                ))}
+              </div>
+              <div>
+                {(["low","medium","high"] as MatchVisualQuality[]).map((quality) => (
+                  <button key={quality} className={visualQuality === quality ? "is-active" : ""} onClick={() => setVisualQuality(quality)}>
+                    {quality === "low" ? "BAIXA" : quality === "medium" ? "MÉDIA" : "ALTA"}
+                  </button>
+                ))}
+              </div>
+              <button className={visualEffects ? "is-active is-effects" : "is-effects"} onClick={() => setVisualEffects((current) => !current)}>
+                EFEITOS {visualEffects ? "ON" : "OFF"}
+              </button>
             </section>
 
             <section className="playable-match-buttons">
