@@ -246,6 +246,13 @@ export class FixedStepMatchRuntime {
     this.currentInput = normalizeMatchInput(input);
   }
 
+  replaceState(state: MatchCoreState) {
+    this.state = state;
+    this.accumulator = 0;
+    this.currentInput = normalizeMatchInput();
+    return this.state;
+  }
+
   start() {
     this.state = startMatch(this.state, this.config);
   }

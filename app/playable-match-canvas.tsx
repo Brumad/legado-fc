@@ -23,6 +23,7 @@ export type PlayableMatchCanvasHandle = {
   togglePause: () => void;
   startSecondHalf: () => void;
   abandon: () => void;
+  replaceState: (state: MatchCoreState) => void;
   getState: () => MatchCoreState | null;
 };
 
@@ -169,6 +170,14 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
       },
       startSecondHalf() { runtimeRef.current?.startSecondHalf(); },
       abandon() { runtimeRef.current?.abandon(); },
+      replaceState(state) {
+        const runtime = runtimeRef.current;
+        if (!runtime) return;
+        keyboardKeysRef.current.clear();
+        touchRef.current = emptyTouchState();
+        runtime.replaceState(state);
+        onSnapshotRef.current?.(runtime.state);
+      },
       getState() { return runtimeRef.current?.state ?? null; },
     }), []);
 
