@@ -6,156 +6,221 @@ e sistemas construídos na 0.4.x.
 
 ## Versão atual
 
-`0.5.4 — Visual Retrô e Apresentação da Partida`
+`0.5.5 — Faltas e Escanteios em 3D`
 
-A 0.5.4 dá identidade visual própria à partida 2D. O Match Core e as regras
-consolidadas na 0.5.3 continuam independentes da apresentação: trocar câmera,
-qualidade, efeitos ou replay não reinicia nem altera o resultado da simulação.
+A 0.5.5 mantém a partida normal em 2D e transforma bolas paradas selecionadas em
+momentos especiais em 3D real.
 
-### Linguagem visual original
+```text
+PARTIDA 2D
+   ↓
+FALTA / ESCANTEIO
+   ↓
+CENA THREE.JS 3D
+   ↓
+RESULTADO FÍSICO
+   ↓
+MATCH CORE
+   ↓
+PARTIDA 2D
+```
 
-Os jogadores deixaram de ser círculos e passaram a ser sprites procedurais
-originais desenhados pelo próprio renderer:
+A cena 3D não possui placar paralelo nem resultado roteirizado. A bola é lançada,
+simulada e devolvida ao Match Core.
 
-- corpo, cabeça, braços e pernas;
-- proporções arcade próprias;
-- animação visual de corrida;
-- pose de passe;
-- pose de chute;
-- pose de desarme/carrinho;
-- comportamento visual específico do goleiro;
-- comemoração após gol;
-- sombra de contato;
-- indicador destacado do atleta controlado;
-- posse legível em zoom reduzido.
+### Situações 3D
 
-Nenhum sprite ou asset de outro jogo foi copiado.
+A fundação cobre:
 
-### Uniformes
+- falta direta;
+- falta levantada/cruzada;
+- escanteio.
 
-O renderer gera variantes procedurais:
+A posição da cobrança nasce exatamente do `restart.position` da partida 2D.
+Escanteios preservam o lado correto do campo.
 
-- uniforme de casa com faixa central;
-- uniforme visitante com faixa diagonal;
-- goleiro com painel e contorno próprios;
-- cores dos clubes são usadas diretamente na partida;
-- pequenos detalhes mantêm os lados distinguíveis em câmeras abertas.
+### Física da bola
 
-### Campo e estádio
+O módulo `app/set-piece-3d` é independente do React e simula:
 
-- gramado em faixas;
-- textura adicional em qualidade alta;
-- todas as marcações do campo;
-- áreas e círculo central;
-- redes simples nos gols;
-- arquibancada estilizada;
-- torcida procedural;
-- sombras;
-- bola retrô com rotação visual;
-- trilha visual da bola em alta velocidade;
-- efeito de gol.
+- posição XYZ;
+- velocidade XYZ;
+- gravidade;
+- drag;
+- spin;
+- efeito Magnus;
+- quique;
+- atrito com o gramado;
+- potência;
+- altura;
+- curva.
 
-### HUD e feedback
+O gate headless exige que a própria trajetória física consiga produzir um gol.
+Nenhum teste injeta um resultado de gol para validar a cobrança.
 
-A partida ganhou uma apresentação arcade própria:
+### Goleiro
 
-- placar e relógio;
-- HUD inferior com jogador, camisa e posição;
+O goleiro reage à trajetória real depois de um tempo de reação.
+
+`goalkeeping` influencia:
+
+- atraso de reação;
+- compromisso com a trajetória;
+- velocidade útil;
+- alcance.
+
+Isso permite defesas reais sem transformar o goleiro em um espelho perfeito da
+bola.
+
+### Barreira e área
+
+Faltas diretas criam barreira entre a origem e o gol. O número de jogadores varia
+com a distância.
+
+Faltas levantadas e escanteios criam atacantes e defensores na área. Cruzamentos
+podem terminar em cabeçada, corte, defesa, rebote, bola viva, gol ou saída.
+
+### Controles
+
+**Mouse:** arraste na cena para definir direção, altura, potência e curva.
+
+**Touch:** o mesmo gesto funciona na superfície 3D, com pointer capture.
+
+**Gamepad:**
+- analógico esquerdo: direção/altura;
+- analógico direito: curva;
+- gatilhos: potência;
+- A: executar cobrança.
+
+A amostragem do gamepad é independente do FPS do WebGL, evitando perda de
+botões em GPUs lentas ou SwiftShader.
+
+### Atributos da carreira
+
+O atleta controlado leva para a cena:
+
+- chute;
+- passe;
+- drible/técnica;
+- físico;
+- pé dominante;
+- tom de pele;
+- cabelo e cor do cabelo;
+- barba;
+- formato de rosto;
+- número da camisa.
+
+Os atributos alteram erro, potência e capacidade de curva.
+
+### Visual Three.js
+
+A cena usa Three.js com modelos procedurais originais:
+
+- gramado e marcações;
+- gol e rede;
+- goleiro;
+- barreira;
+- jogadores na área;
+- bola;
+- iluminação e sombras;
+- torcida estilizada;
+- avatar da carreira.
+
+Nenhum asset ou interface de Score! Hero ou outro jogo é copiado.
+
+### Carregamento
+
+Three.js e a tela de bola parada são carregados por `React.lazy` somente quando
+a cena 3D é necessária. O build mantém a cena em chunk separado; após o primeiro
+carregamento, o módulo permanece no cache normal do navegador.
+
+### Retorno ao Match Core
+
+O resultado 3D volta para a mesma partida.
+
+São preservados:
+
+- minuto e período;
+- placar;
+- cartões;
 - stamina;
-- posse;
-- chutes;
-- dificuldade/tática rival;
-- acréscimos;
-- feedback visual de passe, profundidade, chute e desarme;
-- controles rápidos de câmera e efeitos no mobile.
+- lesões;
+- jogadores;
+- último toque;
+- posição da bola.
 
-### Câmeras
+Um gol gera saída de bola normal. Defesa entrega a bola ao goleiro. Bola para
+fora gera tiro de meta. Cortes e rebotes retornam posição, velocidade e último
+toque reais ao 2D.
 
-Há três opções que podem ser trocadas durante a partida sem reiniciar o runtime:
+### Fallback
 
-- **Seguir** — foco no atleta controlado com leve antecipação da bola;
-- **TV** — visão intermediária mais aberta;
-- **Aberta** — mostra grande parte do campo.
+Se WebGL não estiver disponível:
 
-### Qualidade visual
+- o usuário pode voltar para a cobrança 2D original;
+- ou executar a mesma física em modo de compatibilidade sem apresentação 3D.
 
-O renderer possui três níveis:
+O fallback não reabre a cena em loop e permite que a partida continue.
 
-- baixa;
-- média;
-- alta.
+### Fundação preservada
 
-Qualidade baixa reduz detalhes visuais e torcida. Efeitos também podem ser
-desligados separadamente. Nenhuma dessas opções modifica a física, IA, relógio
-ou resultado da partida.
+A 0.5.5 mantém tudo que já estava validado:
 
-### Replay
-
-Após um gol, o canvas usa um buffer somente de apresentação para reproduzir
-alguns segundos anteriores. Enquanto o replay é mostrado, o Match Core não é
-recriado e não recebe lógica visual.
-
-O replay pode ser desligado.
-
-### Fundação de gameplay preservada
-
-A 0.5.4 mantém tudo que já estava validado na 0.5.3:
-
+- Match Core independente;
 - joystick analógico mobile;
 - teclado e gamepad;
-- partidas 3/6/10 min;
-- dificuldade Promessa/Profissional/Lenda;
+- duração 3/6/10 min;
+- dificuldade real;
 - 12 estilos táticos;
-- formações e postura dinâmica;
-- atributos influenciando gameplay;
-- impedimento;
-- vantagem;
-- cartões;
-- lesões;
-- substituições;
-- acréscimos;
-- creator redesenhado com 12 países acessíveis;
+- regras, cartões, lesões, impedimento e acréscimos;
+- creator com 12 países;
+- sprites retrô da 0.5.4;
+- câmeras, replay e HUD arcade;
 - modo rápido legado.
 
-### Validação da 0.5.4
+## Validação da 0.5.5
 
-O gate `verify:0.5.4` confirma:
+`verify:set-pieces-3d` valida headless:
 
-- renderer procedural original;
-- três câmeras com enquadramentos diferentes;
-- qualidade baixa/média/alta;
-- efeitos desligáveis;
-- replay;
-- HUD arcade;
-- ausência de dependência do renderer dentro da simulação;
-- opções visuais fora das dependências que criam o runtime.
+- gesto reto e curvo;
+- falta direta e barreira;
+- curva, altura e potência;
+- gol produzido pela física real;
+- reação física do goleiro;
+- falta levantada;
+- escanteio e lado correto;
+- duelo aéreo/rebote;
+- retorno de gol, defesa, bloqueio e bola viva ao Match Core;
+- preservação de relógio, cartões e stamina.
 
 O Playwright real valida:
 
-- trocar câmera não reseta posição do jogador;
-- mudar qualidade não reseta a partida;
-- desligar efeitos mantém o jogo funcional;
-- renderer continua produzindo imagem legível;
-- HUD arcade aparece no desktop;
-- controles rápidos aparecem no mobile;
-- mobile não cria overflow horizontal;
-- replay pode ser ligado/desligado;
-- joystick continua disponível.
+- falta direta WebGL com mouse;
+- escanteio WebGL com touch em 390×844;
+- falta levantada WebGL com gamepad;
+- fallback sem WebGL;
+- retorno para a mesma partida 2D.
 
-O pipeline completo também mantém verdes:
+Checkpoint final validado: `155edd90a7e407e9193b9a48b7e00cc9bfa37694`  
+Workflow final: `37653956766` — **PASS**.
 
-- typecheck e lint;
+O pipeline também mantém verdes:
+
+- typecheck;
+- lint;
 - Match Core;
 - integração carreira ↔ partida;
-- `verify:0.5.3`;
-- 100 partidas IA x IA;
+- 0.5.2;
+- 0.5.3;
+- 0.5.4;
 - 5.000 partidas legadas;
 - 25 temporadas;
 - build de produção;
+- render tests;
 - build GitHub Pages;
-- Career UI real;
-- creator real;
-- partida real em desktop/mobile.
+- Career UI;
+- creator;
+- partida real desktop/mobile.
 
 ## Desenvolvimento
 
@@ -178,6 +243,7 @@ pnpm verify:career-ui
 pnpm verify:playable-match
 pnpm verify:0.5.3
 pnpm verify:0.5.4
+pnpm verify:set-pieces-3d
 pnpm verify:variation
 pnpm verify:world
 pnpm test:render

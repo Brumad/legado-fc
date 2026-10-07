@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders the Legado FC 0.5.4 application shell", async () => {
+test("server-renders the Legado FC 0.5.5 application shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Legado FC 0\.5\.4 — Visual Retrô e Apresentação da Partida<\/title>/i);
+  assert.match(html, /<title>Legado FC 0\.5\.5 — Faltas e Escanteios em 3D<\/title>/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.match(html, /og-v7\.png/i);
 });
@@ -44,7 +44,7 @@ test("keeps the completed 0.4.x systems in the production source", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /0\.5\.4 · VISUAL RETRÔ/);
+  assert.match(page, /0\.5\.5 · BOLAS PARADAS 3D/);
   assert.match(page, /<CareerHub/);
   assert.match(creator, /country-choice-grid/);
   assert.match(creator, /COUNTRIES\.length/);

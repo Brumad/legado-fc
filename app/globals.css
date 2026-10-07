@@ -2645,3 +2645,301 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
     padding: 6px 7px;
   }
 }
+
+
+/* ============================================================
+   Legado FC 0.5.5 — 3D set pieces
+   ============================================================ */
+.set-piece-3d-screen {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  overflow: hidden;
+  color: #f6fff5;
+  background: #07140e;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.set-piece-3d-mount {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+.set-piece-3d-mount canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.set-piece-3d-screen::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  background:
+    linear-gradient(180deg,rgba(0,0,0,.5),transparent 22%,transparent 70%,rgba(0,0,0,.52)),
+    radial-gradient(circle at 50% 40%,transparent 35%,rgba(0,0,0,.18));
+}
+.set-piece-3d-header {
+  position: absolute;
+  z-index: 5;
+  top: max(14px,env(safe-area-inset-top));
+  left: max(14px,env(safe-area-inset-left));
+  right: max(14px,env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  pointer-events: none;
+}
+.set-piece-3d-header > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 12px;
+  background: rgba(4,18,11,.76);
+  backdrop-filter: blur(10px);
+}
+.set-piece-3d-header span,
+.set-piece-telemetry small,
+.set-piece-result span,
+.set-piece-fallback > span {
+  color: var(--lime);
+  font: 800 5px var(--font-mono);
+  letter-spacing: .1em;
+}
+.set-piece-3d-header strong {
+  font-size: clamp(15px,2vw,25px);
+  letter-spacing: -.03em;
+}
+.set-piece-3d-header small {
+  color: rgba(255,255,255,.5);
+  font: 600 5px var(--font-mono);
+}
+.set-piece-3d-header button {
+  pointer-events: auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  color: rgba(255,255,255,.72);
+  background: rgba(4,18,11,.72);
+  font: 800 5px var(--font-mono);
+  cursor: pointer;
+}
+.set-piece-aim-guide {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: max(28px,calc(env(safe-area-inset-bottom) + 20px));
+  transform: translateX(-50%);
+  width: min(520px,calc(100% - 30px));
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 12px 15px;
+  border: 1px solid rgba(212,255,99,.25);
+  border-radius: 14px;
+  background: rgba(3,18,11,.7);
+  backdrop-filter: blur(9px);
+  pointer-events: none;
+  text-align: center;
+}
+.set-piece-aim-guide span {
+  color: var(--lime);
+  font: 900 7px var(--font-mono);
+  letter-spacing: .11em;
+}
+.set-piece-aim-guide strong { font-size: 12px; }
+.set-piece-aim-guide small {
+  color: rgba(255,255,255,.5);
+  font-size: 6px;
+  line-height: 1.5;
+}
+.set-piece-gesture-path {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.set-piece-gesture-path path {
+  fill: none;
+  stroke: var(--lime);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgba(212,255,99,.8));
+}
+.set-piece-telemetry {
+  position: absolute;
+  z-index: 5;
+  right: max(14px,env(safe-area-inset-right));
+  bottom: max(18px,calc(env(safe-area-inset-bottom) + 12px));
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+.set-piece-telemetry > span {
+  min-width: 58px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 7px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  background: rgba(4,18,11,.68);
+  backdrop-filter: blur(8px);
+}
+.set-piece-telemetry b {
+  font: 900 9px var(--font-mono);
+}
+.set-piece-flight-label,
+.set-piece-replay-label {
+  position: absolute;
+  z-index: 6;
+  top: 17%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 1px solid var(--lime);
+  border-radius: 999px;
+  color: var(--lime);
+  background: rgba(4,18,11,.74);
+  font: 900 6px var(--font-mono);
+  letter-spacing: .12em;
+  pointer-events: none;
+}
+.set-piece-result,
+.set-piece-fallback {
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  left: 50%;
+  width: min(440px,calc(100% - 30px));
+  transform: translate(-50%,-50%);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 25px;
+  border: 1px solid rgba(212,255,99,.32);
+  border-radius: 16px;
+  color: white;
+  background: rgba(3,17,10,.9);
+  box-shadow: 0 24px 70px rgba(0,0,0,.38);
+  backdrop-filter: blur(12px);
+  text-align: center;
+}
+.set-piece-result h2,
+.set-piece-fallback h2 {
+  margin: 0;
+  color: var(--lime);
+  font-size: clamp(24px,5vw,48px);
+  letter-spacing: -.05em;
+}
+.set-piece-result small,
+.set-piece-fallback p {
+  margin: 0;
+  color: rgba(255,255,255,.55);
+  font-size: 7px;
+  line-height: 1.55;
+}
+.set-piece-fallback h2 {
+  color: white;
+  font-size: clamp(20px,4vw,34px);
+}
+.set-piece-fallback > div {
+  width: 100%;
+  display: grid;
+  gap: 7px;
+  margin-top: 6px;
+}
+.set-piece-fallback button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  color: #07140e;
+  background: var(--lime);
+  font: 900 6px var(--font-mono);
+  cursor: pointer;
+}
+.set-piece-fallback button + button {
+  color: white;
+  background: rgba(255,255,255,.09);
+}
+@media (max-width: 700px) {
+  .set-piece-3d-header {
+    top: max(8px,env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
+  }
+  .set-piece-3d-header > div { padding: 8px 9px; }
+  .set-piece-3d-header strong { font-size: 15px; }
+  .set-piece-3d-header button { min-height: 34px; padding-inline: 9px; }
+  .set-piece-aim-guide {
+    bottom: max(12px,calc(env(safe-area-inset-bottom) + 8px));
+    padding: 10px;
+  }
+  .set-piece-aim-guide small { max-width: 300px; }
+  .set-piece-telemetry {
+    right: 8px;
+    bottom: auto;
+    top: max(82px,calc(env(safe-area-inset-top) + 76px));
+  }
+  .set-piece-telemetry > span {
+    min-width: 48px;
+    padding: 6px 5px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .set-piece-aim-guide {
+    left: 14px;
+    bottom: 10px;
+    width: min(390px,52vw);
+    transform: none;
+    justify-items: start;
+    text-align: left;
+  }
+  .set-piece-telemetry {
+    top: auto;
+    right: 12px;
+    bottom: 10px;
+  }
+}
+
+
+/* 0.5.5 — developer set-piece validation hooks */
+.playable-set-piece-dev {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px dashed rgba(212,255,99,.35);
+  border-radius: 11px;
+  background: rgba(212,255,99,.035);
+}
+.playable-set-piece-dev > span {
+  color: var(--lime);
+  font: 800 5px var(--font-mono);
+  letter-spacing: .08em;
+}
+.playable-set-piece-dev > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.playable-set-piece-dev button {
+  min-height: 34px;
+  padding: 5px;
+  border: 1px solid rgba(212,255,99,.18);
+  border-radius: 7px;
+  color: var(--lime);
+  background: rgba(0,0,0,.18);
+  font: 800 4px var(--font-mono);
+}
+@media (max-width: 760px) {
+  .playable-set-piece-dev { display: none; }
+}
