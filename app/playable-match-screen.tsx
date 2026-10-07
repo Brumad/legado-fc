@@ -13,6 +13,8 @@ import {
   type PlayableMatchCanvasHandle,
 } from "./playable-match-canvas.tsx";
 import type { MatchCoreState } from "./match-core/types.ts";
+import { SetPiece3DOverlay } from "./set-piece-3d/set-piece-3d-overlay.tsx";
+import type { SetPiece3DRequest, SetPiece3DResult } from "./set-piece-3d/types.ts";
 
 export function PlayableMatchScreen({
   career,
@@ -50,6 +52,7 @@ export function PlayableMatchScreen({
   const [visualEffects, setVisualEffects] = useState(true);
   const [replayEnabled, setReplayEnabled] = useState(true);
   const [replayActive, setReplayActive] = useState(false);
+  const [setPieceRequest, setSetPieceRequest] = useState<SetPiece3DRequest | null>(null);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
   const unavailable = career.suspensionMatches > 0 || career.injuryMatchesRemaining > 0;
   const controlled = snapshot.players.find((player) => player.controlled);
@@ -73,6 +76,15 @@ export function PlayableMatchScreen({
     homeTrim: homeKit === "#ffffff" ? "#152018" : "#f1f5ef",
     awayTrim: awayKit === "#ffffff" ? "#152018" : "#f1f5ef",
   }), [awayKit, homeKit]);
+
+  function resolveSetPiece(result: SetPiece3DResult) {
+    const request = setPieceRequest;
+    if (!request) return;
+    canvasRef.current?.applySetPieceResult(request, result);
+    const state = canvasRef.current?.getState();
+    if (state) setSnapshot(state);
+    setSetPieceRequest(null);
+  }
 
   function finishPlayableMatch() {
     const state = finalState ?? canvasRef.current?.getState();
@@ -140,6 +152,7 @@ export function PlayableMatchScreen({
               crowd={visualQuality !== "low"}
               replayEnabled={replayEnabled}
               onReplayChange={setReplayActive}
+              onSetPieceRequest={setSetPieceRequest}
               renderTheme={renderTheme}
               onSnapshot={setSnapshot}
               onFinished={(state) => { setSnapshot(state); setFinalState(state); }}
@@ -169,7 +182,15 @@ export function PlayableMatchScreen({
 
             {replayActive && <div className="playable-replay-dom-badge">REPLAY</div>}
 
-            {snapshot.paused && snapshot.clock.phase !== "half-time" && !snapshot.finished && (
+            {developerMode && (
+              <div className="playable-set-piece-dev">
+                <span>QA 0.5.5</span>
+                <button onClick={() => canvasRef.current?.debugStartSetPiece("free-kick")}>TESTAR FALTA 3D</button>
+                <button onClick={() => canvasRef.current?.debugStartSetPiece("corner")}>TESTAR ESCANTEIO 3D</button>
+              </div>
+            )}
+
+            {snapshot.paused && !setPieceRequest && snapshot.clock.phase !== "half-time" && !snapshot.finished && (
               <div className="playable-overlay">
                 <span>PARTIDA PAUSADA</span>
                 <h2>O jogo está parado.</h2>
@@ -258,6 +279,17 @@ export function PlayableMatchScreen({
             </section>
           </aside>
         </section>
+      )}
+
+      {setPieceRequest && (
+        <SetPiece3DOverlay
+          request={setPieceRequest}
+          career={career}
+          attackingColor={career.clubColor}
+          defendingColor={fixture.opponent.color}
+          quality={visualQuality}
+          onResolve={resolveSetPiece}
+        />
       )}
     </main>
   );

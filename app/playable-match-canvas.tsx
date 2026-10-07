@@ -15,7 +15,9 @@ import {
 } from "./match-core/index.ts";
 import { DEFAULT_MATCH_RENDER_THEME, createMatchCamera, drawMatchFrame, type MatchCameraMode, type MatchRenderTheme, type MatchVisualQuality } from "./match-core/renderer.ts";
 import { FixedStepMatchRuntime } from "./match-core/simulation.ts";
-import type { MatchCoreConfig, MatchCoreState, MatchInputFrame } from "./match-core/types.ts";
+import type { MatchCoreConfig, MatchCoreState, MatchInputFrame, MatchSide } from "./match-core/types.ts";
+import { applySetPiece3DResult, createSetPiece3DRequest } from "./set-piece-3d/integration.ts";
+import type { SetPiece3DRequest, SetPiece3DResult } from "./set-piece-3d/types.ts";
 
 export type PlayableMatchCanvasHandle = {
   pause: () => void;
@@ -24,6 +26,8 @@ export type PlayableMatchCanvasHandle = {
   startSecondHalf: () => void;
   abandon: () => void;
   getState: () => MatchCoreState | null;
+  applySetPieceResult: (request: SetPiece3DRequest, result: SetPiece3DResult) => void;
+  debugStartSetPiece: (kind: "free-kick" | "corner") => void;
 };
 
 export type PlayableMatchCanvasProps = {
@@ -41,6 +45,7 @@ export type PlayableMatchCanvasProps = {
   replayEnabled?: boolean;
   renderTheme?: Partial<MatchRenderTheme>;
   onReplayChange?: (active: boolean) => void;
+  onSetPieceRequest?: (request: SetPiece3DRequest) => void;
   onSnapshot?: (state: MatchCoreState) => void;
   onFinished?: (state: MatchCoreState) => void;
 };
@@ -121,6 +126,7 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     replayEnabled = true,
     renderTheme,
     onReplayChange,
+    onSetPieceRequest,
     onSnapshot,
     onFinished,
   }, ref) {
@@ -141,6 +147,8 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     const renderThemeRef = useRef(renderTheme);
     const replayEnabledRef = useRef(replayEnabled);
     const onReplayChangeRef = useRef(onReplayChange);
+    const onSetPieceRequestRef = useRef(onSetPieceRequest);
+    const requestedSetPieceRef = useRef<string | null>(null);
     const replayActiveRef = useRef(false);
     const replayFramesRef = useRef<MatchCoreState[]>([]);
     const replayFrameRef = useRef(0);
@@ -157,6 +165,7 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
     renderThemeRef.current = renderTheme;
     replayEnabledRef.current = replayEnabled;
     onReplayChangeRef.current = onReplayChange;
+    onSetPieceRequestRef.current = onSetPieceRequest;
 
     useImperativeHandle(ref, () => ({
       pause() { runtimeRef.current?.pause(); },
@@ -170,6 +179,53 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
       startSecondHalf() { runtimeRef.current?.startSecondHalf(); },
       abandon() { runtimeRef.current?.abandon(); },
       getState() { return runtimeRef.current?.state ?? null; },
+      applySetPieceResult(request, result) {
+        const runtime = runtimeRef.current;
+        if (!runtime) return;
+        runtime.state = applySetPiece3DResult(runtime.state, request, result, runtime.config);
+        requestedSetPieceRef.current = null;
+        onSnapshotRef.current?.(runtime.state);
+        runtime.resume();
+        onSnapshotRef.current?.(runtime.state);
+      },
+      debugStartSetPiece(kind) {
+        const runtime = runtimeRef.current;
+        if (!runtime) return;
+        const controlled = runtime.state.players.find((player) => player.controlled && player.active && !player.redCard);
+        if (!controlled) return;
+        const side: MatchSide = controlled.side;
+        const goalX = side === "home" ? runtime.state.pitch.length : 0;
+        const position = kind === "corner"
+          ? {
+              x: side === "home" ? runtime.state.pitch.length - 0.45 : 0.45,
+              y: 0.45,
+            }
+          : {
+              x: side === "home" ? runtime.state.pitch.length - 23 : 23,
+              y: runtime.state.pitch.width / 2 - 2.5,
+            };
+        runtime.state = {
+          ...runtime.state,
+          restart: {
+            type: kind,
+            side,
+            position,
+            ticksRemaining: runtime.config.restartDelayTicks,
+            label: kind === "corner" ? "Escanteio" : "Falta",
+          },
+          ball: {
+            ...runtime.state.ball,
+            position,
+            velocity: { x: 0, y: 0 },
+            possessionPlayerId: null,
+            lastTouchPlayerId: controlled.id,
+            lastTouchSide: side,
+            pickupCooldownTicks: runtime.config.restartDelayTicks,
+          },
+        };
+        requestedSetPieceRef.current = null;
+        onSnapshotRef.current?.(runtime.state);
+      },
     }), []);
 
     useEffect(() => {
@@ -292,6 +348,23 @@ export const PlayableMatchCanvas = forwardRef<PlayableMatchCanvasHandle, Playabl
         const deltaSeconds = Math.min(0.25, Math.max(0, (now - previous) / 1000));
         previous = now;
         runtime.advanceFrame(deltaSeconds);
+
+        const controlledPlayerId = runtime.state.players.find((player) => player.controlled && player.active && !player.redCard)?.id;
+        if (controlledPlayerId && runtime.state.restart && onSetPieceRequestRef.current) {
+          const eligibility = createSetPiece3DRequest(runtime.state, controlledPlayerId);
+          if (
+            eligibility.request
+            && requestedSetPieceRef.current !== eligibility.request.id
+          ) {
+            requestedSetPieceRef.current = eligibility.request.id;
+            runtime.pause();
+            onSnapshotRef.current?.(runtime.state);
+            onSetPieceRequestRef.current(eligibility.request);
+            previous = now;
+            animationFrame = window.requestAnimationFrame(render);
+            return;
+          }
+        }
 
         historyCadenceRef.current += 1;
         if (historyCadenceRef.current >= 2) {
