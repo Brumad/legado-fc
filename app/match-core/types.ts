@@ -132,7 +132,8 @@ export type MatchCoreEvent =
   | { tick: number; type: "yellow-card" | "red-card"; playerId: string; side: MatchSide }
   | { tick: number; type: "injury"; playerId: string; side: MatchSide; severity: "Leve" | "Moderada" }
   | { tick: number; type: "substitution"; playerId: string; side: MatchSide }
-  | { tick: number; type: "advantage"; side: MatchSide };
+  | { tick: number; type: "advantage"; side: MatchSide }
+  | { tick: number; type: "set-piece-3d"; side: MatchSide; kind: "free-kick-direct" | "free-kick-cross" | "corner"; outcome: "goal" | "saved" | "blocked" | "wide" | "cleared" | "rebound" | "cross-complete" };
 
 export type MatchCoreState = {
   version: 1;
