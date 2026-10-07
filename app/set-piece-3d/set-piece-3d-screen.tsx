@@ -99,7 +99,7 @@ export function SetPiece3DScreen({
       sceneRef.current = scene;
       const preview = new SetPieceRuntime(context, defaultGesture(context));
       scene.update(preview.state);
-      setSupport("webgl");
+      window.setTimeout(() => setSupport("webgl"), 0);
     } catch {
       const fallbackTimer = window.setTimeout(() => {
         setSupport("fallback");
