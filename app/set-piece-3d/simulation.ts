@@ -145,8 +145,8 @@ function resolveAerialDuel(state: SetPieceRuntimeState): SetPieceRuntimeState | 
     : ball.position.x <= state.context.goalX + 15;
   if (!inDangerZone || ball.position.y < 1.15 || ball.position.y > 3.6) return null;
 
-  const attack = nearestActor(state.context.attackers, ball);
-  const defend = nearestActor(state.context.defenders, ball);
+  const attack = nearestActor(state.context.attackers, ball.position);
+  const defend = nearestActor(state.context.defenders, ball.position);
   if (!attack || !defend || Math.min(attack.distance, defend.distance) > 2.7) return null;
 
   const attackScore = attack.actor.rating + deterministicUnit(state.context, `attack-duel:${attack.actor.playerId}`) * 26;
