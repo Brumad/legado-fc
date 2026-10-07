@@ -404,9 +404,25 @@ function drawRetroPlayer(
   context.fill();
   context.stroke();
 
-  // Jersey center stripe gives the original sprite language.
-  context.fillStyle = tone(kit, player.side === "home" ? -0.16 : 0.18);
-  context.fillRect(-scale * 0.09, -bodyHeight * 0.28, scale * 0.18, bodyHeight * 0.74);
+  // Procedural kit variants keep home, away and goalkeeper silhouettes distinct.
+  context.fillStyle = tone(kit, player.side === "home" ? -0.16 : 0.2);
+  if (isKeeper) {
+    context.fillRect(-bodyWidth * 0.34, -bodyHeight * 0.16, bodyWidth * 0.68, bodyHeight * 0.42);
+    context.strokeStyle = theme.controlledPlayer;
+    context.lineWidth = Math.max(1, scale * 0.08);
+    context.strokeRect(-bodyWidth * 0.34, -bodyHeight * 0.16, bodyWidth * 0.68, bodyHeight * 0.42);
+  } else if (player.side === "home") {
+    context.fillRect(-scale * 0.09, -bodyHeight * 0.28, scale * 0.18, bodyHeight * 0.74);
+  } else {
+    context.save();
+    context.rotate(-0.42);
+    context.fillRect(-bodyWidth * 0.7, -scale * 0.09, bodyWidth * 1.4, scale * 0.18);
+    context.restore();
+  }
+
+  // Tiny chest mark reinforces side readability at low zoom.
+  context.fillStyle = player.side === "home" ? theme.homeTrim : theme.awayTrim;
+  context.fillRect(-bodyWidth * 0.31, -bodyHeight * 0.17, scale * 0.12, scale * 0.12);
 
   // Arms; keepers and celebrations have distinct silhouettes.
   context.strokeStyle = skin;
