@@ -19,22 +19,22 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageUrl = `${protocol}://${host}/og-v7.png`;
 
   return {
-    title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
+    title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
     description:
-      "Gameplay 2D com IA tática, joystick analógico mobile, duração e dificuldade configuráveis, regras reais em campo e criação de atleta redesenhada.",
+      "Futebol 2D com sprites procedurais originais, animações arcade, estádio estilizado, replay, HUD retrô e câmeras configuráveis.",
     applicationName: "Legado FC",
     manifest: "/manifest.webmanifest",
     openGraph: {
-      title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
+      title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
       description:
-        "A 0.5.3 aprofunda o futebol jogável com táticas, dificuldade real, regras de campo, controles mobile analógicos e creator responsivo.",
+        "A 0.5.4 dá identidade visual própria à partida sem alterar a simulação validada na 0.5.3.",
       type: "website",
-      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta" }],
+      images: [{ url: imageUrl, width: 1536, height: 1024, alt: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Legado FC 0.5.3 — Futebol, Controles e Criação de Atleta",
-      description: "Campo 2D, 12 estilos táticos, joystick analógico, dificuldade real, creator renovado e partidas validadas em desktop e mobile.",
+      title: "Legado FC 0.5.4 — Visual Retrô e Apresentação da Partida",
+      description: "Sprites originais, três câmeras, qualidade ajustável, replay e HUD arcade validados em desktop e mobile.",
       images: [imageUrl],
     },
   };
