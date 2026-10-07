@@ -8,7 +8,6 @@ import type {
   MatchCoreConfig,
   MatchCoreState,
   MatchPlayerRatings,
-  MatchPlayerState,
   MatchSide,
 } from "../match-core/types.ts";
 import {
@@ -20,7 +19,6 @@ import type {
   SetPiece3DResult,
   SetPieceEligibility,
   SetPieceInput,
-  SetPieceRendererMode,
 } from "./types.ts";
 
 const fallbackRatings: MatchPlayerRatings = {
