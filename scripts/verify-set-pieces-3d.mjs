@@ -191,7 +191,9 @@ assert.equal(directContext.goalX, 105);
 
 // Applying a 3D goal back into the 2D core preserves clock/cards/stamina and increments only the score.
 {
-  const beforeClock = JSON.stringify(directState.clock);
+  const beforeMatchSeconds = directState.clock.matchSeconds;
+  const beforePeriodSeconds = directState.clock.periodSeconds;
+  const beforeAddedTime = directState.clock.addedTimeSeconds;
   const beforePlayer = directState.players.find((item) => item.id === "career");
   const syntheticGoal = {
     kind: "free-kick-direct",
@@ -211,7 +213,9 @@ assert.equal(directContext.goalX, 105);
   const after = applySetPieceResultToMatch(directState, syntheticGoal, DEFAULT_MATCH_CORE_CONFIG);
   assert.equal(after.score.home, directState.score.home + 1);
   assert.equal(after.score.away, directState.score.away);
-  assert.equal(JSON.stringify(after.clock), beforeClock);
+  assert.equal(after.clock.matchSeconds, beforeMatchSeconds);
+  assert.equal(after.clock.periodSeconds, beforePeriodSeconds);
+  assert.ok(after.clock.addedTimeSeconds >= beforeAddedTime, "stoppage time may grow but live clock cannot jump");
   assert.equal(after.players.find((item) => item.id === "career")?.yellowCards, beforePlayer?.yellowCards);
   assert.equal(after.players.find((item) => item.id === "career")?.stamina, beforePlayer?.stamina);
   assert.equal(after.restart?.type, "kickoff");
