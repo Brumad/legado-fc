@@ -223,6 +223,31 @@ assert.equal(directContext.goalX, 105);
   assert.equal(validateMatchCoreState(after).valid, true);
 }
 
+// Defensive wall/clearance touch must return to 2D with the defender as the real last touch.
+{
+  const blocked = {
+    kind: "free-kick-direct",
+    outcome: "blocked",
+    attackingSide: "home",
+    defendingSide: "away",
+    takerId: "career",
+    receiverId: "a2",
+    keeperId: "gk",
+    endPosition: { x: 92.5, y: 1.4, z: 31 },
+    endPosition2D: { x: 92.5, y: 31 },
+    endVelocity2D: { x: -4.5, y: 1.2 },
+    goal: false,
+    saved: false,
+    blocked: true,
+    elapsed: 0.62,
+  };
+  const after = applySetPieceResultToMatch(directState, blocked, DEFAULT_MATCH_CORE_CONFIG);
+  assert.equal(after.ball.lastTouchPlayerId, "a2");
+  assert.equal(after.ball.lastTouchSide, "away");
+  assert.equal(after.score.home, directState.score.home);
+  assert.equal(after.clock.matchSeconds, directState.clock.matchSeconds);
+}
+
 // Saved shot returns possession to the actual goalkeeper without changing score/time.
 {
   const beforeScore = JSON.stringify(directState.score);

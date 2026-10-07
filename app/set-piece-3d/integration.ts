@@ -258,6 +258,11 @@ export function applySetPieceResultToMatch(
       },
     };
   } else {
+    const receiver = result.receiverId
+      ? state.players.find((player) => player.id === result.receiverId)
+      : null;
+    const lastTouchPlayerId = receiver?.id ?? result.takerId;
+    const lastTouchSide = receiver?.side ?? result.attackingSide;
     state = {
       ...state,
       ball: {
@@ -268,8 +273,8 @@ export function applySetPieceResultToMatch(
         },
         velocity: { ...result.endVelocity2D },
         possessionPlayerId: null,
-        lastTouchPlayerId: result.receiverId ?? result.takerId,
-        lastTouchSide: result.attackingSide,
+        lastTouchPlayerId,
+        lastTouchSide,
         pickupCooldownTicks: 5,
       },
     };
