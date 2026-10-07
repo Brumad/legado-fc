@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MatchCameraMode, MatchVisualQuality } from "./match-core/renderer.ts";
 import type { CareerState, Fixture } from "./game-engine.ts";
 import {
@@ -12,7 +12,16 @@ import {
   PlayableMatchCanvas,
   type PlayableMatchCanvasHandle,
 } from "./playable-match-canvas.tsx";
+import { DEFAULT_MATCH_CORE_CONFIG } from "./match-core/config.ts";
 import type { MatchCoreState } from "./match-core/types.ts";
+import { SetPiece3DScreen } from "./set-piece-3d/set-piece-3d-screen.tsx";
+import {
+  applySetPieceResultToMatch,
+  createSetPieceContextFromMatch,
+  type SetPieceContext,
+  type SetPieceResult,
+  type SetPieceSceneVisuals,
+} from "./set-piece-3d/index.ts";
 
 export function PlayableMatchScreen({
   career,
@@ -51,6 +60,8 @@ export function PlayableMatchScreen({
   const [replayEnabled, setReplayEnabled] = useState(true);
   const [replayActive, setReplayActive] = useState(false);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
+  const [setPieceSession, setSetPieceSession] = useState<{ context: SetPieceContext; base: MatchCoreState } | null>(null);
+  const skippedSetPieceRef = useRef<string | null>(null);
   const unavailable = career.suspensionMatches > 0 || career.injuryMatchesRemaining > 0;
   const controlled = snapshot.players.find((player) => player.controlled);
   const playerSide = playable.context.playerSide;
@@ -73,6 +84,62 @@ export function PlayableMatchScreen({
     homeTrim: homeKit === "#ffffff" ? "#152018" : "#f1f5ef",
     awayTrim: awayKit === "#ffffff" ? "#152018" : "#f1f5ef",
   }), [awayKit, homeKit]);
+  const setPieceVisuals = useMemo<SetPieceSceneVisuals>(() => ({
+    homeKit,
+    awayKit,
+    skinTone: career.skinTone,
+    hairColor: career.hairColor ?? "#171917",
+    shirtNumber: career.shirtNumber,
+  }), [awayKit, career.hairColor, career.shirtNumber, career.skinTone, homeKit]);
+
+  useEffect(() => {
+    if (unavailable || snapshot.finished || finalState || setPieceSession || replayActive) return;
+    const liveState = canvasRef.current?.getState() ?? snapshot;
+    const context = createSetPieceContextFromMatch(
+      liveState,
+      playable.context.controlledPlayerId,
+      career.foot,
+    );
+    if (!context || skippedSetPieceRef.current === context.id) return;
+    canvasRef.current?.pause();
+    setSetPieceSession({ context, base: liveState });
+  }, [
+    career.foot,
+    finalState,
+    playable.context.controlledPlayerId,
+    replayActive,
+    setPieceSession,
+    snapshot.finished,
+    snapshot.restart?.position.x,
+    snapshot.restart?.position.y,
+    snapshot.restart?.side,
+    snapshot.restart?.type,
+    snapshot.restart?.ticksRemaining,
+    unavailable,
+  ]);
+
+  function completeSetPiece(result: SetPieceResult) {
+    const session = setPieceSession;
+    if (!session) return;
+    const next = applySetPieceResultToMatch(
+      session.base,
+      result,
+      { ...DEFAULT_MATCH_CORE_CONFIG, ...runtimeConfig },
+    );
+    skippedSetPieceRef.current = null;
+    canvasRef.current?.replaceState(next);
+    setSnapshot(next);
+    setSetPieceSession(null);
+  }
+
+  function fallbackTo2DSetPiece() {
+    const session = setPieceSession;
+    if (!session) return;
+    skippedSetPieceRef.current = session.context.id;
+    canvasRef.current?.replaceState(session.base);
+    setSnapshot(session.base);
+    setSetPieceSession(null);
+  }
 
   function finishPlayableMatch() {
     const state = finalState ?? canvasRef.current?.getState();
@@ -91,11 +158,22 @@ export function PlayableMatchScreen({
       data-camera-mode={cameraMode}
       data-visual-quality={visualQuality}
       data-replay-active={replayActive ? "yes" : "no"}
+      data-set-piece-3d-active={setPieceSession ? "yes" : "no"}
     >
+      {setPieceSession && (
+        <SetPiece3DScreen
+          key={setPieceSession.context.id}
+          context={setPieceSession.context}
+          visuals={setPieceVisuals}
+          onComplete={completeSetPiece}
+          onFallback={fallbackTo2DSetPiece}
+        />
+      )}
+
       <header className="playable-match-header">
         <button className="playable-exit" onClick={onExit} aria-label="Sair da partida">←</button>
         <div className="playable-competition">
-          <span>0.5.4 · VISUAL RETRÔ</span>
+          <span>0.5.5 · BOLAS PARADAS 3D</span>
           <strong>{fixture.competition}</strong>
           <small>{fixture.home ? "CASA" : "FORA"} · {fixture.weather} · {durationLabel}</small>
         </div>
@@ -227,7 +305,7 @@ export function PlayableMatchScreen({
             </section>
 
             <section className="playable-visual-settings">
-              <span>APRESENTAÇÃO 0.5.4</span>
+              <span>APRESENTAÇÃO 0.5.5</span>
               <div>
                 {(["follow","broadcast","wide"] as MatchCameraMode[]).map((mode) => (
                   <button key={mode} className={cameraMode === mode ? "is-active" : ""} onClick={() => setCameraMode(mode)}>
