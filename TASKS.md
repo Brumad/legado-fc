@@ -768,7 +768,9 @@ Fazer a partida possuir identidade visual própria e leitura comparável a um bo
 
 # 0.5.5 - Faltas e escanteios em 3D
 
-Status: **PLANEJADO**
+Branch: `feat/v0.5.5-3d-set-pieces`
+
+Status: **EM DESENVOLVIMENTO**
 
 ## Objetivo
 
