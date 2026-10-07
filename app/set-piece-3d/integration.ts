@@ -124,7 +124,7 @@ export function createSetPieceContextFromMatch(
   const keeperX = goalX + (attackingSide === "home" ? -0.35 : 0.35);
 
   return {
-    id: `${state.matchId}:${state.tick}:${state.restart.type}:${attackingSide}`,
+    id: `${state.matchId}:${state.restart.type}:${attackingSide}:${state.restart.position.x.toFixed(2)}:${state.restart.position.y.toFixed(2)}`,
     matchId: state.matchId,
     kind,
     attackingSide,

@@ -224,18 +224,27 @@ test("0.5.5 lifted free kick is controllable by gamepad input", async () => {
   await browser.close();
 });
 
-test("0.5.5 WebGL-disabled browser completes the set piece through compatibility fallback", async () => {
+test("0.5.5 WebGL-disabled browser returns to the same traditional 2D restart without reopening 3D", async () => {
   const browser = await launchBrowser();
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
   await openMatch(page, { disableWebGL: true });
 
+  const match = page.locator("[data-playable-match-screen]");
+  const minuteBefore = Number(await match.getAttribute("data-match-minute"));
   const setPiece = await triggerDeveloperSetPiece(page, "TESTAR FALTA 3D", "free-kick-direct");
   await expect(setPiece).toHaveAttribute("data-webgl", "fallback", { timeout: 8_000 });
   await expect(page.getByText("WEBGL INDISPONÍVEL")).toBeVisible();
-  await page.getByRole("button", { name: "COBRAR EM MODO COMPATIBILIDADE" }).click();
+  await page.getByRole("button", { name: "VOLTAR AO 2D" }).click();
 
-  await expectReturnedTo2D(page);
+  await expect(match).toHaveAttribute("data-set-piece-3d-active", "no");
+  await expect(match).toHaveAttribute("data-last-set-piece-outcome", "fallback-2d");
+  await expect(page.locator("[data-playable-canvas]")).toBeVisible();
+  await page.waitForTimeout(1200);
+  await expect(match).toHaveAttribute("data-set-piece-3d-active", "no");
+  const minuteAfter = Number(await match.getAttribute("data-match-minute"));
+  expect(minuteAfter).toBeGreaterThanOrEqual(minuteBefore);
+
   await context.close();
   await browser.close();
 });

@@ -113,6 +113,10 @@ export function PlayableMatchScreen({
   useEffect(() => {
     if (unavailable || snapshot.finished || finalState || setPieceSession || replayActive) return;
     const liveState = canvasRef.current?.getState() ?? snapshot;
+    if (!liveState.restart) {
+      skippedSetPieceRef.current = null;
+      return;
+    }
     const context = createSetPieceContextFromMatch(
       liveState,
       playable.context.controlledPlayerId,
