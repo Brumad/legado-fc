@@ -2910,3 +2910,36 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
     bottom: 10px;
   }
 }
+
+
+/* 0.5.5 — developer set-piece validation hooks */
+.playable-set-piece-dev {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px dashed rgba(212,255,99,.35);
+  border-radius: 11px;
+  background: rgba(212,255,99,.035);
+}
+.playable-set-piece-dev > span {
+  color: var(--lime);
+  font: 800 5px var(--font-mono);
+  letter-spacing: .08em;
+}
+.playable-set-piece-dev > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.playable-set-piece-dev button {
+  min-height: 34px;
+  padding: 5px;
+  border: 1px solid rgba(212,255,99,.18);
+  border-radius: 7px;
+  color: var(--lime);
+  background: rgba(0,0,0,.18);
+  font: 800 4px var(--font-mono);
+}
+@media (max-width: 760px) {
+  .playable-set-piece-dev { display: none; }
+}

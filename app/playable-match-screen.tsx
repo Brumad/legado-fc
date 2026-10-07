@@ -61,6 +61,7 @@ export function PlayableMatchScreen({
   const [replayActive, setReplayActive] = useState(false);
   const [finalState, setFinalState] = useState<MatchCoreState | null>(null);
   const [setPieceSession, setSetPieceSession] = useState<{ context: SetPieceContext; base: MatchCoreState } | null>(null);
+  const [lastSetPieceOutcome, setLastSetPieceOutcome] = useState<string>("");
   const skippedSetPieceRef = useRef<string | null>(null);
   const unavailable = career.suspensionMatches > 0 || career.injuryMatchesRemaining > 0;
   const controlled = snapshot.players.find((player) => player.controlled);
@@ -129,6 +130,7 @@ export function PlayableMatchScreen({
     skippedSetPieceRef.current = null;
     canvasRef.current?.replaceState(next);
     setSnapshot(next);
+    setLastSetPieceOutcome(result.outcome);
     setSetPieceSession(null);
   }
 
@@ -138,7 +140,49 @@ export function PlayableMatchScreen({
     skippedSetPieceRef.current = session.context.id;
     canvasRef.current?.replaceState(session.base);
     setSnapshot(session.base);
+    setLastSetPieceOutcome("fallback-2d");
     setSetPieceSession(null);
+  }
+
+  function openDeveloperSetPiece(type: "free-kick" | "corner") {
+    if (!developerMode || setPieceSession || snapshot.finished) return;
+    const state = canvasRef.current?.getState() ?? snapshot;
+    const side = playable.context.playerSide;
+    const position = type === "corner"
+      ? {
+          x: side === "home" ? state.pitch.length : 0,
+          y: side === "home" ? 0 : state.pitch.width,
+        }
+      : {
+          x: side === "home" ? state.pitch.length - 24 : 24,
+          y: state.pitch.width / 2,
+        };
+    const next: MatchCoreState = {
+      ...state,
+      paused: false,
+      clock: {
+        ...state.clock,
+        running: state.clock.phase === "first-half" || state.clock.phase === "second-half",
+      },
+      restart: {
+        type,
+        side,
+        position,
+        ticksRemaining: 50,
+        label: type === "corner" ? "Escanteio" : "Falta",
+      },
+      ball: {
+        ...state.ball,
+        position: { ...position },
+        velocity: { x: 0, y: 0 },
+        possessionPlayerId: null,
+        pickupCooldownTicks: 50,
+      },
+    };
+    skippedSetPieceRef.current = null;
+    canvasRef.current?.replaceState(next);
+    setSnapshot(next);
+    setLastSetPieceOutcome("");
   }
 
   function finishPlayableMatch() {
@@ -159,6 +203,7 @@ export function PlayableMatchScreen({
       data-visual-quality={visualQuality}
       data-replay-active={replayActive ? "yes" : "no"}
       data-set-piece-3d-active={setPieceSession ? "yes" : "no"}
+      data-last-set-piece-outcome={lastSetPieceOutcome}
     >
       {setPieceSession && (
         <SetPiece3DScreen
@@ -327,6 +372,16 @@ export function PlayableMatchScreen({
                 REPLAY {replayEnabled ? "ON" : "OFF"}
               </button>
             </section>
+
+            {developerMode && (
+              <section className="playable-set-piece-dev">
+                <span>DEV 0.5.5 · BOLAS PARADAS</span>
+                <div>
+                  <button onClick={() => openDeveloperSetPiece("free-kick")}>TESTAR FALTA 3D</button>
+                  <button onClick={() => openDeveloperSetPiece("corner")}>TESTAR ESCANTEIO 3D</button>
+                </div>
+              </section>
+            )}
 
             <section className="playable-match-buttons">
               <button onClick={() => canvasRef.current?.togglePause()} disabled={snapshot.finished || snapshot.clock.phase === "half-time"}>
