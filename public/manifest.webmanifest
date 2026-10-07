@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Legado FC 0.5.3: futebol 2D com IA tática, controles mobile analógicos, duração e dificuldade configuráveis, regras reais e criação de atleta redesenhada.",
+  "description": "Legado FC 0.5.4: partida 2D com sprites procedurais originais, visual retrô, estádio estilizado, replay, HUD arcade e câmeras configuráveis.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07140e",
