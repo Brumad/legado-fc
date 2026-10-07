@@ -770,7 +770,14 @@ Fazer a partida possuir identidade visual própria e leitura comparável a um bo
 
 Branch: `feat/v0.5.5-3d-set-pieces`
 
-Status: **EM DESENVOLVIMENTO**
+PR: **#7**
+
+Checkpoint funcional: `46e906dd`  
+Workflow funcional: `37649068050` — **PASS**
+
+Gate final cobre física headless, 5.000 partidas legadas, 25 temporadas, build, Pages e WebGL real com mouse/touch/gamepad/fallback.
+
+Status: **IMPLEMENTADO E VALIDADO**
 
 ## Objetivo
 
@@ -786,39 +793,39 @@ Pênaltis podem ser migrados para a mesma tecnologia depois que faltas e escante
 
 ## Tarefas
 
-- [ ] Criar cena 3D independente da interface React.
-- [ ] Criar campo/área 3D simplificada.
-- [ ] Criar câmera específica para falta.
-- [ ] Criar câmera específica para escanteio.
-- [ ] Criar goleiro 3D.
-- [ ] Criar barreira.
-- [ ] Criar jogadores na área.
-- [ ] Criar trajetória da bola.
-- [ ] Criar potência.
-- [ ] Criar altura.
-- [ ] Criar efeito/curva.
-- [ ] Criar gesto de arrastar no touch.
-- [ ] Criar equivalente por mouse.
-- [ ] Criar equivalente por controle.
-- [ ] Transformar atributos do jogador em precisão, curva e potência.
-- [ ] Integrar posicionamento da cobrança com o estado da partida 2D.
-- [ ] Retornar o resultado da cobrança ao motor 2D.
-- [ ] Preservar minuto, placar, cartões, stamina, lesões e posse.
-- [ ] Criar fallback 2D quando WebGL não estiver disponível.
-- [ ] Evitar carregamento pesado a cada cobrança.
+- [x] Criar cena 3D independente da interface React.
+- [x] Criar campo/área 3D simplificada.
+- [x] Criar câmera específica para falta.
+- [x] Criar câmera específica para escanteio.
+- [x] Criar goleiro 3D.
+- [x] Criar barreira.
+- [x] Criar jogadores na área.
+- [x] Criar trajetória da bola.
+- [x] Criar potência.
+- [x] Criar altura.
+- [x] Criar efeito/curva.
+- [x] Criar gesto de arrastar no touch.
+- [x] Criar equivalente por mouse.
+- [x] Criar equivalente por controle.
+- [x] Transformar atributos do jogador em precisão, curva e potência.
+- [x] Integrar posicionamento da cobrança com o estado da partida 2D.
+- [x] Retornar o resultado da cobrança ao motor 2D.
+- [x] Preservar minuto, placar, cartões, stamina, lesões e posse.
+- [x] Criar fallback 2D quando WebGL não estiver disponível.
+- [x] Evitar carregamento pesado a cada cobrança.
 
 ## Critérios de aceite
 
-- [ ] Transição 2D -> 3D -> 2D não reinicia a partida.
-- [ ] O placar permanece consistente.
-- [ ] O relógio permanece consistente.
-- [ ] Jogadores e cartões permanecem consistentes.
-- [ ] A posição da falta corresponde ao local da infração.
-- [ ] Escanteio respeita o lado correto do campo.
-- [ ] Curva, altura e potência alteram a trajetória.
-- [ ] Goleiro reage à trajetória, não a um resultado pré-definido.
-- [ ] Fallback 2D permite concluir a partida.
-- [ ] Nenhum asset ou interface é copiado de Score! Hero ou outro jogo.
+- [x] Transição 2D -> 3D -> 2D não reinicia a partida.
+- [x] O placar permanece consistente.
+- [x] O relógio permanece consistente.
+- [x] Jogadores e cartões permanecem consistentes.
+- [x] A posição da falta corresponde ao local da infração.
+- [x] Escanteio respeita o lado correto do campo.
+- [x] Curva, altura e potência alteram a trajetória.
+- [x] Goleiro reage à trajetória, não a um resultado pré-definido.
+- [x] Fallback 2D permite concluir a partida.
+- [x] Nenhum asset ou interface é copiado de Score! Hero ou outro jogo.
 
 ---
 
