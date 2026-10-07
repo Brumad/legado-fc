@@ -18,27 +18,6 @@ export type SetPieceSceneController = {
   dispose: () => void;
 };
 
-type SceneLike = {
-  add: (object: unknown) => void;
-};
-
-type PositionLike = {
-  copy: (value: unknown) => void;
-};
-
-type DisposableLike = {
-  dispose?: () => void;
-};
-
-type DisposableMaterialLike = DisposableLike & {
-  map?: DisposableLike | null;
-};
-
-type TraversedObject = {
-  geometry?: DisposableLike;
-  material?: DisposableMaterialLike | DisposableMaterialLike[];
-};
-
 function material(color: string, roughness = 0.78) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.02 });
 }
@@ -47,14 +26,14 @@ function worldPosition(value: Vector3) {
   return new THREE.Vector3(value.x, value.y, value.z);
 }
 
-function addLine(scene: SceneLike, points: Vector3[], color = "#e8f4e8") {
+function addLine(scene: THREE.Object3D, points: Vector3[], color = "#e8f4e8") {
   const geometry = new THREE.BufferGeometry().setFromPoints(points.map(worldPosition));
   const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.8 }));
   scene.add(line);
   return line;
 }
 
-function addPitch(scene: SceneLike, context: SetPieceContext) {
+function addPitch(scene: THREE.Object3D, context: SetPieceContext) {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(105, 68, 1, 1),
     new THREE.MeshStandardMaterial({ color: "#2d8147", roughness: 1 }),
@@ -95,7 +74,7 @@ function addPitch(scene: SceneLike, context: SetPieceContext) {
   ]);
 }
 
-function addGoal(scene: SceneLike, context: SetPieceContext) {
+function addGoal(scene: THREE.Object3D, context: SetPieceContext) {
   const post = material("#f7fff6", 0.45);
   const depth = 2.1;
   const x = context.goalX;
@@ -306,7 +285,7 @@ function createActorMesh(
   return group;
 }
 
-function addCrowd(scene: SceneLike, quality = 1) {
+function addCrowd(scene: THREE.Object3D, quality = 1) {
   const standMat = material("#0c2016");
   for (const z of [-4.5, 72.5]) {
     const stand = new THREE.Mesh(new THREE.BoxGeometry(105, 5.5, 6), standMat);
@@ -378,7 +357,7 @@ export function createSetPieceThreeScene(
 
   const homeKit = visuals.homeKit || "#f5f5f5";
   const awayKit = visuals.awayKit || "#1b2730";
-  const actorMeshes = new Map<string, { position: PositionLike }>();
+  const actorMeshes = new Map<string, THREE.Group>();
   const createActor = (actor: { playerId: string; side: "home" | "away"; position: Vector3; role?: string }, controlled = false) => {
     const mesh = createActorMesh(
       actor.side === "home" ? homeKit : awayKit,
@@ -479,12 +458,19 @@ export function createSetPieceThreeScene(
     resize,
     dispose() {
       resizeObserver.disconnect();
-      scene.traverse((object: TraversedObject) => {
-        object.geometry?.dispose?.();
-        const mats = object.material ? (Array.isArray(object.material) ? object.material : [object.material]) : [];
-        for (const item of mats) {
-          item.map?.dispose?.();
-          item.dispose?.();
+      scene.traverse((object) => {
+        const disposable = object as THREE.Object3D & {
+          geometry?: THREE.BufferGeometry;
+          material?: THREE.Material | THREE.Material[];
+        };
+        disposable.geometry?.dispose();
+        const materials = disposable.material
+          ? (Array.isArray(disposable.material) ? disposable.material : [disposable.material])
+          : [];
+        for (const item of materials) {
+          const mapped = item as THREE.Material & { map?: THREE.Texture | null };
+          mapped.map?.dispose();
+          item.dispose();
         }
       });
       renderer.dispose();
