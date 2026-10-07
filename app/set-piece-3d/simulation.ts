@@ -20,10 +20,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function distance3(a: Vector3, b: Vector3) {
-  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
 function distance2(a: Vector3, b: Vector3) {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   SetPieceRuntime,
   createSetPieceThreeScene,
@@ -59,18 +59,16 @@ export function SetPiece3DScreen({
   const timeoutRef = useRef<number | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const pathRef = useRef<Array<{ x: number; y: number }>>([]);
-  const launchRef = useRef<(gesture: SetPieceGesture) => void>(() => {});
   const previousGamepadPressedRef = useRef(false);
   const resolvedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
   const [phase, setPhase] = useState<Phase>("aiming");
   const [support, setSupport] = useState<"checking" | "webgl" | "fallback">("checking");
   const [drawPath, setDrawPath] = useState<Array<{ x: number; y: number }>>([]);
   const [gesture, setGesture] = useState<SetPieceGesture>(defaultGesture(context));
   const [result, setResult] = useState<SetPieceResult | null>(null);
 
-  function launch(nextGesture: SetPieceGesture) {
+  const launch = useCallback((nextGesture: SetPieceGesture) => {
     if (phase !== "aiming") return;
     const runtime = new SetPieceRuntime(context, nextGesture);
     runtimeRef.current = runtime;
@@ -79,16 +77,21 @@ export function SetPiece3DScreen({
     pathRef.current = [];
     setPhase("flight");
     sceneRef.current?.update(runtime.state);
-  }
-  launchRef.current = launch;
+  }, [context, phase]);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     if (!supportsSetPieceWebGL()) {
-      setSupport("fallback");
-      setPhase("fallback");
-      return;
+      const fallbackTimer = window.setTimeout(() => {
+        setSupport("fallback");
+        setPhase("fallback");
+      }, 0);
+      return () => window.clearTimeout(fallbackTimer);
     }
 
     try {
@@ -98,9 +101,11 @@ export function SetPiece3DScreen({
       scene.update(preview.state);
       setSupport("webgl");
     } catch {
-      setSupport("fallback");
-      setPhase("fallback");
-      return;
+      const fallbackTimer = window.setTimeout(() => {
+        setSupport("fallback");
+        setPhase("fallback");
+      }, 0);
+      return () => window.clearTimeout(fallbackTimer);
     }
 
     let last = performance.now();
@@ -165,14 +170,14 @@ export function SetPiece3DScreen({
         };
         setGesture(next);
         const pressed = Boolean(pad.buttons[0]?.pressed);
-        if (pressed && !previousGamepadPressedRef.current) launchRef.current(next);
+        if (pressed && !previousGamepadPressedRef.current) launch(next);
         previousGamepadPressedRef.current = pressed;
       }
       frame = window.requestAnimationFrame(poll);
     };
     frame = window.requestAnimationFrame(poll);
     return () => window.cancelAnimationFrame(frame);
-  }, [phase, support]);
+  }, [launch, phase, support]);
 
   function localPoint(event: ReactPointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
