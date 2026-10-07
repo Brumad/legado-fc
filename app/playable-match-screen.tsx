@@ -144,19 +144,25 @@ export function PlayableMatchScreen({
     setSetPieceSession(null);
   }
 
-  function openDeveloperSetPiece(type: "free-kick" | "corner") {
+  function openDeveloperSetPiece(variant: "direct" | "cross" | "corner") {
     if (!developerMode || setPieceSession || snapshot.finished) return;
     const state = canvasRef.current?.getState() ?? snapshot;
     const side = playable.context.playerSide;
-    const position = type === "corner"
+    const type = variant === "corner" ? "corner" : "free-kick";
+    const position = variant === "corner"
       ? {
           x: side === "home" ? state.pitch.length : 0,
           y: side === "home" ? 0 : state.pitch.width,
         }
-      : {
-          x: side === "home" ? state.pitch.length - 24 : 24,
-          y: state.pitch.width / 2,
-        };
+      : variant === "cross"
+        ? {
+            x: side === "home" ? state.pitch.length - 38 : 38,
+            y: side === "home" ? 8 : state.pitch.width - 8,
+          }
+        : {
+            x: side === "home" ? state.pitch.length - 24 : 24,
+            y: state.pitch.width / 2,
+          };
     const next: MatchCoreState = {
       ...state,
       paused: false,
@@ -377,7 +383,8 @@ export function PlayableMatchScreen({
               <section className="playable-set-piece-dev">
                 <span>DEV 0.5.5 · BOLAS PARADAS</span>
                 <div>
-                  <button onClick={() => openDeveloperSetPiece("free-kick")}>TESTAR FALTA 3D</button>
+                  <button onClick={() => openDeveloperSetPiece("direct")}>TESTAR FALTA 3D</button>
+                  <button onClick={() => openDeveloperSetPiece("cross")}>TESTAR CRUZAMENTO 3D</button>
                   <button onClick={() => openDeveloperSetPiece("corner")}>TESTAR ESCANTEIO 3D</button>
                 </div>
               </section>
