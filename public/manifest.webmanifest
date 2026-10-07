@@ -1,7 +1,7 @@
 {
   "name": "Legado FC",
   "short_name": "Legado FC",
-  "description": "Legado FC 0.5.4: partida 2D com sprites procedurais originais, visual retrô, estádio estilizado, replay, HUD arcade e câmeras configuráveis.",
+  "description": "Legado FC 0.5.5: faltas diretas, faltas levantadas e escanteios em 3D real com Three.js, física própria, mouse, touch, gamepad e fallback 2D.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07140e",
