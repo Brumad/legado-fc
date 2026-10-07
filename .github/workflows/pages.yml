@@ -52,6 +52,9 @@ jobs:
       - name: Validar apresentação visual 0.5.4
         run: pnpm verify:0.5.4
 
+      - name: Validar bolas paradas 3D 0.5.5
+        run: pnpm verify:set-pieces-3d
+
       - name: Gerar o site estático
         run: pnpm build:github
         env:
