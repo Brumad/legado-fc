@@ -176,7 +176,15 @@ export function buildSetPieceTrajectory(
       z: position.z + velocity.z * DT,
     };
     time += DT;
-    points.push({ ...position, ...velocity, t: time });
+    points.push({
+      x: position.x,
+      y: position.y,
+      z: position.z,
+      vx: velocity.x,
+      vy: velocity.y,
+      vz: velocity.z,
+      t: time,
+    });
 
     if (position.y < 0.1 && time > 0.24) {
       if (Math.abs(velocity.y) > 2.2) {
