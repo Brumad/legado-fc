@@ -113,9 +113,16 @@ jobs:
         env:
           GITHUB_PAGES_BASE: /legado-fc/
 
-      - name: Validar apresentação real 0.5.4
+      - name: Validar apresentação real 0.5.4+
         if: startsWith(github.ref_name, 'feat/v0.5.4') || startsWith(github.head_ref, 'feat/v0.5.4') || startsWith(github.ref_name, 'feat/v0.5.5') || startsWith(github.head_ref, 'feat/v0.5.5')
         run: |
           pnpm exec playwright test tests/v054.visual.spec.mjs --reporter=line --workers=1
+        env:
+          GITHUB_PAGES_BASE: /legado-fc/
+
+      - name: Validar bolas paradas 3D reais 0.5.5
+        if: startsWith(github.ref_name, 'feat/v0.5.5') || startsWith(github.head_ref, 'feat/v0.5.5')
+        run: |
+          pnpm exec playwright test tests/v055.set-pieces.visual.spec.mjs --reporter=line --workers=1
         env:
           GITHUB_PAGES_BASE: /legado-fc/
