@@ -113,8 +113,9 @@ test("0.5.4 camera quality and effects change presentation without resetting gam
   expect(stats.colors).toBeGreaterThan(12);
   expect(stats.opaque).toBeGreaterThan(100);
 
-  await expect(page.locator(".playable-arcade-hud")).toBeVisible();
-  await expect(page.getByText("Alex Visual")).toBeVisible();
+  const arcadeHud = page.locator(".playable-arcade-hud");
+  await expect(arcadeHud).toBeVisible();
+  await expect(arcadeHud.getByText("Alex Visual")).toBeVisible();
   await context.close();
 });
 
