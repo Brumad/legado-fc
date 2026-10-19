@@ -126,13 +126,17 @@ function resultFrom(
   receiverId?: string,
 ): SetPieceResult {
   const ball = state.ball;
+  // A headed goal must keep the attacking player who made the last touch as
+  // the receiver. The Match Core uses this field to credit the scorer and to
+  // retain the taker as the possible assister.
+  const finalTouchId = receiverId ?? (outcome === "goal" ? state.headerBy : undefined);
   return {
     kind: state.context.kind,
     outcome,
     attackingSide: state.context.attackingSide,
     defendingSide: state.context.defendingSide,
     takerId: state.context.takerId,
-    receiverId,
+    receiverId: finalTouchId,
     keeperId: state.context.keeper.playerId,
     endPosition: { ...ball.position },
     endPosition2D: projectTo2D(ball.position),
@@ -343,3 +347,4 @@ export class SetPieceRuntime {
     return this.state.result!;
   }
 }
+
