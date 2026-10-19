@@ -1,5 +1,5 @@
-import { awardGoal } from "../match-core/actions.ts";
-import { oppositeSide } from "../match-core/rules.ts";
+import { awardGoal, recordRestartStat } from "../match-core/actions.ts";
+import { createRestartForBoundary, evaluateBallBoundary, oppositeSide } from "../match-core/rules.ts";
 import { appendMatchEvent } from "../match-core/state.ts";
 import type {
   MatchCoreConfig,
@@ -183,6 +183,57 @@ function incrementTeamShot(state: MatchCoreState, side: MatchSide, takerId: stri
   };
 }
 
+function goalKickRestart(state: MatchCoreState, side: MatchSide, config: MatchCoreConfig): MatchRestartState {
+  return {
+    type: "goal-kick",
+    side,
+    position: {
+      x: side === "home" ? 5.5 : state.pitch.length - 5.5,
+      y: state.pitch.width / 2,
+    },
+    ticksRemaining: config.restartDelayTicks,
+    label: "Tiro de meta",
+  };
+}
+
+function applyWideRestart(
+  state: MatchCoreState,
+  result: SetPieceResult,
+  config: MatchCoreConfig,
+): MatchCoreState {
+  const lastTouchId = result.receiverId ?? result.takerId;
+  const lastTouch = state.players.find((player) => player.id === lastTouchId);
+  let next: MatchCoreState = {
+    ...state,
+    ball: {
+      ...state.ball,
+      position: { ...result.endPosition2D },
+      velocity: { ...result.endVelocity2D },
+      possessionPlayerId: null,
+      lastTouchPlayerId: lastTouch?.id ?? lastTouchId,
+      lastTouchSide: lastTouch?.side ?? result.attackingSide,
+      pickupCooldownTicks: config.restartDelayTicks,
+    },
+    restart: null,
+  };
+
+  const boundary = evaluateBallBoundary(result.endPosition2D, state.pitch, state.ball.radius);
+  const restart = boundary.kind === "out"
+    ? createRestartForBoundary(next, boundary.edge, config.restartDelayTicks)
+    : goalKickRestart(next, result.defendingSide, config);
+  next = {
+    ...next,
+    restart,
+    ball: {
+      ...next.ball,
+      position: { ...restart.position },
+      velocity: { x: 0, y: 0 },
+      pickupCooldownTicks: config.restartDelayTicks,
+    },
+  };
+  return recordRestartStat(next, restart);
+}
+
 export function applySetPieceResultToMatch(
   baseState: MatchCoreState,
   result: SetPieceResult,
@@ -237,26 +288,7 @@ export function applySetPieceResultToMatch(
       },
     };
   } else if (result.outcome === "wide") {
-    const x = result.defendingSide === "home" ? 5.5 : state.pitch.length - 5.5;
-    state = {
-      ...state,
-      restart: {
-        type: "goal-kick",
-        side: result.defendingSide,
-        position: { x, y: state.pitch.width / 2 },
-        ticksRemaining: config.restartDelayTicks,
-        label: "Tiro de meta",
-      },
-      ball: {
-        ...state.ball,
-        position: { x, y: state.pitch.width / 2 },
-        velocity: { x: 0, y: 0 },
-        possessionPlayerId: null,
-        lastTouchPlayerId: result.takerId,
-        lastTouchSide: result.attackingSide,
-        pickupCooldownTicks: config.restartDelayTicks,
-      },
-    };
+    state = applyWideRestart(state, result, config);
   } else {
     const receiver = result.receiverId
       ? state.players.find((player) => player.id === result.receiverId)
@@ -288,3 +320,4 @@ export function applySetPieceResultToMatch(
     outcome: result.outcome,
   });
 }
+
