@@ -257,6 +257,60 @@ assert.equal(directContext.goalX, 105);
   assert.equal(validateMatchCoreState(after).valid, true);
 }
 
+// A headed goal credits the player who made the aerial touch and keeps the
+// taker as the assist candidate instead of crediting both actions to the taker.
+{
+  const headedGoal = {
+    kind: "free-kick-cross",
+    outcome: "goal",
+    attackingSide: "home",
+    defendingSide: "away",
+    takerId: "career",
+    receiverId: "h2",
+    keeperId: "gk",
+    endPosition: { x: 105, y: 1.2, z: 34 },
+    endPosition2D: { x: 105, y: 34 },
+    endVelocity2D: { x: 0, y: 0 },
+    goal: true,
+    saved: false,
+    blocked: false,
+    elapsed: 1.2,
+  };
+  const after = applySetPieceResultToMatch(directState, headedGoal, DEFAULT_MATCH_CORE_CONFIG);
+  assert.equal(after.stats.players.h2.goals, 1, "header player must receive the goal");
+  assert.equal(after.stats.players.career.assists, 1, "taker must remain the assist candidate");
+  assert.equal(after.events.at(-1)?.type, "set-piece-3d");
+}
+
+// A shot that leaves through the goal line must use the real last touch to
+// choose between goal kick and corner; it must not always become goal kick.
+{
+  const wideByAttacker = {
+    kind: "free-kick-direct",
+    outcome: "wide",
+    attackingSide: "home",
+    defendingSide: "away",
+    takerId: "career",
+    keeperId: "gk",
+    endPosition: { x: 106, y: 29, z: 29 },
+    endPosition2D: { x: 106, y: 29 },
+    endVelocity2D: { x: 4, y: 0 },
+    goal: false,
+    saved: false,
+    blocked: false,
+    elapsed: 1.2,
+  };
+  const goalKick = applySetPieceResultToMatch(directState, wideByAttacker, DEFAULT_MATCH_CORE_CONFIG);
+  assert.equal(goalKick.restart?.type, "goal-kick");
+  assert.equal(goalKick.restart?.side, "away");
+
+  const wideAfterDefenderTouch = { ...wideByAttacker, receiverId: "a2" };
+  const corner = applySetPieceResultToMatch(directState, wideAfterDefenderTouch, DEFAULT_MATCH_CORE_CONFIG);
+  assert.equal(corner.restart?.type, "corner");
+  assert.equal(corner.restart?.side, "home");
+  assert.equal(corner.stats.home.corners, directState.stats.home.corners + 1);
+}
+
 // Defensive wall/clearance touch must return to 2D with the defender as the real last touch.
 {
   const blocked = {
@@ -344,3 +398,4 @@ console.log(JSON.stringify({
   twoWayBridge: true,
   fallbackReady: true,
 }));
+
